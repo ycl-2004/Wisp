@@ -6,11 +6,61 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             ModelSettingsView().tabItem { Label("模型", systemImage: "cpu") }
-            CaptureSettingsView().tabItem { Label("屏幕与权限", systemImage: "lock.shield") }
+            CaptureSettingsView().tabItem { Label("权限", systemImage: "lock.shield") }
             DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }
             GeneralSettingsView().tabItem { Label("通用", systemImage: "gearshape") }
         }
-        .frame(width: 580, height: 470)
+        .frame(width: 620, height: 520)
+    }
+}
+
+// MARK: - 设置页的小零件
+
+private struct SettingsSectionHeader: View {
+    let title: LocalizedStringKey
+    let info: String?
+
+    init(_ title: LocalizedStringKey, info: String? = nil) {
+        self.title = title
+        self.info = info
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+            if let info {
+                InfoButton(message: info)
+            }
+        }
+    }
+}
+
+/// 常驻说明收进这里：悬停看 tooltip，点击给键盘用户一个可读的 popover。
+private struct InfoButton: View {
+    let message: String
+    @State private var isPresented = false
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 11, weight: .medium))
+                .frame(width: 18, height: 18)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help(Text(message))
+        .accessibilityLabel(Text("信息"))
+        .popover(isPresented: $isPresented, arrowEdge: .top) {
+            Text(message)
+                .font(.system(size: 11))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 280, alignment: .leading)
+                .padding(12)
+        }
     }
 }
 
@@ -109,10 +159,12 @@ struct ModelSettingsView: View {
                                set: { settings.model = $0; testResult = nil })
             )
             Field(label: "API Key") {
-                SecureField("sk-…", text: $apiKey)
-                    .onChange(of: apiKey) { testResult = nil }
+                HStack(spacing: 6) {
+                    SecureField("sk-…", text: $apiKey)
+                        .onChange(of: apiKey) { testResult = nil }
+                    InfoButton(message: String(localized: "请求发送到 \(endpointText)。API Key 保存在 macOS 钥匙串。"))
+                }
             }
-            Note("请求发到 \(endpointText)。Key 存在 macOS 钥匙串，不会写进对话文件。")
         }
     }
 
@@ -147,11 +199,11 @@ struct ModelSettingsView: View {
                     }
                     Button(probing ? "检测中…" : "刷新") { probeOllama() }
                         .disabled(probing)
+                    InfoButton(message: String(localized: "本机运行、无需联网；请选择支持图片输入的模型。"))
                 }
             }
 
             statusLine
-            Note("模型跑在本机，不联网也不花钱，但必须选一个能读图的模型，否则截图会被忽略。这里的清单直接读自本机 Ollama。")
         }
     }
 
@@ -198,6 +250,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
+                    InfoButton(message: String(localized: "使用已登录的 Codex，无需 API Key；回答一次性返回。"))
                 }
             }
             ModelPickerRow(
@@ -216,7 +269,6 @@ struct ModelSettingsView: View {
                     .font(.system(size: 11)).foregroundStyle(.red)
             }
 
-            Note("复用你已经登录的 Codex，不用另配 API Key。以只读沙箱运行，不落会话文件。两点要知道：它每次都会带上约两万 token 的固定上下文，走的是你的 Codex 额度；而且没有逐字流式，回答会一次性出现。")
         }
     }
 
@@ -232,6 +284,10 @@ struct ModelSettingsView: View {
                         KeychainStore.delete(); apiKey = ""; testResult = nil
                     }
                 }
+                Spacer(minLength: 0)
+                InfoButton(message: String(localized: kind == .codexCLI
+                                            ? "Codex 测试只检查能否启动。"
+                                            : "发送一张 64×64 测试图，验证连接和图片输入。"))
             }
             if let result = testResult {
                 Label(result.message, systemImage: result.ok ? "checkmark.circle" : "xmark.circle")
@@ -240,9 +296,6 @@ struct ModelSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
             }
-            Note(kind == .codexCLI
-                 ? "测试只检查能不能跑起 codex，不会真的发一次提问。"
-                 : "测试会发一张 64×64 的小图，用来同时验证连通性、模型名和这个模型是否接受图片输入。")
         }
     }
 
@@ -298,7 +351,7 @@ struct ModelSettingsView: View {
     }
 }
 
-// MARK: 设置页的小零件
+// MARK: - 模型页小零件
 
 private struct ProviderCard: View {
     let option: ProviderKind
@@ -307,33 +360,36 @@ private struct ProviderCard: View {
     @State private var hovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Image(systemName: option.symbol)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-            Text(option.title)
-                .font(.system(size: 12, weight: .medium))
-            Text(option.subtitle)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 3) {
+                Image(systemName: option.symbol)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                Text(option.title)
+                    .font(.system(size: 12, weight: .medium))
+                Text(option.subtitle)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(selected ? Color.accentColor.opacity(0.10)
+                                   : Color.primary.opacity(hovering ? 0.06 : 0.03))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(selected ? Color.accentColor.opacity(0.55) : Color.primary.opacity(0.10),
+                                  lineWidth: selected ? 1.2 : 0.5)
+            )
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(selected ? Color.accentColor.opacity(0.10)
-                               : Color.primary.opacity(hovering ? 0.06 : 0.03))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(selected ? Color.accentColor.opacity(0.55) : Color.primary.opacity(0.10),
-                              lineWidth: selected ? 1.2 : 0.5)
-        )
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture(perform: action)
+        .accessibilityAddTraits(selected ? .isSelected : [])
         .animation(.easeOut(duration: 0.12), value: selected)
     }
 }
@@ -394,13 +450,9 @@ private struct ModelPickerRow: View {
                         }
                 }
             } else if let note = presets.first(where: { $0.slug == value })?.note, !note.isEmpty {
-                HStack(spacing: 0) {
-                    Spacer().frame(width: 94)
-                    Text(note)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
+                HStack {
+                    Spacer()
+                    InfoButton(message: note)
                 }
             }
         }
@@ -440,20 +492,58 @@ private struct Field<Content: View>: View {
     }
 }
 
-private struct Note: View {
-    let text: LocalizedStringKey
-    init(_ text: LocalizedStringKey) { self.text = text }
+private struct CaptureModeOption: View {
+    let mode: CaptureMode
+    let selected: Bool
+    let action: () -> Void
+    @State private var hovering = false
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 10))
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: 4) {
+            Button(action: action) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: mode.symbol)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                    Text(mode.title)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if selected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            InfoButton(message: mode.detail)
+                .padding(.top, -2)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(selected ? Color.accentColor.opacity(0.10)
+                               : Color.primary.opacity(hovering ? 0.06 : 0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(selected ? Color.accentColor.opacity(0.55) : Color.primary.opacity(0.10),
+                              lineWidth: selected ? 1.2 : 0.5)
+        )
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: selected)
+        .animation(.easeOut(duration: 0.12), value: hovering)
     }
 }
 
-// MARK: - 屏幕与权限
+// MARK: - 权限
 
 private struct CaptureSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
@@ -471,11 +561,13 @@ private struct CaptureSettingsView: View {
 
     var body: some View {
         Form {
-            Section("快捷键") {
+            Section {
                 KeyboardShortcuts.Recorder("唤起助手：", name: .toggleAssistant)
+            } header: {
+                SettingsSectionHeader("快捷键")
             }
 
-            Section("常驻小药丸") {
+            Section {
                 Toggle("显示", isOn: Binding(
                     get: { settings.showIsland },
                     set: { settings.showIsland = $0; IslandController.shared.setEnabled($0) }
@@ -492,23 +584,17 @@ private struct CaptureSettingsView: View {
 
                 if settings.islandPosition == "bottom" {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text("按住药丸拖动就能把它挪到桌面上任何地方，松手就记住，重新打开也在那儿。助手面板不受影响，始终从底部中间展开。")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
+                        Spacer()
+                        InfoButton(message: String(localized: "底部位置可拖动，Wisp 会记住位置；面板仍从底部中央打开。"))
                         Button("回到默认位置") { IslandController.shared.resetPosition() }
                             .disabled(!settings.hasCustomIslandAnchor || !settings.showIsland)
                     }
                 }
-
-                Text("闲置时只有一颗图标大小，鼠标移上去才展开成一条，点一下打开助手。生成回答时会变宽并给出停止键。它只跟踪当前是哪个应用，不截图也不读页面。主面板打开时它会自动收起。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("常驻小药丸", info: String(localized: "空闲时只显示图标；悬停展开，点击打开。回答生成时可停止。"))
             }
 
-            Section("自动收起") {
+            Section {
                 Toggle("离开面板后自动收起", isOn: Binding(
                     get: { settings.idleDismissSeconds > 0 },
                     set: { on in
@@ -533,13 +619,11 @@ private struct CaptureSettingsView: View {
                                ),
                                in: 1...300)
                     .disabled(settings.idleDismissSeconds <= 0)
-                Text("你去看别的窗口以后才开始倒计时。面板有焦点、鼠标停在上面、或者回答正在生成，都不会收起。收起只是把面板收回小药丸，对话不会丢。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("自动收起", info: String(localized: "离开面板后开始倒计时；输入、悬停、生成或采集时不会收起。"))
             }
 
-            Section("权限") {
+            Section {
                 HStack {
                     Label(hasScreenRecording ? "屏幕录制：已授权" : "屏幕录制：未授权",
                           systemImage: hasScreenRecording ? "checkmark.circle" : "xmark.circle")
@@ -553,13 +637,11 @@ private struct CaptureSettingsView: View {
                     Spacer()
                     Button("打开系统设置") { Permissions.openAutomationSettings() }
                 }
-                Text("读取整页文字还需要在浏览器里打开一次：Chrome 是「View → Developer → Allow JavaScript from Apple Events」，Safari 是「Develop → Allow JavaScript from Apple Events」。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("权限", info: String(localized: "整页文字需要浏览器的 Apple Events 权限；在浏览器的 Developer 菜单中开启。"))
             }
 
-            Section("浏览器整页文字") {
+            Section {
                 if browserProfiles.isEmpty {
                     Text("没有检测到已安装的 Chromium 系浏览器配置文件。")
                         .font(.system(size: 11)).foregroundStyle(.secondary)
@@ -578,41 +660,34 @@ private struct CaptureSettingsView: View {
                     }
                 }
                 Button("重新检测") { reloadProfiles() }
-                Text("这个开关每个浏览器配置文件要各开一次：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。没开的配置文件只能读到网址和截图。Safari 在「Develop」菜单里，且不分配置文件。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("浏览器整页文字", info: String(localized: "每个 Chromium 配置文件都要单独开启；未开启时仍可读网址和截图。"))
             }
 
-            Section("采集模式") {
-                Picker("采集到什么程度", selection: Binding(
-                    get: { settings.captureMode },
-                    set: { settings.captureMode = $0 }
-                )) {
+            Section {
+                HStack(spacing: 8) {
                     ForEach(CaptureMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+                        CaptureModeOption(mode: mode, selected: settings.captureMode == mode) {
+                            settings.captureMode = mode
+                        }
                     }
                 }
-                .pickerStyle(.radioGroup)
-
-                Text(settings.captureMode.detail)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 if settings.captureMode == .scrollCollect && !ScrollDriver.isTrusted {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("还没有「辅助功能」权限，滑动采集无法生效。")
+                        Text("需要辅助功能权限才能滑动采集。")
                             .font(.system(size: 10))
                         Button("去授权") { Permissions.openAccessibilitySettings() }
                             .controlSize(.small)
                     }
                 }
+            } header: {
+                SettingsSectionHeader("采集模式")
             }
 
-            Section("页面文字上限") {
+            Section {
                 HStack {
                     TextField("字符数", value: Binding(
                         get: { settings.pageTextLimit },
@@ -620,13 +695,14 @@ private struct CaptureSettingsView: View {
                     ), format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 110)
-                    Text("字，超出会保留头尾并标注省略")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+                    Spacer()
+                    InfoButton(message: String(localized: "超出上限时保留开头和结尾，并标记省略。"))
                 }
+            } header: {
+                SettingsSectionHeader("页面文字上限")
             }
 
-            Section("排除的应用") {
+            Section {
                 if settings.excludedBundleIDs.isEmpty {
                     Text("目前没有排除任何应用。").font(.system(size: 11)).foregroundStyle(.secondary)
                 } else {
@@ -643,9 +719,8 @@ private struct CaptureSettingsView: View {
                 }
                 Button("把当前正在读取的应用加进来") { model.excludeCurrentApp() }
                     .disabled(model.packet?.bundleID == nil)
-                Text("被排除的应用不会截图，也不会跑浏览器脚本。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+            } header: {
+                SettingsSectionHeader("排除的应用", info: String(localized: "排除后不截图，也不读取浏览器页面。"))
             }
         }
         .formStyle(.grouped)
@@ -688,7 +763,7 @@ private struct DataSettingsView: View {
 
     var body: some View {
         Form {
-            Section("上限") {
+            Section {
                 CompactStepper("最多保留 \(settings.maxConversations) 个对话",
                                value: Binding(get: { settings.maxConversations },
                                               set: { settings.maxConversations = $0 }),
@@ -697,12 +772,11 @@ private struct DataSettingsView: View {
                                value: Binding(get: { settings.maxUserTurns },
                                               set: { settings.maxUserTurns = $0 }),
                                in: 5...200)
-                Text("到上限不会自动删旧的。新建时会问你要不要顶掉最久没更新的那个，确认后才删。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+            } header: {
+                SettingsSectionHeader("上限", info: String(localized: "到上限时，新建对话会询问是否移除最久未更新的一项。"))
             }
 
-            Section("存储位置") {
+            Section {
                 HStack {
                     Text(AppSettings.supportDirectory.path)
                         .font(.system(size: 10, design: .monospaced))
@@ -713,27 +787,23 @@ private struct DataSettingsView: View {
                         NSWorkspace.shared.activateFileViewerSelecting([AppSettings.supportDirectory])
                     }
                 }
-                Text("只保存对话文字与页面文字快照。截图从不写入硬盘。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+            } header: {
+                SettingsSectionHeader("存储位置", info: String(localized: "只保存对话和页面文字快照；截图不会写入磁盘。"))
             }
 
-            Section("调试") {
+            Section {
                 Toggle("把每次采集的上下文写到 debug 文件夹", isOn: Binding(
                     get: { settings.debugDumpEnabled },
                     set: { settings.debugDumpEnabled = $0 }
                 ))
-                Text("打开后会额外写入 last-context.json 与 last-screenshot.jpg，方便排查读不到文字的问题。平时请关掉。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+            } header: {
+                SettingsSectionHeader("调试", info: String(localized: "额外写入 last-context.json 和 last-screenshot.jpg，仅用于排查。"))
             }
 
-            Section("清除") {
+            Section {
                 Button("删除全部对话与 API Key", role: .destructive) { confirmWipe = true }
-                Text("会删除对话文件、调试文件和钥匙串里的 Key。系统的 Time Machine 备份和模型供应商那边的请求日志不在本应用控制范围内。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("清除", info: String(localized: "删除对话、调试文件和钥匙串中的 API Key；不可撤销。"))
             }
         }
         .formStyle(.grouped)
@@ -835,7 +905,7 @@ private struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section("语言") {
+            Section {
                 Picker("界面语言", selection: Binding(
                     get: { language },
                     set: { newValue in
@@ -857,13 +927,11 @@ private struct GeneralSettingsView: View {
                         Spacer()
                     }
                 }
-                Text("不选的话就跟随系统语言。这个设置只影响 Wisp 自己，不动系统设置。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("语言", info: String(localized: "留空跟随系统；只影响 Wisp，不改系统语言。"))
             }
 
-            Section("启动") {
+            Section {
                 Toggle("登录时自动启动 Wisp", isOn: Binding(
                     get: { launchAtLogin },
                     set: { setLaunchAtLogin($0) }
@@ -881,9 +949,11 @@ private struct GeneralSettingsView: View {
                 if let launchError {
                     Text(launchError).font(.system(size: 10)).foregroundStyle(.red)
                 }
+            } header: {
+                SettingsSectionHeader("启动")
             }
 
-            Section("更新") {
+            Section {
                 Toggle("启动时检查有没有新版本", isOn: Binding(
                     get: { settings.checkForUpdates },
                     set: { settings.checkForUpdates = $0 }
@@ -894,10 +964,8 @@ private struct GeneralSettingsView: View {
                     updateLine
                     Spacer()
                 }
-                Text("只向 GitHub 请求一次最新版本号，不发送任何关于你或你使用情况的信息，也不会自动下载或安装。关掉之后就完全不联网检查。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("更新", info: String(localized: "仅请求 GitHub 的版本号，不发送使用信息，也不会自动下载。"))
             }
 
             if store.isReadOnly {
@@ -916,7 +984,7 @@ private struct GeneralSettingsView: View {
                 }
             }
 
-            Section("关于") {
+            Section {
                 LabeledContent("版本", value: version)
                 HStack(spacing: 10) {
                     Button("项目主页") { NSWorkspace.shared.open(UpdateChecker.releasesPage) }
@@ -924,10 +992,8 @@ private struct GeneralSettingsView: View {
                     Button("开源许可") { showsNotices = true }
                     Spacer()
                 }
-                Text("崩溃日志由 macOS 自己保存在「控制台 → 崩溃报告」里。Wisp 不内置任何崩溃上报或统计 SDK，所以报问题时请自己附上那份日志。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("关于", info: String(localized: "崩溃日志由 macOS 控制台保存；Wisp 不包含统计或崩溃上报。"))
             }
         }
         .formStyle(.grouped)

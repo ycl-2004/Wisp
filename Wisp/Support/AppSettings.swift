@@ -20,14 +20,22 @@ enum CaptureMode: String, CaseIterable, Identifiable {
         }
     }
 
+    var symbol: String {
+        switch self {
+        case .screenshotOnly: return "camera.viewfinder"
+        case .pageText: return "doc.text"
+        case .scrollCollect: return "arrow.down.doc"
+        }
+    }
+
     var detail: String {
         switch self {
         case .screenshotOnly:
-            return String(localized: "只发送当前窗口截图和网址，不注入任何脚本。最快，也最不打扰。")
+            return String(localized: "只发当前窗口截图和网址。不读页面，最快。")
         case .pageText:
-            return String(localized: "额外读取整页文字。普通网页能拿全；飞书文档、Notion 这类按需渲染的页面只能读到屏幕上的那一屏。")
+            return String(localized: "读取页面正文。动态页面可能只包含当前可见内容。")
         case .scrollCollect:
-            return String(localized: "遇到按需渲染的页面时，用真实滚轮事件把页面滚一遍并累积正文，读完滚回原位。需要「辅助功能」权限，采集期间会短暂借用鼠标指针（结束后放回原处）。")
+            return String(localized: "滚动动态页面后回到原位。需要辅助功能权限。")
         }
     }
 

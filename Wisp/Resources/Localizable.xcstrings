@@ -946,6 +946,160 @@
         }
       }
     },
+    "信息": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Info"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信息"
+          }
+        }
+      }
+    },
+    "只发当前窗口截图和网址。不读页面，最快。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Sends the current window and URL only. Fastest." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "只发当前窗口截图和网址。不读页面，最快。" } }
+      }
+    },
+    "读取页面正文。动态页面可能只包含当前可见内容。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Reads page text. Dynamic pages may include visible content only." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "读取页面正文。动态页面可能只包含当前可见内容。" } }
+      }
+    },
+    "滚动动态页面后回到原位。需要辅助功能权限。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Scrolls dynamic pages, then returns to your position. Requires Accessibility." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "滚动动态页面后回到原位。需要辅助功能权限。" } }
+      }
+    },
+    "请求发送到 %@。API Key 保存在 macOS 钥匙串。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Requests go to %@. The API Key is stored in macOS Keychain." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "请求发送到 %@。API Key 保存在 macOS 钥匙串。" } }
+      }
+    },
+    "本机运行、无需联网；请选择支持图片输入的模型。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Runs locally with no network; choose a model that accepts images." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本机运行、无需联网；请选择支持图片输入的模型。" } }
+      }
+    },
+    "使用已登录的 Codex，无需 API Key；回答一次性返回。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Uses your signed-in Codex; no API Key needed, and replies arrive at once." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "使用已登录的 Codex，无需 API Key；回答一次性返回。" } }
+      }
+    },
+    "Codex 测试只检查能否启动。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The Codex test only checks startup." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Codex 测试只检查能否启动。" } }
+      }
+    },
+    "发送一张 64×64 测试图，验证连接和图片输入。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Sends a 64×64 test image to verify the connection and image input." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "发送一张 64×64 测试图，验证连接和图片输入。" } }
+      }
+    },
+    "底部位置可拖动，Wisp 会记住位置；面板仍从底部中央打开。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Drag the desktop island; Wisp remembers its position. The panel still opens from bottom center." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "底部位置可拖动，Wisp 会记住位置；面板仍从底部中央打开。" } }
+      }
+    },
+    "空闲时只显示图标；悬停展开，点击打开。回答生成时可停止。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Idle shows an icon; hover to expand and click to open. Stop while generating." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "空闲时只显示图标；悬停展开，点击打开。回答生成时可停止。" } }
+      }
+    },
+    "离开面板后开始倒计时；输入、悬停、生成或采集时不会收起。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Starts after leaving the panel; stays open while focused, hovered, generating, or capturing." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "离开面板后开始倒计时；输入、悬停、生成或采集时不会收起。" } }
+      }
+    },
+    "整页文字需要浏览器的 Apple Events 权限；在浏览器的 Developer 菜单中开启。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Full-page text requires browser Apple Events access. Enable it from the browser's Developer menu." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整页文字需要浏览器的 Apple Events 权限；在浏览器的 Developer 菜单中开启。" } }
+      }
+    },
+    "每个 Chromium 配置文件都要单独开启；未开启时仍可读网址和截图。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Enable it once per Chromium profile. Without it, Wisp still reads the URL and screenshot." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "每个 Chromium 配置文件都要单独开启；未开启时仍可读网址和截图。" } }
+      }
+    },
+    "需要辅助功能权限才能滑动采集。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Accessibility permission is required for scroll collection." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "需要辅助功能权限才能滑动采集。" } }
+      }
+    },
+    "超出上限时保留开头和结尾，并标记省略。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Over the limit, Wisp keeps the beginning and end and marks the omission." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "超出上限时保留开头和结尾，并标记省略。" } }
+      }
+    },
+    "排除后不截图，也不读取浏览器页面。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Excluded apps are not captured or read." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "排除后不截图，也不读取浏览器页面。" } }
+      }
+    },
+    "到上限时，新建对话会询问是否移除最久未更新的一项。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "At the limit, creating a conversation asks before removing the least recently updated one." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "到上限时，新建对话会询问是否移除最久未更新的一项。" } }
+      }
+    },
+    "只保存对话和页面文字快照；截图不会写入磁盘。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Only conversations and page-text snapshots are stored; screenshots never touch disk." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "只保存对话和页面文字快照；截图不会写入磁盘。" } }
+      }
+    },
+    "额外写入 last-context.json 和 last-screenshot.jpg，仅用于排查。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Writes last-context.json and last-screenshot.jpg for diagnostics only." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "额外写入 last-context.json 和 last-screenshot.jpg，仅用于排查。" } }
+      }
+    },
+    "删除对话、调试文件和钥匙串中的 API Key；不可撤销。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Deletes conversations, debug files, and the API Key in Keychain. This cannot be undone." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "删除对话、调试文件和钥匙串中的 API Key；不可撤销。" } }
+      }
+    },
+    "留空跟随系统；只影响 Wisp，不改系统语言。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Leave it as system; this affects Wisp only." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "留空跟随系统；只影响 Wisp，不改系统语言。" } }
+      }
+    },
+    "仅请求 GitHub 的版本号，不发送使用信息，也不会自动下载。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Checks only GitHub for the version number; sends no usage info and never downloads automatically." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "仅请求 GitHub 的版本号，不发送使用信息，也不会自动下载。" } }
+      }
+    },
+    "崩溃日志由 macOS 控制台保存；Wisp 不包含统计或崩溃上报。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "macOS Console stores crash logs; Wisp includes no analytics or crash reporting." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "崩溃日志由 macOS 控制台保存；Wisp 不包含统计或崩溃上报。" } }
+      }
+    },
     "停止": {
       "localizations": {
         "en": {
