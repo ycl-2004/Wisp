@@ -173,17 +173,17 @@ struct ContextHeaderView: View {
 
     // MARK: - 说明
 
-    private var notes: [String] { model.packet?.notes ?? [] }
+    private var notes: [CaptureNote] { model.packet?.notes ?? [] }
 
     /// 需要用户去动手才能解决的问题，这类默认要显眼一点。
     private var hasBlockingNote: Bool {
-        notes.contains { $0.contains("权限") || $0.contains("Allow JavaScript") }
+        notes.contains(where: \.needsUserAction)
     }
 
     private var notesBlock: some View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(Array(notes.enumerated()), id: \.offset) { _, note in
-                Text(note)
+                Text(note.text)
                     .font(DS.meta)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)

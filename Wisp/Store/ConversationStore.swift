@@ -241,6 +241,10 @@ final class ConversationStore: ObservableObject {
     }
 
     func deleteAll() {
+        // 用户是奔着「本机什么都不留」来的，挡着写盘的那份文件也一并作废。
+        // 不清掉标志位的话，这一轮之后新建的对话会一直静默地写不进去。
+        persistenceBlocked = false
+        loadIssue = nil
         conversations.removeAll()
         activeID = nil
         AppSettings.shared.lastActiveConversationID = nil

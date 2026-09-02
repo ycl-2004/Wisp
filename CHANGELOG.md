@@ -1,6 +1,6 @@
 # Wisp release notes
 
-## 0.2.0 — unreleased
+## 0.2.0 — 2026-09-01
 
 ### Added
 
@@ -12,6 +12,12 @@
 - **A way out of the conversation cap.** At the limit, the new-conversation button now offers to drop the least recently updated conversation, naming it and asking for confirmation, instead of being disabled.
 - A **General** tab in Settings, holding startup, update, storage-recovery, and about controls.
 - `LICENSE` (MIT), `PRIVACY.md`, and this changelog.
+
+### Fixed
+
+- Capture warnings now retain whether they require user action instead of inferring that state from localized text.
+- The conversation-cap eviction confirmation remains reachable when the assistant panel is open without the conversation list on screen.
+- Codex CLI responses that finish at the wall-clock timeout boundary are no longer reported as timed out after the process has already completed.
 
 ### Fixed
 

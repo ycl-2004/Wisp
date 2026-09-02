@@ -47,6 +47,14 @@ struct ChatView: View {
 
             composer
         }
+        // 挂在这里而不是对话列表上：面板收起时列表根本没上屏，
+        // 挂在列表上的话满额时点新建不会有任何反应。
+        .alert("腾出位置新建对话？", isPresented: $model.confirmsEviction) {
+            Button("删掉最旧的并新建", role: .destructive) { model.evictOldestAndCreate() }
+            Button("取消", role: .cancel) { model.confirmsEviction = false }
+        } message: {
+            Text("「\(model.evictionCandidateTitle ?? "")」是最久没更新的那个，它会被永久删除，无法撤销。")
+        }
     }
 
     // MARK: - 消息

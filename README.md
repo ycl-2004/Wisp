@@ -42,9 +42,9 @@ page-text snapshots are stored on your Mac; screenshots remain in memory for
 the current request unless you explicitly enable debug capture. The interface
 ships in English and Simplified Chinese and follows your system language.
 
-> **Current distribution status:** the latest published release is
-> `v0.1.0 (build 3)`, a Universal 2 build with `arm64` and `x86_64` slices; the
-> source in this repository is `0.2.0 (build 4)`. Releases are ad-hoc signed and
+> **Current distribution status:** the latest release is
+> `v0.2.0 (build 4)`, a Universal 2 build with `arm64` and `x86_64` slices.
+> Releases are ad-hoc signed and
 > not Apple-notarized, so the first launch may require Control-click →
 > **Open**.
 
@@ -289,9 +289,8 @@ The full policy is in [PRIVACY.md](PRIVACY.md).
 
 ## Current release
 
-The source in this repository is `0.2.0 (build 4)`; see
-[CHANGELOG.md](CHANGELOG.md). The latest published release is `0.1.0 (build 3)`,
-corresponding to Git tag `v0.1.0`.
+The current release is `0.2.0 (build 4)`; see
+[CHANGELOG.md](CHANGELOG.md). It corresponds to Git tag `v0.2.0`.
 
 | Artifact | Purpose |
 | --- | --- |
@@ -441,15 +440,16 @@ xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Release \
 
 mkdir -p dist
 lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
-ditto -c -k --keepParent \
+ditto --norsrc -c -k --keepParent \
   Build/Release/Wisp.app \
   dist/Wisp-macOS-universal.zip
 shasum -a 256 dist/Wisp-macOS-universal.zip > dist/Wisp-macOS-universal.zip.sha256
 ```
 
-`--sequesterRsrc` is deliberately omitted: it stores resource forks in a
-`__MACOSX` folder that users see next to the app after unzipping. Without it
-the archive is clean and the signature still verifies after a round trip.
+`--norsrc` omits resource forks and AppleDouble `._` files. `--sequesterRsrc` is
+also deliberately omitted: it stores resource forks in a `__MACOSX` folder
+that users see next to the app after unzipping. The resulting archive is clean,
+and the signature still verifies after a round trip.
 
 The `lipo -info` output should list `arm64` and `x86_64`. Apple's
 [Universal macOS binary documentation](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary)
@@ -486,13 +486,14 @@ not currently contain an automated test target or CI workflow.
   conversation list, and Settings.
 - `Wisp/Support/` — permissions, screen geometry, UserDefaults settings, login
   item, and update checking.
-- `Wisp/Resources/` — the string catalog and the bundled third-party notices.
+- `Wisp/Resources/` — the string catalog.
 - `Wisp/Assets.xcassets/` — macOS app icon and image assets.
 - `docs/screenshots/` — the current offline-rendered README screenshots.
 - `project.yml` — XcodeGen project source, version settings, dependencies,
   localization configuration, and signing configuration.
 - `LICENSE`, `THIRD-PARTY-NOTICES.txt`, `PRIVACY.md`, `CHANGELOG.md` — licence,
-  bundled dependency notices, privacy policy, and release notes.
+  bundled dependency notices, privacy policy, and release notes. The notice is
+  copied from the repository root into the app bundle at build time.
 
 ## Versioning and releases
 

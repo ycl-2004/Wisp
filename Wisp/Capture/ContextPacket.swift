@@ -1,5 +1,16 @@
 import Foundation
 
+/// 采集过程中的一条说明。是不是「要用户自己去动手」由采集方直接标出来，
+/// 不能靠在界面上匹配文案关键词——那样每加一种语言都会悄悄失灵。
+struct CaptureNote: Hashable {
+    var text: String
+    /// 权限没给、浏览器开关没开这类，用户不动手就一直读不到，界面要显眼提示。
+    var needsUserAction: Bool = false
+
+    static func info(_ text: String) -> CaptureNote { CaptureNote(text: text) }
+    static func blocking(_ text: String) -> CaptureNote { CaptureNote(text: text, needsUserAction: true) }
+}
+
 /// 一次「按快捷键」采集到的屏幕上下文。截图只存在内存，不落盘。
 struct ContextPacket: Identifiable {
     let id = UUID()
@@ -24,7 +35,7 @@ struct ContextPacket: Identifiable {
 
     var capturedAt: Date = Date()
     /// 采集过程中的说明与失败原因，会显示在浮窗头部。
-    var notes: [String] = []
+    var notes: [CaptureNote] = []
     /// 该应用被用户排除，本次不采集任何内容。
     var isExcluded: Bool = false
 
@@ -44,7 +55,7 @@ struct ContextPacket: Identifiable {
     static func excluded(appName: String, bundleID: String?) -> ContextPacket {
         var p = ContextPacket(appName: appName, bundleID: bundleID)
         p.isExcluded = true
-        p.notes = [String(localized: "「\(appName)」在排除列表中，本次不读取截图与页面文字。")]
+        p.notes = [.info(String(localized: "「\(appName)」在排除列表中，本次不读取截图与页面文字。"))]
         return p
     }
 

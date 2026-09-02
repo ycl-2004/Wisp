@@ -57,12 +57,6 @@ struct ConversationListView: View {
         } message: {
             Text("「\(pendingDelete?.displayTitle ?? "")」的全部消息会从本机删除，无法撤销，也没有回收站。")
         }
-        .alert("腾出位置新建对话？", isPresented: $model.confirmsEviction) {
-            Button("删掉最旧的并新建", role: .destructive) { model.evictOldestAndCreate() }
-            Button("取消", role: .cancel) { model.confirmsEviction = false }
-        } message: {
-            Text("「\(model.evictionCandidateTitle ?? "")」是最久没更新的那个，它会被永久删除，无法撤销。")
-        }
     }
 
     private struct Row: View {

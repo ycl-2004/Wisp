@@ -47,9 +47,14 @@ struct CodexCLIProvider: ChatProvider {
             return true
         }
 
-        func stop(_ reason: Stop) {
+        /// - Parameter onlyIfRunning: 看门狗专用。进程已经自己退出了就什么都不做，
+        ///   否则答案明明已经流完，却还要挨一句「超时」。
+        func stop(_ reason: Stop, onlyIfRunning: Bool = false) {
             lock.lock()
-            if stopReason == nil { stopReason = reason }
+            // finish() 之后就不再受理：这一轮已经有结论了。
+            guard !settled else { lock.unlock(); return }
+            if onlyIfRunning, process?.isRunning != true { lock.unlock(); return }
+            stopReason = reason
             let target = process
             settled = true
             process = nil
@@ -213,7 +218,9 @@ struct CodexCLIProvider: ChatProvider {
             let watchdog = Task.detached {
                 try? await Task.sleep(nanoseconds: UInt64(Self.wallClockTimeout * 1_000_000_000))
                 guard !Task.isCancelled else { return }
-                box.stop(.timedOut)
+                // 卡在 240 秒线上收尾的那种：读循环已经退出但 finish() 还没跑到，
+                // 这时进程其实早没了，不能算超时。
+                box.stop(.timedOut, onlyIfRunning: true)
             }
 
             continuation.onTermination = { _ in

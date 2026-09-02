@@ -122,7 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             跨域框架：\(packet.iframeURLs)
             截图：\(packet.hasScreenshot ? "有 \(Int(packet.screenshotPixelSize?.width ?? 0))x\(Int(packet.screenshotPixelSize?.height ?? 0))" : "无")
             说明：
-            \(packet.notes.map { "  - " + $0 }.joined(separator: "\n"))
+            \(packet.notes.map { "  - " + $0.text }.joined(separator: "\n"))
             写入：\(dir.path)
 
             """.utf8))

@@ -39,8 +39,8 @@ Wisp 常驻菜单栏。按下 `⌃⌥Space`，它会先记住此刻最前面的�
 对话文字和页面文字快照存在你自己的 Mac 上；截图只在当次请求期间留在内存里，除非你自己打开调试采集。
 界面提供简体中文和英文，跟随系统语言。
 
-> **当前分发状态：** 最新已发布的版本是 `v0.1.0 (build 3)`，Universal 2 构建，含 `arm64` 与
-> `x86_64`；本仓库的源码是 `0.2.0 (build 4)`。发布包是 ad-hoc 签名、未经 Apple 公证，
+> **当前分发状态：** 最新版本是 `v0.2.0 (build 4)`，Universal 2 构建，含 `arm64` 与
+> `x86_64`。发布包是 ad-hoc 签名、未经 Apple 公证，
 > 首次打开可能需要按住 Control 点击 → **打开**。
 
 > **会被发出去的东西：** 用云端接口时，你正在看的那一页的**整页正文**和当前窗口的**截图**
@@ -191,8 +191,8 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 
 ## 当前版本
 
-本仓库的源码是 `0.2.0 (build 4)`，见 [CHANGELOG.md](CHANGELOG.md)。最新已发布的版本是
-`0.1.0 (build 3)`，对应 Git 标签 `v0.1.0`。
+当前版本是 `0.2.0 (build 4)`，见 [CHANGELOG.md](CHANGELOG.md)，对应 Git 标签
+`v0.2.0`。
 
 | 文件 | 用途 |
 | --- | --- |
@@ -317,14 +317,15 @@ xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Release \
 
 mkdir -p dist
 lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
-ditto -c -k --keepParent \
+ditto --norsrc -c -k --keepParent \
   Build/Release/Wisp.app \
   dist/Wisp-macOS-universal.zip
 shasum -a 256 dist/Wisp-macOS-universal.zip > dist/Wisp-macOS-universal.zip.sha256
 ```
 
-这里故意不加 `--sequesterRsrc`：它会把资源分叉塞进一个 `__MACOSX` 目录，用户解压后就会看到它。
-去掉之后压缩包是干净的，而且往返之后签名依然可以验证。
+这里使用 `--norsrc` 排除资源分叉和 AppleDouble `._` 文件，也故意不加
+`--sequesterRsrc`：后者会把资源分叉塞进一个 `__MACOSX` 目录，用户解压后就会看到它。
+这样生成的压缩包是干净的，而且往返之后签名依然可以验证。
 
 诊断入口（`--dump-context`、`--show`、`--render-*`）只编进 Debug 构建。发布版里留着它们，
 等于把已经拿到的屏幕录制授权借给任何本地进程。要重新生成 README 里的截图，请用 Debug 构建：
@@ -355,11 +356,11 @@ shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
 - `Wisp/Store/` — 本地对话 JSON 与 macOS 钥匙串访问。
 - `Wisp/UI/` — 浮动面板、常驻药丸、对话、上下文头部、对话列表与设置。
 - `Wisp/Support/` — 权限、屏幕几何、UserDefaults 设置、登录项与更新检查。
-- `Wisp/Resources/` — 字符串目录与随包分发的第三方许可声明。
+- `Wisp/Resources/` — 字符串目录。
 - `Wisp/Assets.xcassets/` — macOS 应用图标与图片资源。
 - `docs/screenshots/` — README 里那几张离线渲染的截图。
 - `project.yml` — XcodeGen 工程源、版本设置、依赖、本地化与签名配置。
-- `LICENSE`、`THIRD-PARTY-NOTICES.txt`、`PRIVACY.md`、`CHANGELOG.md` — 许可证、依赖声明、隐私政策与发布说明。
+- `LICENSE`、`THIRD-PARTY-NOTICES.txt`、`PRIVACY.md`、`CHANGELOG.md` — 许可证、依赖声明、隐私政策与发布说明。第三方声明在构建时从仓库根目录复制进 App 包。
 
 ## 版本与发布
 

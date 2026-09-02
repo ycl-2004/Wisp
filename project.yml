@@ -33,6 +33,10 @@ targets:
     platform: macOS
     sources:
       - path: Wisp
+      # 依赖声明只保留仓库根目录这一份（README 与 CHANGELOG 都指向它），
+      # 打包时从这里直接拷进 App，避免 Resources 下再放一份副本各改各的。
+      - path: THIRD-PARTY-NOTICES.txt
+        buildPhase: resources
     dependencies:
       - package: KeyboardShortcuts
     info:

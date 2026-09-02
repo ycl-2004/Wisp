@@ -141,11 +141,17 @@ struct Conversation: Codable, Identifiable, Hashable {
     /// 直接存本地化文本的话，中文下建的对话在英文界面里还是中文，反过来也一样。
     static let untitledSentinel = "新对话"
 
+    /// 还没被首条提问改过名。retitleFromFirstUserMessage 只在有用户消息时动手，
+    /// 所以「标题还是占位符 + 一条用户消息都没有」就等价于没改过名。
+    /// 只比文本的话，用户第一句正好打了「新对话」时会被误判成占位符。
+    var isUntitled: Bool {
+        if title.isEmpty { return true }
+        return title == Self.untitledSentinel && !messages.contains { $0.role == .user }
+    }
+
     /// 界面上该显示的标题。只有还没被首条提问改名时才需要翻译。
     var displayTitle: String {
-        (title.isEmpty || title == Self.untitledSentinel)
-            ? String(localized: "新对话")
-            : title
+        isUntitled ? String(localized: "新对话") : title
     }
 
     var userTurnCount: Int {

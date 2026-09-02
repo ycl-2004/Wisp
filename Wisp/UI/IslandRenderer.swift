@@ -61,7 +61,7 @@ enum IslandRenderer {
         packet.pageText = String(repeating: "字", count: 13229)
         packet.pageTextTotalChars = 13229
         packet.screenshotJPEG = ScreenCapturer.tinyTestJPEG()
-        packet.notes = ["页面含 5 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。"]
+        packet.notes = [.info("页面含 5 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。")]
         AssistantModel.shared.packet = packet
 
         let view = ContextHeaderView()

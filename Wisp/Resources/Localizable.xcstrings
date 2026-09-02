@@ -594,6 +594,22 @@
         }
       }
     },
+    "、": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", "
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "、"
+          }
+        }
+      }
+    },
     "「%@」在排除列表中，本次不读取截图与页面文字。": {
       "localizations": {
         "en": {
