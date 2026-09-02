@@ -797,9 +797,22 @@ private struct AdvancedShortcutRecorderView: View {
                 .controlSize(.small)
             }
 
-            Text(instruction)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(instruction)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                    .fill(DS.faint)
+            )
         }
         .onChange(of: settings.shortcutTrigger) { _, _ in
             recorder.cancel()
@@ -809,19 +822,21 @@ private struct AdvancedShortcutRecorderView: View {
 
     private var buttonTitle: String {
         if recorder.isRecording {
-            return "请按 \(tapCount) 次（\(recorder.progress)/\(tapCount)）"
+            return String(localized: "请按 \(tapCount) 次（\(recorder.progress)/\(tapCount)）")
         }
-        return settings.advancedShortcut == nil ? "开始录制" : "重新录制"
+        return settings.advancedShortcut == nil
+            ? String(localized: "开始录制")
+            : String(localized: "重新录制")
     }
 
     private var instruction: String {
         switch settings.shortcutTrigger {
         case .enhancedSingle:
-            return "点击录制后按一次组合键，例如 Globe/Fn + Space 或 Shift + Space。"
+            return String(localized: "点击录制后按一次组合键，例如 Globe/Fn + Space 或 Shift + Space。")
         case .doubleTap:
-            return "点击录制后快速按两次同一个键，例如 Control、Globe/Fn 或 Space。"
+            return String(localized: "点击录制后快速按两次同一个键，例如 Control、Globe/Fn 或 Space。")
         case .tripleTap:
-            return "点击录制后快速按三次同一个键。"
+            return String(localized: "点击录制后快速按三次同一个键。")
         case .standard:
             return ""
         }

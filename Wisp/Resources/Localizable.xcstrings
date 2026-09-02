@@ -2402,6 +2402,278 @@
         }
       }
     },
+    "触发方式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trigger Mode"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "触发方式"
+          }
+        }
+      }
+    },
+    "标准组合": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard Combination"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标准组合"
+          }
+        }
+      }
+    },
+    "增强单次": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enhanced Single"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增强单次"
+          }
+        }
+      }
+    },
+    "双击同一键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Double-tap Same Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "双击同一键"
+          }
+        }
+      }
+    },
+    "三击同一键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Triple-tap Same Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "三击同一键"
+          }
+        }
+      }
+    },
+    "Command、Option、Control 等常规组合": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command, Option, Control, and other standard combinations"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command、Option、Control 等常规组合"
+          }
+        }
+      }
+    },
+    "支持 Shift、Globe/Fn 和单独的修饰键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supports Shift, Globe/Fn, and modifier-only keys"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 Shift、Globe/Fn 和单独的修饰键"
+          }
+        }
+      }
+    },
+    "连续按两次同一个键，例如 Control": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the same key twice in a row, such as Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连续按两次同一个键，例如 Control"
+          }
+        }
+      }
+    },
+    "连续按三次同一个键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the same key three times in a row"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连续按三次同一个键"
+          }
+        }
+      }
+    },
+    "开始录制": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Recording"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始录制"
+          }
+        }
+      }
+    },
+    "重新录制": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新录制"
+          }
+        }
+      }
+    },
+    "请按 %lld 次（%lld/%lld）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press %1$lld times (%2$lld/%3$lld)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请按 %1$lld 次（%2$lld/%3$lld）"
+          }
+        }
+      }
+    },
+    "点击录制后按一次组合键，例如 Globe/Fn + Space 或 Shift + Space。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After selecting Record, press one key combination once—for example, Globe/Fn + Space or Shift + Space."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击录制后按一次组合键，例如 Globe/Fn + Space 或 Shift + Space。"
+          }
+        }
+      }
+    },
+    "点击录制后快速按两次同一个键，例如 Control、Globe/Fn 或 Space。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After selecting Record, quickly press the same key twice—for example, Control, Globe/Fn, or Space."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击录制后快速按两次同一个键，例如 Control、Globe/Fn 或 Space。"
+          }
+        }
+      }
+    },
+    "点击录制后快速按三次同一个键。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After selecting Record, quickly press the same key three times."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击录制后快速按三次同一个键。"
+          }
+        }
+      }
+    },
+    "增强快捷键需要辅助功能权限，才能在其他 App 中生效。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enhanced shortcuts need Accessibility permission to work in other apps."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增强快捷键需要辅助功能权限，才能在其他 App 中生效。"
+          }
+        }
+      }
+    },
+    "标准组合保持兼容；增强模式支持 Shift、Globe/Fn、单独修饰键和双击/三击。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard combinations remain compatible; enhanced mode supports Shift, Globe/Fn, modifier-only keys, and double-/triple-tap shortcuts."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标准组合保持兼容；增强模式支持 Shift、Globe/Fn、单独修饰键和双击/三击。"
+          }
+        }
+      }
+    },
     "思考中…": {
       "localizations": {
         "en": {

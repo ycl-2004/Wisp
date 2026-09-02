@@ -15,23 +15,23 @@ enum ShortcutTriggerMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .standard: return "标准组合"
-        case .enhancedSingle: return "增强单次"
-        case .doubleTap: return "双击同一键"
-        case .tripleTap: return "三击同一键"
+        case .standard: return String(localized: "标准组合")
+        case .enhancedSingle: return String(localized: "增强单次")
+        case .doubleTap: return String(localized: "双击同一键")
+        case .tripleTap: return String(localized: "三击同一键")
         }
     }
 
     var detail: String {
         switch self {
         case .standard:
-            return "Command、Option、Control 等常规组合"
+            return String(localized: "Command、Option、Control 等常规组合")
         case .enhancedSingle:
-            return "支持 Shift、Globe/Fn 和单独的修饰键"
+            return String(localized: "支持 Shift、Globe/Fn 和单独的修饰键")
         case .doubleTap:
-            return "连续按两次同一个键，例如 Control"
+            return String(localized: "连续按两次同一个键，例如 Control")
         case .tripleTap:
-            return "连续按三次同一个键"
+            return String(localized: "连续按三次同一个键")
         }
     }
 
