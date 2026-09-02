@@ -1,0 +1,146 @@
+import AppKit
+import SwiftUI
+
+/// 头部那一行右边的接法／模型切换器。常用的切换不用再去开设置窗口。
+struct ModelSwitcher: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @StateObject private var state = ModelMenuState.shared
+    @State private var hovering = false
+
+    var body: some View {
+        Menu {
+            Section("接法") {
+                ForEach(ProviderKind.allCases) { kind in
+                    Button {
+                        settings.providerKind = kind.rawValue
+                        if kind == .ollama { state.refreshOllama() }
+                    } label: {
+                        Label(kind.title, systemImage: kind == currentKind ? "checkmark" : kind.symbol)
+                    }
+                }
+            }
+
+            if !models.isEmpty {
+                Section("模型") {
+                    ForEach(models, id: \.slug) { preset in
+                        Button {
+                            setModel(preset.slug)
+                        } label: {
+                            Label(preset.title,
+                                  systemImage: preset.slug == currentModel ? "checkmark" : "circle")
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            if currentKind == .ollama {
+                Button("重新扫描本机模型") { state.refreshOllama() }
+            }
+            SettingsLink { Text("更多设置…") }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: currentKind.symbol).font(.system(size: 9))
+                Text(shortLabel)
+                    .font(DS.meta)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 7))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
+                    .fill(Color.primary.opacity(hovering ? 0.10 : 0.05))
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .onHover { hovering = $0 }
+        .help("切换接法和模型：\(fullLabel)")
+        .onAppear { if currentKind == .ollama { state.refreshOllamaIfStale() } }
+    }
+
+    private var currentKind: ProviderKind { ProviderKind.current }
+
+    private var currentModel: String {
+        switch currentKind {
+        case .openAICompatible: return settings.model
+        case .ollama:           return settings.ollamaModel
+        case .codexCLI:         return settings.codexModel
+        }
+    }
+
+    private func setModel(_ slug: String) {
+        switch currentKind {
+        case .openAICompatible: settings.model = slug
+        case .ollama:           settings.ollamaModel = slug
+        case .codexCLI:         settings.codexModel = slug
+        }
+    }
+
+    private var models: [ModelCatalog.Preset] {
+        switch currentKind {
+        case .openAICompatible:
+            var list = ModelCatalog.cloudPresets(baseURL: settings.baseURL)
+            if ModelCatalog.isCustom(settings.model, in: list) {
+                list.append(.init(slug: settings.model, title: settings.model, note: "自定义"))
+            }
+            return list
+        case .ollama:
+            return state.ollamaModels.map { .init(slug: $0, title: $0, note: "") }
+        case .codexCLI:
+            return ModelCatalog.codexPresets()
+        }
+    }
+
+    /// 头部空间有限，只显示能认出来的最短形式。
+    private var shortLabel: String {
+        let model = currentModel
+        if model.isEmpty {
+            return currentKind == .codexCLI ? "Codex 默认" : currentKind.title
+        }
+        if let preset = models.first(where: { $0.slug == model }), preset.title != model {
+            return preset.title
+        }
+        // 去掉厂商前缀和 :free 后缀，只留模型名本身。
+        var name = model.components(separatedBy: "/").last ?? model
+        if name.hasSuffix(":free") { name = String(name.dropLast(5)) }
+        return name
+    }
+
+    private var fullLabel: String {
+        currentModel.isEmpty ? currentKind.title : "\(currentKind.title) · \(currentModel)"
+    }
+}
+
+/// Ollama 的模型清单要现扫，缓存一下别每次开菜单都跑一次。
+@MainActor
+final class ModelMenuState: ObservableObject {
+    static let shared = ModelMenuState()
+
+    @Published private(set) var ollamaModels: [String] = []
+    private var lastProbe: Date?
+
+    private init() {}
+
+    func refreshOllamaIfStale() {
+        if let lastProbe, Date().timeIntervalSince(lastProbe) < 60 { return }
+        refreshOllama()
+    }
+
+    func refreshOllama() {
+        lastProbe = Date()
+        let base = AppSettings.shared.ollamaBaseURL
+        Task {
+            if case .running(let models) = await OllamaSupport.probe(baseURL: base) {
+                ollamaModels = models.filter { !$0.contains("embed") }
+            } else {
+                ollamaModels = []
+            }
+        }
+    }
+}

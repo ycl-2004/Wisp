@@ -1,0 +1,20 @@
+# macOS metadata
+.DS_Store
+
+# Xcode user state and build products
+Build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+
+# Local diagnostics
+cm.err
+
+# Local environment and signing material
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision

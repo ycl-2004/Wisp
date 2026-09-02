@@ -1,0 +1,51 @@
+name: Wisp
+options:
+  bundleIdPrefix: com.yichenlin
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: 2.2.1
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "2"
+    DEVELOPMENT_TEAM: BQYHJCCRMP
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    PROVISIONING_PROFILE_SPECIFIER: ""
+    OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_STRICT_CONCURRENCY: minimal
+
+targets:
+  Wisp:
+    type: application
+    platform: macOS
+    sources:
+      - path: Wisp
+    dependencies:
+      - package: KeyboardShortcuts
+    info:
+      path: Wisp/App/Info.plist
+      properties:
+        CFBundleName: Wisp
+        CFBundleDisplayName: Wisp
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: ""
+        NSAppleEventsUsageDescription: "Wisp 需要控制浏览器，以读取当前页面的网址与完整正文，作为提问的上下文。"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yichenlin.Wisp
+        CODE_SIGN_ENTITLEMENTS: Wisp.entitlements
+        INFOPLIST_KEY_NSPrincipalClass: NSApplication
+        COMBINE_HIDPI_IMAGES: YES
