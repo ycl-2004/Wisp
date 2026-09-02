@@ -80,6 +80,7 @@ struct ModelSettingsView: View {
     @State private var probing = false
     @State private var agyModels: [ModelCatalog.Preset] = []
     @State private var agyScanning = false
+    @FocusState private var keyFieldFocused: Bool
 
     private var kind: ProviderKind {
         ProviderKind(rawValue: settings.providerKind) ?? .openAICompatible
@@ -93,12 +94,20 @@ struct ModelSettingsView: View {
                 ScrollView { inner }
             }
         }
-        .onChange(of: settings.cloudProvider) { _, provider in
+        .onChange(of: settings.cloudProvider) { previous, provider in
             // Key 是一家一份的。换家就得把输入框换成新那家的那份，
             // 否则「保存并测试」会把上一家的 Key 写到新那家名下。
+            // 换走之前先把输入框里那份落到旧那家名下，不然它跟着输入框一起没了；
+            // 药丸菜单也能换家，所以这一步放在这里，而不是设置页的选择器里。
+            persistKey(apiKey, for: previous)
             apiKey = KeychainStore.load(for: provider) ?? ""
             testResult = nil
         }
+        .onChange(of: keyFieldFocused) { _, focused in
+            // 失焦就是这一次输入结束。只在这里落盘，手打 Key 的中间态就进不了钥匙串。
+            if !focused { persistKey(apiKey, for: settings.cloudProvider) }
+        }
+        .onDisappear { persistKey(apiKey, for: settings.cloudProvider) }
         .onAppear {
             if !keyLoaded {
                 apiKey = KeychainStore.load(for: settings.cloudProvider) ?? ""
@@ -210,10 +219,9 @@ struct ModelSettingsView: View {
             Field(label: "API Key") {
                 HStack(spacing: 6) {
                     SecureField(cloudProvider.keyPlaceholder, text: $apiKey)
-                        .onChange(of: apiKey) { _, newValue in
-                            testResult = nil
-                            persistKey(newValue, for: settings.cloudProvider)
-                        }
+                        .focused($keyFieldFocused)
+                        .onChange(of: apiKey) { testResult = nil }
+                        .onSubmit { persistKey(apiKey, for: settings.cloudProvider) }
                     if let console = cloudProvider.keyConsoleURL {
                         Link("获取", destination: console)
                             .font(.system(size: 11))
@@ -224,15 +232,19 @@ struct ModelSettingsView: View {
         }
     }
 
-    /// 换一家：Base URL 和模型交给 AppSettings 处理。输入框里的 Key 由下面那个
-    /// onChange 统一换，这样从药丸菜单换家时这里也跟得上。
+    /// 换一家：Base URL 和模型交给 AppSettings 处理。输入框里那份 Key 的存和换
+    /// 都由上面 `cloudProvider` 的 onChange 统一做，这样从药丸菜单换家时也一样。
     private func switchCloudProvider(to provider: CloudProvider) {
         settings.selectCloudProvider(provider)
     }
 
-    /// 边填边存。以前只有点「保存并测试连接」才写钥匙串，填完 Key 直接切到另一家
-    /// 或者关掉窗口，刚填的就没了。空值不覆盖已存的那份——清空要走「清除 Key」，
-    /// 否则光标划过输入框就可能把 Key 抹掉。
+    /// 填完就存，但只在输入框收工时存：失焦、回车、切换服务商、关掉窗口。
+    ///
+    /// 以前只有点「保存并测试连接」才写钥匙串，填完 Key 直接切到另一家或者关掉窗口，
+    /// 刚填的就没了；改成每敲一个字符写一次，手打 Key 又会把 `s`、`sk`、`sk-`
+    /// 依次盖进钥匙串，中途切走就留下一份残缺的，而菜单还显示这家「已配置」。
+    ///
+    /// 空值不覆盖已存的那份——清空要走「清除 Key」，否则光标划过输入框就可能把 Key 抹掉。
     private func persistKey(_ value: String, for provider: CloudProvider) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != KeychainStore.load(for: provider) else { return }
@@ -327,10 +339,10 @@ struct ModelSettingsView: View {
                 .labelsHidden()
             }
 
-            if settings.cliProvider == .agy {
-                agyFields
-            } else {
-                codexCLIFields
+            switch settings.cliProvider {
+            case .codex:      codexCLIFields
+            case .agy:        agyFields
+            case .claudeCode: claudeCodeFields
             }
         }
     }
@@ -383,7 +395,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
-                    InfoButton(message: String(localized: "使用已登录的 AGY，不需要单独填写 API Key；有截图时会通过临时交互终端传入。"))
+                    InfoButton(message: String(localized: "使用已登录的 AGY，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 AGY 读取，用完即删。"))
                 }
             }
 
@@ -404,6 +416,39 @@ struct ModelSettingsView: View {
 
             if AgyCLIProvider.resolvePath(settings.agyPath) == nil {
                 Label("找不到 agy，请填完整路径。", systemImage: "xmark.circle")
+                    .font(.system(size: 11)).foregroundStyle(.red)
+            }
+        }
+    }
+
+    private var claudeCodeFields: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Field(label: "可执行文件") {
+                HStack(spacing: 6) {
+                    TextField(ClaudeCodeCLIProvider.detectedPath ?? "/opt/homebrew/bin/claude",
+                              text: Binding(get: { settings.claudeCodePath },
+                                            set: { settings.claudeCodePath = $0; testResult = nil }))
+                    Button("自动查找") {
+                        if let detected = ClaudeCodeCLIProvider.detectedPath {
+                            settings.claudeCodePath = detected
+                            testResult = nil
+                        }
+                    }
+                    InfoButton(message: String(localized: "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 CLI 里只有它是逐字显示答案的。"))
+                }
+            }
+
+            ModelPickerRow(
+                label: "模型",
+                presets: ClaudeCodeCLIProvider.presets,
+                placeholder: "sonnet",
+                emptyOptionTitle: String(localized: "跟随 Claude Code 默认"),
+                value: Binding(get: { settings.claudeCodeModel },
+                               set: { settings.claudeCodeModel = $0; testResult = nil })
+            )
+
+            if ClaudeCodeCLIProvider.resolvePath(settings.claudeCodePath) == nil {
+                Label("找不到 claude，请填完整路径。", systemImage: "xmark.circle")
                     .font(.system(size: 11)).foregroundStyle(.red)
             }
         }
@@ -478,6 +523,9 @@ struct ModelSettingsView: View {
             case .agy:
                 config = ProviderConfig(kind: .codexCLI, model: settings.agyModel,
                                         cliProvider: .agy, cliPath: settings.agyPath)
+            case .claudeCode:
+                config = ProviderConfig(kind: .codexCLI, model: settings.claudeCodeModel,
+                                        cliProvider: .claudeCode, cliPath: settings.claudeCodePath)
             }
         }
         Task {
@@ -505,6 +553,10 @@ struct ModelSettingsView: View {
             // Keep this empty by default so each request can re-scan candidates
             // and pick the newest installed AGY version. A typed path is explicit.
             break
+        case .claudeCode:
+            if settings.claudeCodePath.isEmpty, let detected = ClaudeCodeCLIProvider.detectedPath {
+                settings.claudeCodePath = detected
+            }
         }
     }
 

@@ -36,8 +36,12 @@ enum KeychainStore {
 
     /// 0.2.x 升上来时，把那份不分家的 Key 记到它当时实际在用的那家名下，然后删掉旧条目。
     /// 只在旧条目还在时做事，重复调用无副作用。
-    static func migrateLegacyKeyIfNeeded(to provider: CloudProvider) {
+    ///
+    /// 认哪一家交给 `resolvingProvider` 现算，并且只在真有旧条目时才调用它：
+    /// 那个判断会顺手钉住老的云端配置，全新安装不该被当成升级走这一遭。
+    static func migrateLegacyKeyIfNeeded(resolvingProvider: () -> CloudProvider) {
         guard let legacy = read(account: legacyAccount) else { return }
+        let provider = resolvingProvider()
         if read(account: provider.keychainAccount) == nil {
             _ = write(legacy, account: provider.keychainAccount)
         }

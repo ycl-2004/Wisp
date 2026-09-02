@@ -103,7 +103,7 @@ open "$HOME/Applications/Wisp.app"
 
 - **云端接口：** 以 SSE 流式发送 `chat/completions`，图片走 `image_url` data URL，兼容 OpenAI、OpenRouter 等。
 - **Ollama：** 默认 `http://localhost:11434/v1`，直接读本机模型列表，并标出看起来支持读图的模型。
-- **Agent CLI：** 同一个设置分组里可以选 Codex 或 AGY。Codex 运行本机的 `codex exec --json --ephemeral --sandbox read-only`；AGY 的文字请求走 headless JSON，有截图时走临时交互终端。不往 Wisp 的对话目录里写会话文件。
+- **Agent CLI：** 同一个设置分组里可以选 Codex、AGY 或 Claude Code。Codex 运行本机的 `codex exec --json --ephemeral --sandbox read-only`；AGY 和 Claude Code 走各自的 headless JSON，截图会写进一个临时工作目录交给它们读取。三者中只有 Claude Code 是逐字显示答案的，另外两个都是整段返回。都不往 Wisp 的对话目录里写会话文件。
 
 **启动与更新**
 
@@ -178,7 +178,7 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 - 云端接口会把你选定的上下文和当前截图发到你配置的 Base URL。对方的日志、留存策略和隐私条款不在 Wisp 的控制范围内。
 - Ollama 默认走 `localhost`。如果你把 Base URL 指到远端，请求就会发到那里。
 - Codex 接法由 Wisp 启动本地 codex 进程，为图片输入建一个临时目录，以 `--ephemeral` 和只读沙箱运行，命令结束后删除该目录。Codex 自己的账号、网络和服务端日志不在 Wisp 的控制范围内。
-- AGY 接法由 Wisp 启动本地 agy 进程。文字请求走 AGY 的 JSON headless 模式；有截图时，会暂时把截图放进 macOS 剪贴板并粘贴到 AGY 交互终端，之后如果用户没有改过剪贴板就恢复原内容。AGY 自己的账号、网络、额度和服务端日志不在 Wisp 的控制范围内。
+- AGY 接法由 Wisp 启动本地 agy 进程，带 `--sandbox`，跑在自己的临时工作目录里，走 AGY 的 JSON headless 模式。有截图时，截图写进这个目录并在提问里点名路径，由 AGY 自己读取；请求结束就把目录删掉。AGY 自己的账号、网络、额度和服务端日志不在 Wisp 的控制范围内。
 - 打开更新检查时，Wisp 每次启动向 `api.github.com` 请求一次最新版本号。除了 IP 和 `Wisp/<版本>` 这个 UA 之外不带任何标识，不下载也不安装。关掉就完全不请求。
 - Wisp 没有账号体系、同步服务、统计 SDK、崩溃上报 SDK，也没有后台持续录制。
 
@@ -385,7 +385,7 @@ shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
 - Universal 2 的两个切片已经生成并检查过，但当前发布尚未在 Intel Mac 上实机跑过。
 - 浏览器取文依赖受支持的 bundle id、自动化权限、浏览器 JavaScript 设置以及页面本身的安全边界。
 - Codex CLI 的回答是一次性返回的，没有逐字流式，而且每次请求都带着 Codex 自己的固定上下文开销。
-- AGY 的 headless `stream-json` 输入目前只接受文字；因此带截图的 AGY 请求使用终端桥接，一次性返回答案，并要求本机的 TTY 交互会话可用。
+- AGY 一次性返回答案，没有逐字流式，而且每次请求都带上它自己的固定上下文开销——在 Wisp 的内容之前就已经约 30,400 token。AGY 的 headless 输入只接受文字，会拒绝 `image_url` 内容块，所以截图是以文件形式传入的，带截图的请求要多花一轮读取文件的工具调用，代价约 1,150 token，而不是把图内联进上下文。AGY 还会在约 71,400 token 处静默截断自己的输入，因此 Wisp 会先把提示压进一个更小的预算并标注省略了什么；远超默认 60,000 字上限的页面因此是「删节后送达且写明缺口」，而不是悄悄少一截。
 - 仓库目前没有自动化测试、CI 流程，也没有公开的公证与发布签名流水线。
 - 因为发布包是 ad-hoc 签名，每次构建都是新的代码身份。macOS 把屏幕录制、自动化和钥匙串访问绑在这个身份上，所以升级之后可能需要重新授权。
 - 应用排除是按 bundle id 的。没有按网址或域名的排除，而后者恰恰是浏览器里最有用的那种。

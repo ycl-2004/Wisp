@@ -103,7 +103,12 @@ struct ModelSwitcher: View {
         switch currentKind {
         case .openAICompatible: return settings.model
         case .ollama:           return settings.ollamaModel
-        case .codexCLI:         return settings.cliProvider == .agy ? settings.agyModel : settings.codexModel
+        case .codexCLI:
+            switch settings.cliProvider {
+            case .codex:      return settings.codexModel
+            case .agy:        return settings.agyModel
+            case .claudeCode: return settings.claudeCodeModel
+            }
         }
     }
 
@@ -112,8 +117,11 @@ struct ModelSwitcher: View {
         case .openAICompatible: settings.model = slug
         case .ollama:           settings.ollamaModel = slug
         case .codexCLI:
-            if settings.cliProvider == .agy { settings.agyModel = slug }
-            else { settings.codexModel = slug }
+            switch settings.cliProvider {
+            case .codex:      settings.codexModel = slug
+            case .agy:        settings.agyModel = slug
+            case .claudeCode: settings.claudeCodeModel = slug
+            }
         }
     }
 
@@ -142,10 +150,11 @@ struct ModelSwitcher: View {
         case .ollama:
             return state.ollamaModels.map { .init(slug: $0, title: $0, note: "") }
         case .codexCLI:
-            if settings.cliProvider == .agy {
-                return state.agyModels.isEmpty ? AgyCLIProvider.fallbackModels : state.agyModels
+            switch settings.cliProvider {
+            case .codex:      return ModelCatalog.codexPresets()
+            case .agy:        return state.agyModels.isEmpty ? AgyCLIProvider.fallbackModels : state.agyModels
+            case .claudeCode: return ClaudeCodeCLIProvider.presets
             }
-            return ModelCatalog.codexPresets()
         }
     }
 
@@ -154,7 +163,11 @@ struct ModelSwitcher: View {
         let model = currentModel
         if model.isEmpty {
             if currentKind == .codexCLI {
-                return settings.cliProvider == .agy ? String(localized: "AGY 默认") : String(localized: "Codex 默认")
+                switch settings.cliProvider {
+                case .codex:      return String(localized: "Codex 默认")
+                case .agy:        return String(localized: "AGY 默认")
+                case .claudeCode: return String(localized: "Claude Code 默认")
+                }
             }
             return currentKind.title
         }

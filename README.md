@@ -82,7 +82,7 @@ open "$HOME/Applications/Wisp.app"
   Events` setting for full-page browser text.
 - Network access and your own API key for cloud endpoints.
 - A running Ollama service for the Ollama provider.
-- A locally installed and authenticated Codex CLI or AGY CLI for the Agent CLI provider.
+- A locally installed and authenticated Codex CLI, AGY CLI or Claude Code for the Agent CLI provider.
 
 ## Why Wisp
 
@@ -138,10 +138,12 @@ open "$HOME/Applications/Wisp.app"
   endpoints.
 - **Ollama:** defaults to `http://localhost:11434/v1`, reads the model list
   from Ollama, and marks models that appear to support vision.
-- **Agent CLI:** the settings section contains both Codex and AGY. Codex runs
-  `codex exec --json --ephemeral --sandbox read-only`; AGY runs its headless
-  JSON CLI for text and a temporary PTY for screenshots. Neither writes session
-  files into Wisp's conversation directory.
+- **Agent CLI:** the settings section contains Codex, AGY and Claude Code.
+  Codex runs `codex exec --json --ephemeral --sandbox read-only`; AGY and Claude
+  Code run their headless JSON CLIs, with screenshots written into a temporary
+  workspace for them to read. Claude Code streams the answer as it is written —
+  the other two return one finished block. None of them writes session files
+  into Wisp's conversation directory.
 
 **Startup and updates**
 
@@ -273,11 +275,11 @@ specific localization.
   input, uses `--ephemeral` and a read-only sandbox, and removes the
   temporary directory when the command ends. Codex's own account, network,
   and service-side logging are outside Wisp's control.
-- Wisp starts AGY locally. Text requests use AGY's JSON headless mode; when a
-  screenshot is attached, Wisp temporarily places it on the macOS clipboard,
-  pastes it into an AGY TUI session, then restores the clipboard if it was not
-  changed by the user. AGY's account, network, quota, and service-side logging
-  remain outside Wisp's control.
+- Wisp starts AGY locally, in its own temporary working directory, with
+  `--sandbox` and AGY's JSON headless mode. An attached screenshot is written
+  into that directory and named in the prompt so AGY reads it from disk; the
+  directory is removed when the request ends. AGY's account, network, quota,
+  and service-side logging remain outside Wisp's control.
 - If the update check is enabled, Wisp asks `api.github.com` once per launch
   for the latest release tag. The request carries no identifier beyond your IP
   address and a `Wisp/<version>` user agent, downloads nothing, and installs
@@ -535,9 +537,16 @@ resolution, and public documentation are tracked.
 - Codex CLI responses are returned as one completed response rather than
   token-by-token streaming, and each request carries Codex's own fixed context
   cost.
-- AGY screenshot requests use a terminal bridge because AGY's headless
-  `stream-json` input currently accepts text only; the bridge returns one
-  completed response and requires a working local TTY session.
+- AGY returns one completed response rather than token-by-token streaming, and
+  each request carries AGY's own fixed context cost — about 30,400 tokens before
+  any of Wisp's content. Screenshots are passed as files because AGY's headless
+  input accepts text only — it rejects an `image_url` content block — so a
+  screenshot request spends one extra tool turn on reading the file, which costs
+  about 1,150 tokens rather than inlining the image. AGY also truncates its own
+  input at roughly 71,400 tokens without saying so, so Wisp fits the prompt to a
+  smaller budget first and marks what it left out; a page far larger than the
+  default 60,000-character limit therefore reaches AGY abridged, with the gap
+  declared, rather than silently incomplete.
 - The repository currently has no automated tests, CI workflow, or public
   notarization and release-signing pipeline.
 - Because releases are ad-hoc signed, every build has a new code identity.

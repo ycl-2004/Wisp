@@ -5732,56 +5732,482 @@
     },
     "AGY 默认": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "AGY default" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "AGY 默认" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AGY default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AGY 默认"
+          }
+        }
       }
     },
     "复用已登录的 Codex 或 AGY，免配 Key": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Reuse your signed-in Codex or AGY, no key needed" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "复用已登录的 Codex 或 AGY，免配 Key" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuse your signed-in Codex or AGY, no key needed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复用已登录的 Codex 或 AGY，免配 Key"
+          }
+        }
       }
     },
     "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Could not find the agy executable. Install and sign in to the Antigravity CLI first, or enter its full path in Settings." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not find the agy executable. Install and sign in to the Antigravity CLI first, or enter its full path in Settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。"
+          }
+        }
       }
     },
     "agy 执行失败（退出码 %d）：%@": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "agy failed (exit code %1$d): %2$@" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "agy 执行失败（退出码 %1$d）：%2$@" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agy failed (exit code %1$d): %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agy 执行失败（退出码 %1$d）：%2$@"
+          }
+        }
       }
     },
     "agy 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 agy 确认它是通的。": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "agy did not respond within %lld seconds and was stopped. Try a smaller model, or run agy directly in Terminal first to confirm it works." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "agy 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 agy 确认它是通的。" } }
-      }
-    },
-    "使用已登录的 AGY，不需要单独填写 API Key；有截图时会通过临时交互终端传入。": {
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Uses your signed-in AGY; no separate API Key is needed. Screenshots are passed through a temporary interactive terminal." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "使用已登录的 AGY，不需要单独填写 API Key；有截图时会通过临时交互终端传入。" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agy did not respond within %lld seconds and was stopped. Try a smaller model, or run agy directly in Terminal first to confirm it works."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agy 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 agy 确认它是通的。"
+          }
+        }
       }
     },
     "跟随 AGY 默认": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Follow AGY's default" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "跟随 AGY 默认" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow AGY's default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随 AGY 默认"
+          }
+        }
       }
     },
     "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Each scan runs agy models directly instead of caching the version or model list; scan again after AGY updates." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each scan runs agy models directly instead of caching the version or model list; scan again after AGY updates."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。"
+          }
+        }
       }
     },
     "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "The local CLI test only checks whether the selected command starts; it does not spend an extra model request." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local CLI test only checks whether the selected command starts; it does not spend an extra model request."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
+          }
+        }
+      }
+    },
+    "下面这些文件是当前屏幕的截图，请先读取它们，再结合看到的内容回答：\n%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The files below are screenshots of the current screen. Read them first, then answer using what they show:\n%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下面这些文件是当前屏幕的截图，请先读取它们，再结合看到的内容回答：\n%@"
+          }
+        }
+      }
+    },
+    "只回答问题本身。除了上面列出的截图文件，不要读写任何其它文件，也不要执行别的命令。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer the question itself. Apart from the screenshot files listed above, do not read or write any other file and do not run any other command."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只回答问题本身。除了上面列出的截图文件，不要读写任何其它文件，也不要执行别的命令。"
+          }
+        }
+      }
+    },
+    "使用已登录的 AGY，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 AGY 读取，用完即删。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses your signed-in AGY; no separate API Key is needed. Screenshots are written to a temporary directory for AGY to read, and removed as soon as the request ends."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用已登录的 AGY，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 AGY 读取，用完即删。"
+          }
+        }
+      }
+    },
+    "%@ 可以运行，配置已保存。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ runs. The configuration has been saved."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 可以运行，配置已保存。"
+          }
+        }
+      }
+    },
+    "扫描中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanning…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描中…"
+          }
+        }
+      }
+    },
+    "扫描最新 AGY 模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan for the latest AGY models"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描最新 AGY 模型"
+          }
+        }
+      }
+    },
+    "找不到 agy，请填完整路径。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not find agy. Enter its full path."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 agy，请填完整路径。"
+          }
+        }
+      }
+    },
+    "本地 CLI": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local CLI"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地 CLI"
+          }
+        }
+      }
+    },
+    "重新扫描 AGY 模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescan AGY models"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描 AGY 模型"
+          }
+        }
+      }
+    },
+    "AGY 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AGY returned an empty answer with no reason given. The most likely causes are this turn's context reaching AGY's input limit, or too many requests in quick succession. Try lowering the page-text limit and asking again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AGY 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"
+          }
+        }
+      }
+    },
+    "找不到 claude 可执行文件。请先安装 Claude Code，或在设置里填它的完整路径。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not find the claude executable. Install Claude Code first, or enter its full path in Settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 claude 可执行文件。请先安装 Claude Code，或在设置里填它的完整路径。"
+          }
+        }
+      }
+    },
+    "Claude Code 还没有登录。在终端跑一次 `claude auth login`，之后回到这里再测一次。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code is not signed in. Run `claude auth login` in Terminal, then test the connection again here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code 还没有登录。在终端跑一次 `claude auth login`，之后回到这里再测一次。"
+          }
+        }
+      }
+    },
+    "claude 执行失败（退出码 %d）：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "claude failed (exit code %1$d): %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "claude 执行失败（退出码 %d）：%@"
+          }
+        }
+      }
+    },
+    "claude 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 claude 确认它是通的。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "claude did not respond within %lld seconds and was stopped. Try a smaller model, or run claude directly in Terminal first to confirm it works."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "claude 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 claude 确认它是通的。"
+          }
+        }
+      }
+    },
+    "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 CLI 里只有它是逐字显示答案的。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses your signed-in Claude Code; no separate API Key is needed. Screenshots are written to a temporary directory for it to read, and removed as soon as the request ends. It is the only one of the three local CLIs that shows the answer as it is written."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 CLI 里只有它是逐字显示答案的。"
+          }
+        }
+      }
+    },
+    "跟随 Claude Code 默认": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow Claude Code's default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随 Claude Code 默认"
+          }
+        }
+      }
+    },
+    "找不到 claude，请填完整路径。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not find claude. Enter its full path."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 claude，请填完整路径。"
+          }
+        }
+      }
+    },
+    "Claude Code 默认": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code 默认"
+          }
+        }
+      }
+    },
+    "日常主力，读截图和长正文都够快": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The everyday choice — fast enough for screenshots and long page text alike"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常主力，读截图和长正文都够快"
+          }
+        }
+      }
+    },
+    "最强的一档，慢一些，留给硬问题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The strongest tier. Slower, so save it for the hard questions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最强的一档，慢一些，留给硬问题"
+          }
+        }
+      }
+    },
+    "最快最省，适合看一眼截图就答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastest and cheapest, for answering straight from a glance at the screenshot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最快最省，适合看一眼截图就答"
+          }
+        }
+      }
+    },
+    "偏写作与长文组织": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leans toward writing and structuring long prose"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏写作与长文组织"
+          }
+        }
       }
     }
   }

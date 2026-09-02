@@ -4,13 +4,15 @@ import Foundation
 enum CLIProvider: String, CaseIterable, Identifiable, Sendable {
     case codex
     case agy
+    case claudeCode
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .codex: return "Codex CLI"
-        case .agy:   return "AGY CLI"
+        case .codex:      return "Codex CLI"
+        case .agy:        return "AGY CLI"
+        case .claudeCode: return "Claude Code CLI"
         }
     }
 }

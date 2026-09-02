@@ -179,7 +179,12 @@ struct ChatView: View {
             return settings.ollamaModel.isEmpty ? String(localized: "Ollama（未选模型）") : "Ollama · \(settings.ollamaModel)"
         case .codexCLI:
             let cli = settings.cliProvider.title
-            let model = settings.cliProvider == .codex ? settings.codexModel : settings.agyModel
+            let model: String
+            switch settings.cliProvider {
+            case .codex:      model = settings.codexModel
+            case .agy:        model = settings.agyModel
+            case .claudeCode: model = settings.claudeCodeModel
+            }
             return model.isEmpty ? cli : "\(cli) · \(model)"
         }
     }
