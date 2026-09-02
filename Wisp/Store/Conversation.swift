@@ -49,6 +49,9 @@ struct ContextSnapshot: Codable, Hashable {
     var pageTitle: String?
     var pageText: String?
     var pageTextTotalChars: Int?
+    /// 正文已知不完整：虚拟滚动没采到底，或页面明说读不全。
+    /// 与 `pageTextTotalChars` 表示的「按上限截断」是两回事。
+    var pageTextIsPartial: Bool = false
     var selectedText: String?
     var iframeURLs: [String]
     var hadScreenshot: Bool
@@ -62,7 +65,8 @@ struct ContextSnapshot: Codable, Hashable {
     }
 
     init(appName: String, bundleID: String?, windowTitle: String?, url: String?, pageTitle: String?,
-         pageText: String?, pageTextTotalChars: Int?, selectedText: String?, iframeURLs: [String],
+         pageText: String?, pageTextTotalChars: Int?, pageTextIsPartial: Bool = false,
+         selectedText: String?, iframeURLs: [String],
          hadScreenshot: Bool, capturedAt: Date) {
         self.appName = appName
         self.bundleID = bundleID
@@ -71,6 +75,7 @@ struct ContextSnapshot: Codable, Hashable {
         self.pageTitle = pageTitle
         self.pageText = pageText
         self.pageTextTotalChars = pageTextTotalChars
+        self.pageTextIsPartial = pageTextIsPartial
         self.selectedText = selectedText
         self.iframeURLs = iframeURLs
         self.hadScreenshot = hadScreenshot
@@ -87,6 +92,7 @@ struct ContextSnapshot: Codable, Hashable {
         pageTitle = c.optional(String.self, .pageTitle)
         pageText = c.optional(String.self, .pageText)
         pageTextTotalChars = c.optional(Int.self, .pageTextTotalChars)
+        pageTextIsPartial = c.value(.pageTextIsPartial, or: false)
         selectedText = c.optional(String.self, .selectedText)
         iframeURLs = c.value(.iframeURLs, or: [])
         hadScreenshot = c.value(.hadScreenshot, or: false)

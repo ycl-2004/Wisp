@@ -584,6 +584,34 @@ private struct CaptureSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            Section("采集模式") {
+                Picker("采集到什么程度", selection: Binding(
+                    get: { settings.captureMode },
+                    set: { settings.captureMode = $0 }
+                )) {
+                    ForEach(CaptureMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+
+                Text(settings.captureMode.detail)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if settings.captureMode == .scrollCollect && !ScrollDriver.isTrusted {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("还没有「辅助功能」权限，滑动采集无法生效。")
+                            .font(.system(size: 10))
+                        Button("去授权") { Permissions.openAccessibilitySettings() }
+                            .controlSize(.small)
+                    }
+                }
+            }
+
             Section("页面文字上限") {
                 HStack {
                     TextField("字符数", value: Binding(

@@ -1,5 +1,40 @@
 import Foundation
 
+/// 一次采集能动用到什么程度。越往下拿到的正文越全，代价也越大。
+enum CaptureMode: String, CaseIterable, Identifiable {
+    /// 只截图 + 网址标题。不注入 JS，最快，什么都不碰。
+    case screenshotOnly
+    /// 额外注入 JS 读整页正文。普通网页足够，虚拟滚动页面只能拿到一屏。
+    case pageText
+    /// 在上一档基础上，用真实滚轮事件把虚拟滚动页面滚一遍再采。
+    /// 需要辅助功能权限，采集时会短暂借用鼠标指针。
+    case scrollCollect
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .screenshotOnly: return String(localized: "纯截图")
+        case .pageText: return String(localized: "读取页面正文")
+        case .scrollCollect: return String(localized: "允许滑动采集")
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .screenshotOnly:
+            return String(localized: "只发送当前窗口截图和网址，不注入任何脚本。最快，也最不打扰。")
+        case .pageText:
+            return String(localized: "额外读取整页文字。普通网页能拿全；飞书文档、Notion 这类按需渲染的页面只能读到屏幕上的那一屏。")
+        case .scrollCollect:
+            return String(localized: "遇到按需渲染的页面时，用真实滚轮事件把页面滚一遍并累积正文，读完滚回原位。需要「辅助功能」权限，采集期间会短暂借用鼠标指针（结束后放回原处）。")
+        }
+    }
+
+    /// 要不要注入 JS 读正文。
+    var readsPageText: Bool { self != .screenshotOnly }
+}
+
 /// UserDefaults 包装。不存 API Key（Key 在 Keychain）。
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -16,6 +51,7 @@ final class AppSettings: ObservableObject {
         static let model = "model"
         static let excludedBundleIDs = "excludedBundleIDs"
         static let pageTextLimit = "pageTextLimit"
+        static let captureMode = "captureMode"
         static let maxConversations = "maxConversations"
         static let maxUserTurns = "maxUserTurns"
         static let sendScreenshot = "sendScreenshot"
@@ -47,6 +83,7 @@ final class AppSettings: ObservableObject {
                 "com.agilebits.onepassword7",
             ],
             K.pageTextLimit: 60_000,
+            K.captureMode: CaptureMode.pageText.rawValue,
             K.maxConversations: 10,
             K.maxUserTurns: 30,
             K.sendScreenshot: true,
@@ -102,6 +139,13 @@ final class AppSettings: ObservableObject {
     var pageTextLimit: Int {
         get { max(2_000, d.integer(forKey: K.pageTextLimit)) }
         set { d.set(newValue, forKey: K.pageTextLimit); objectWillChange.send() }
+    }
+
+    /// 一次采集能动用到什么程度。默认 `.pageText`：读正文但不碰用户的鼠标。
+    /// `.scrollCollect` 会注入真实滚轮事件，属于要用户明确同意的行为，不默认开。
+    var captureMode: CaptureMode {
+        get { CaptureMode(rawValue: d.string(forKey: K.captureMode) ?? "") ?? .pageText }
+        set { d.set(newValue.rawValue, forKey: K.captureMode); objectWillChange.send() }
     }
 
     var maxConversations: Int {

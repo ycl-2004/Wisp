@@ -1,5 +1,23 @@
 # Wisp release notes
 
+## Unreleased
+
+### Added
+
+- **A capture mode setting, under Settings → 采集模式, with three levels.** *纯截图* sends only the window screenshot plus the page URL and title, injecting no script at all. *读取页面正文* (the default) also reads the page text, which is complete for ordinary pages. *允许滑动采集* additionally scrolls on-demand-rendered pages to collect the whole document; it needs Accessibility permission and briefly borrows the mouse pointer, so it is opt-in rather than the default.
+- **Full-document capture for on-demand-rendered pages** (Feishu Docs, Notion and similar), by injecting genuine system-level scroll events through `CGEvent`. These pages keep only the visible blocks in the DOM, so a single `body.innerText` stops mid-sentence at the bottom of the screen. Measured on a Feishu doc: driving the scroll container's `scrollTop` from 0 to 3726 left the rendered line count at 12 and the body text at 541 characters throughout, and a synthetic `WheelEvent` did nothing either — Chrome treats it as untrusted. Trusted `CGEvent` scrolling moved the same document from 1100 to 4469 characters over 28 steps, reaching the closing sentence. Collection stops when several consecutive steps yield nothing new, which is the only reliable end signal here: these documents load as they scroll, so `scrollHeight` keeps growing and the scroll container never reports itself at the bottom.
+- The page scroll position is **restored exactly** after a collection pass, not reset to the top — the pointer is parked over the content, the page is scrolled back to the top for a known baseline, then returned to the user's original offset with an exact final step. Measured deviation: 0px.
+
+### Changed
+
+- The model is now told explicitly whether the page text is **complete, truncated by the length cap, or never fully collected**, and these are reported as distinct conditions. When the text is known to be incomplete, the prompt requires the answer to name the sentence it stops at instead of deflecting with "there is more below".
+- Page text truncation snaps to paragraph boundaries and the elision marker quotes the text on either side of the gap, so the model can tell which passage is missing rather than only how many characters.
+
+### Fixed
+
+- Page text was read from the scrolling container rather than `document.body`, which returned *less* text on Feishu (606 characters versus 833) because the body and the breadcrumb live in separate subtrees.
+- Lines shorter than four characters bypassed deduplication during scroll collection and were re-appended on every pass, so sidebar labels accumulated dozens of times over a long document.
+
 ## 0.2.0 — 2026-09-01
 
 ### Added

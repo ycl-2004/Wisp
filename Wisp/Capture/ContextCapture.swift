@@ -46,13 +46,18 @@ enum ContextCapture {
         async let shotResult = ScreenCapturer.capture(pid: app.processIdentifier,
                                                       excludingWindowIDs: excludingWindowIDs,
                                                       titleHint: browser?.pageTitle)
+        // 提前取出来：闭包跨并发边界，不能在里面碰 @MainActor 的 settings。
+        let mode = settings.captureMode
+        let pid = app.processIdentifier
         async let contentResult: BrowserTextExtractor.Result? = {
-            guard let bundleID, let family, let basic = browser, !basic.basicFailed else { return browser }
+            // 纯截图模式到网址和标题为止，不注入任何脚本。
+            guard mode.readsPageText,
+                  let bundleID, let family, let basic = browser, !basic.basicFailed else { return browser }
             return await runOffMain {
                 // 可变副本留在这个闭包里，不跨并发边界。
                 var current = basic
                 BrowserTextExtractor.pageContent(bundleID: bundleID, family: family,
-                                                 appName: appName, into: &current)
+                                                 appName: appName, mode: mode, pid: pid, into: &current)
                 return current
             }
         }()
@@ -80,6 +85,8 @@ enum ContextCapture {
             packet.iframeURLs = result.iframes
             packet.notes.append(contentsOf: result.notes)
 
+            packet.pageTextIsPartial = result.pageTextIsPartial
+            packet.usedScrollCollection = result.usedScrollCollection
             if let text = result.pageText {
                 packet.pageTextTotalChars = text.count
                 packet.pageText = truncate(text, limit: settings.pageTextLimit)
@@ -89,6 +96,10 @@ enum ContextCapture {
             }
         } else if family == nil {
             packet.notes.append(.info(String(localized: "\(appName) 不是支持的浏览器，读不到整页文字，只能靠截图。")))
+        }
+
+        if !mode.readsPageText {
+            packet.notes.append(.info(String(localized: "当前是「纯截图」采集模式，本次没有读取页面正文。")))
         }
 
         return packet
@@ -104,14 +115,59 @@ enum ContextCapture {
     }
 
     /// 超长正文保留头 75% 与尾 25%，中间标注省略了多少字。
+    ///
+    /// 切点吸附到最近的段落边界（往回最多找 400 字），别把句子劈成两半——
+    /// 模型看到半截句子容易顺着编下去。省略标记里同时给出断点前后各一小段原文，
+    /// 这样模型能明确知道「缺的是哪一段」，而不是只知道「缺了 N 字」。
     static func truncate(_ text: String, limit: Int) -> String {
         guard text.count > limit else { return text }
-        let headCount = Int(Double(limit) * 0.75)
-        let tailCount = limit - headCount
-        let head = String(text.prefix(headCount))
-        let tail = String(text.suffix(tailCount))
-        let omitted = text.count - headCount - tailCount
-        return head + String(localized: "\n\n[…… 中间省略 \(omitted) 字 ……]\n\n") + tail
+        let headTarget = Int(Double(limit) * 0.75)
+        let tailTarget = limit - headTarget
+
+        let head = String(text.prefix(headTarget))
+        let headCut = snapBackward(head) ?? head
+        let tailRaw = String(text.suffix(tailTarget))
+        let tailCut = snapForward(tailRaw) ?? tailRaw
+
+        let omitted = text.count - headCut.count - tailCut.count
+        guard omitted > 0 else { return text }
+
+        let marker = String(localized: "\n\n[…… 此处省略正文中间 \(omitted) 字。上一段结束于「\(tailSample(headCut))」，下一段开始于「\(headSample(tailCut))」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n")
+        return headCut + marker + tailCut
+    }
+
+    /// 从尾部往回找段落边界，最多回退 400 字；找不到就原样返回。
+    private static func snapBackward(_ s: String) -> String? {
+        let window = 400
+        let chars = Array(s)
+        let lower = max(0, chars.count - window)
+        var i = chars.count - 1
+        while i > lower {
+            if chars[i] == "\n" { return String(chars[0..<i]) }
+            i -= 1
+        }
+        return nil
+    }
+
+    /// 从头部往后找段落边界，最多前进 400 字；找不到就原样返回。
+    private static func snapForward(_ s: String) -> String? {
+        let window = 400
+        let chars = Array(s)
+        let upper = min(chars.count, window)
+        var i = 0
+        while i < upper {
+            if chars[i] == "\n" { return String(chars[(i + 1)...]) }
+            i += 1
+        }
+        return nil
+    }
+
+    private static func tailSample(_ s: String, _ n: Int = 24) -> String {
+        String(s.suffix(n)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func headSample(_ s: String, _ n: Int = 24) -> String {
+        String(s.prefix(n)).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - 调试
@@ -129,6 +185,8 @@ enum ContextCapture {
             "pageTitle": packet.pageTitle ?? "",
             "pageTextChars": packet.pageText?.count ?? 0,
             "pageTextTotalChars": packet.pageTextTotalChars ?? 0,
+            "pageTextIsPartial": packet.pageTextIsPartial,
+            "usedScrollCollection": packet.usedScrollCollection,
             "selectedText": packet.selectedText ?? "",
             "iframeURLs": packet.iframeURLs,
             "notes": packet.notes.map(\.text),

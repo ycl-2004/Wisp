@@ -16,10 +16,11 @@ enum PromptBuilder {
 
         要求：
         1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。
-        2. 页面正文可能被截断，也可能有跨域嵌入框架读不到。如果答案所需的信息不在给到的正文里，直接说明这一点，并指出可以看截图的哪一部分或需要用户滚动到哪里。
-        3. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。
-        4. 用用户提问所使用的语言回答，默认简体中文。
-        5. 回答简洁直接，先给结论。
+        2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。
+        3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。
+        4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。
+        5. 用用户提问所使用的语言回答，默认简体中文。
+        6. 回答简洁直接，先给结论。
         """)
     }
 
@@ -97,11 +98,25 @@ enum PromptBuilder {
 
         if let text = context.pageText, !text.isEmpty {
             let total = context.pageTextTotalChars ?? text.count
-            let truncatedNote = total > text.count ? String(localized: "，原文共 \(total) 字，中间已省略") : ""
-            lines.append(String(localized: "整页正文（\(text.count) 字\(truncatedNote)）："))
+            // 「按上限截断」和「本来就没读全」是两种不同的残缺，必须分开讲清楚，
+            // 否则模型会把读到哪算到哪，当成整篇来回答。
+            var flags: [String] = []
+            if total > text.count {
+                flags.append(String(localized: "已按长度上限截断，原文共 \(total) 字，中间省略部分见正文里的省略标记"))
+            }
+            if context.pageTextIsPartial {
+                flags.append(String(localized: "这一页是虚拟滚动，正文没有采集到文末，后面还有未知数量的内容没读到"))
+            }
+            let suffix = flags.isEmpty
+                ? String(localized: "，完整")
+                : "，" + flags.joined(separator: "；")
+            lines.append(String(localized: "整页正文（\(text.count) 字\(suffix)）："))
             lines.append("---")
             lines.append(text)
             lines.append("---")
+            if context.pageTextIsPartial {
+                lines.append(String(localized: "注意：上面的正文不是全文。回答前先判断所需信息是否在其中；不在就直说没读到，不要用「后面还有内容」搪塞，而要指出正文断在哪一句、让用户滚动到该位置再问一次。"))
+            }
         } else {
             lines.append(String(localized: "整页正文：未取到，只能依赖截图。"))
         }

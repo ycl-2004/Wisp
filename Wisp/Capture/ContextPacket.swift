@@ -25,6 +25,11 @@ struct ContextPacket: Identifiable {
     var pageText: String?
     /// 截断前的总字数，UI 用来显示「N 字 / 已截断」。
     var pageTextTotalChars: Int?
+    /// 正文已知不完整：虚拟滚动没采到底，或滚动采集中途失败。
+    /// 和 `isTruncated`（按字数上限砍）是两件事，两者可能同时成立。
+    var pageTextIsPartial: Bool = false
+    /// 这次正文是靠滚动采集拿到的，而不是单次 innerText。
+    var usedScrollCollection: Bool = false
     var selectedText: String?
     /// 页面内 iframe 的 src。跨域 iframe 的正文读不到，只能靠截图。
     var iframeURLs: [String] = []
@@ -69,6 +74,7 @@ struct ContextPacket: Identifiable {
             pageTitle: pageTitle,
             pageText: pageText,
             pageTextTotalChars: pageTextTotalChars,
+            pageTextIsPartial: pageTextIsPartial,
             selectedText: selectedText,
             iframeURLs: iframeURLs,
             hadScreenshot: hasScreenshot,
@@ -77,12 +83,37 @@ struct ContextPacket: Identifiable {
     }
 }
 
-/// 页面提取脚本的返回结构。
+/// 页面提取脚本 `beginJS` 的返回结构。
 struct PageExtraction: Decodable {
     var title: String?
     var href: String?
     var text: String?
     var selection: String?
     var iframes: [String]?
+    var error: String?
+    /// 滚动容器的尺寸，用来判断这一页是不是虚拟滚动、要不要继续往下采。
+    var scrollHeight: Double?
+    var clientHeight: Double?
+    var scrollTop: Double?
+    var docScroller: Bool?
+}
+
+/// `stepJS` 的返回结构。
+struct PageScrollStep: Decodable {
+    var added: Int?
+    /// 本次采集累计新增的行数，用来识别「滚到底了却一个字没多」。
+    var gained: Int?
+    var atBottom: Bool?
+    var chars: Int?
+    var steps: Int?
+    var error: String?
+}
+
+/// `finishJS` 的返回结构。
+struct PageScrollFinish: Decodable {
+    var text: String?
+    var gained: Int?
+    var reachedBottom: Bool?
+    var steps: Int?
     var error: String?
 }

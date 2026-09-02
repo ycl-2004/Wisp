@@ -41,6 +41,7 @@
 		B39C52C5798DD6CDC70C0004 /* PromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF252A9CF890F2FF6AA03A30 /* PromptBuilder.swift */; };
 		B9526A014D8AC4B802FDC1D1 /* ContextCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41B113B5C159C60EFB6D81EE /* ContextCapture.swift */; };
 		BB3124E118643C50875AA0BC /* BrowserTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D441EE599D76138A965327 /* BrowserTextExtractor.swift */; };
+		BCB002F722E2C84681227614 /* ScrollDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F724061B735539D10227C7 /* ScrollDriver.swift */; };
 		C16D695CFAD17D477D9F6199 /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98023C2C80A51C200CCD062D /* SSEParser.swift */; };
 		C575C7232C5FCA1A3F18A9D8 /* WispApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9CB342E72F33408AA0CB63 /* WispApp.swift */; };
 		CF2C1F107400D8BF0C41EF9A /* IslandModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EC426968353C8BFD75CA42B /* IslandModel.swift */; };
@@ -74,6 +75,7 @@
 		7F749591135B3236A301EBD9 /* ContextHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextHeaderView.swift; sourceTree = "<group>"; };
 		7FE99F66B4BC50B28C45F248 /* PageTextScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTextScript.swift; sourceTree = "<group>"; };
 		85FF8C396007A624B07DA1AB /* PanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelController.swift; sourceTree = "<group>"; };
+		88F724061B735539D10227C7 /* ScrollDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollDriver.swift; sourceTree = "<group>"; };
 		8EB3B03DE39F1B2913316699 /* ModelSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSwitcher.swift; sourceTree = "<group>"; };
 		921FC48F6E412CFE0F79A064 /* ChatInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInput.swift; sourceTree = "<group>"; };
 		9419236D77396D53BBCDB867 /* Wisp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wisp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +138,7 @@
 				7339DF1CAC5DA144A82DC6AE /* ContextPacket.swift */,
 				7FE99F66B4BC50B28C45F248 /* PageTextScript.swift */,
 				A60CFEA13AA889AB6399E24A /* ScreenCapturer.swift */,
+				88F724061B735539D10227C7 /* ScrollDriver.swift */,
 			);
 			path = Capture;
 			sourceTree = "<group>";
@@ -345,6 +348,7 @@
 				C16D695CFAD17D477D9F6199 /* SSEParser.swift in Sources */,
 				E5243F8F922C88FDFD486EBB /* ScreenCapturer.swift in Sources */,
 				49B7261327073EC6A4D2B715 /* ScreenGeometry.swift in Sources */,
+				BCB002F722E2C84681227614 /* ScrollDriver.swift in Sources */,
 				A7ACC144004D961ADE6461BA /* SettingsView.swift in Sources */,
 				C575C7232C5FCA1A3F18A9D8 /* WispApp.swift in Sources */,
 			);
