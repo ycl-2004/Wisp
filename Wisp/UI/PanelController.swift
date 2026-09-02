@@ -42,12 +42,15 @@ final class PanelController: NSObject, NSWindowDelegate {
         model.setCollapsedSilently(true)
         isPointerInside = false
         Task {
-            await model.captureContext()
+            // 只等第一阶段：截图必须赶在浮窗出现之前，否则浮窗会进画面。
+            await model.captureShot()
             position(panel)
             panel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
             refreshIdleTimer()
+            // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
+            // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
         }
     }
 
@@ -75,12 +78,18 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// 焦点、悬停、生成状态、设置里的秒数，任何一样变了都重新决定要不要计时。
     func refreshIdleTimer() {
         guard let panel, panel.isVisible else { cancelIdleTimer(); return }
-        // 这四种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
-        // 鼠标停在上面、回答正在生成。任何一条成立都不能收。
+        // 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
+        // 鼠标停在上面、回答正在生成、正在采集。任何一条成立都不能收。
+        //
+        // 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
+        // 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
+        // 不相干的应用、也就是真的走开了，倒计时才有意义。
         guard AppSettings.shared.idleDismissSeconds > 0,
               !panel.isKeyWindow,
               !isPointerInside,
-              !AssistantModel.shared.isStreaming
+              !AssistantModel.shared.isStreaming,
+              !AssistantModel.shared.isCapturing,
+              !isWorkingInCapturedApp
         else { cancelIdleTimer(); return }
 
         // 已经在倒计时就让它继续走，别重置——否则鼠标扫过窗口边缘会一直续命。
@@ -106,9 +115,23 @@ final class PanelController: NSObject, NSWindowDelegate {
               AppSettings.shared.idleDismissSeconds > 0,
               !panel.isKeyWindow,
               !isPointerInside,
-              !AssistantModel.shared.isStreaming
+              !AssistantModel.shared.isStreaming,
+              !AssistantModel.shared.isCapturing,
+              !isWorkingInCapturedApp
         else { refreshIdleTimer(); return }
         hide()
+    }
+
+    /// 前台应用就是这份上下文读到的那个应用吗？
+    ///
+    /// 比的是 `packet.bundleID`（真正采集过的那个），不是 `targetApp`——后者会跟着
+    /// 用户切到的任何应用变，拿它来判断的话这里永远为真，等于把空闲收起废掉了。
+    /// 用 packet 才是想要的语义：在 Chrome 里翻标签页找资料不收，跑去 Slack 才收。
+    private var isWorkingInCapturedApp: Bool {
+        guard let captured = AssistantModel.shared.packet?.bundleID,
+              let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        else { return false }
+        return front == captured
     }
 
     /// 收起／展开：只改高度，宽度和左上角位置不动。
@@ -254,6 +277,9 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func windowDidBecomeKey(_ notification: Notification) {
         refreshIdleTimer()
+        // 用户点回面板 = 他准备拿现在这一页提问。过期的上下文在这里补采，
+        // 而不是他在浏览器里每换一个标签页就自动采一次。
+        AssistantModel.shared.panelDidBecomeKey()
     }
 }
 

@@ -52,7 +52,11 @@ final class AssistantModel: ObservableObject {
     var targetApp: NSRunningApplication?
 
     private init() {
-        // 面板开着时用户切到别的应用，自动跟上新的画面。
+        // 面板开着时用户切到别的应用（包括在 Chrome 里换一个标签页——那也会让
+        // Chrome 重新激活），只记下新的目标并把上下文标成过期，**不**在这里采集。
+        //
+        // 以前这里会自动采一次，结果是用户每换一个标签页，屏幕就自己动一下。
+        // 采集要等用户真的回到面板前再做：那才说明他准备拿这一页来提问。
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil, queue: .main
@@ -62,20 +66,26 @@ final class AssistantModel: ObservableObject {
             MainActor.assumeIsolated {
                 guard let self, PanelController.shared.isVisible, !self.isStreaming else { return }
                 self.targetApp = app
-                self.scheduleAutoCapture()
+                self.contextIsStale = true
+                // 切走／切回都可能改变「该不该自动收起」的答案，重新判一次。
+                PanelController.shared.refreshIdleTimer()
             }
         }
     }
 
     // MARK: - 上下文
 
-    /// 浮窗即将显示时调用。截图必须在浮窗出现之前完成。
-    func captureContext() async {
+    /// 第二阶段还没跑的那份活。
+    private var pendingText: ContextCapture.PendingText?
+
+    /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
+    /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
+    func captureShot() async {
         guard !isCapturing else { return }
         isCapturing = true
         errorText = nil
-        let result = await ContextCapture.capture(excludingWindowIDs: ownWindowIDs,
-                                                  fallbackApp: targetApp)
+        let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: ownWindowIDs,
+                                                                 fallbackApp: targetApp)
         if let bundleID = result.bundleID,
            bundleID != Bundle.main.bundleIdentifier,
            let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
@@ -90,27 +100,46 @@ final class AssistantModel: ObservableObject {
         lastURL = result.url
 
         packet = result
+        pendingText = pending
         isCapturing = false
+        // 截图是新的了，过期标记就该清掉。正文还欠着的话由 `pendingText` 记着，
+        // 不要用 contextIsStale 兼职表示这件事——否则发送时会白截一次图。
+        contextIsStale = false
+        if pending == nil { dumpIfNeeded() }
+    }
 
-        if settings.debugDumpEnabled {
-            ContextCapture.dumpForDebug(result)
-        }
+    /// 第二阶段：读整页正文，必要时滚动采集。
+    ///
+    /// 刻意留到用户**按下发送**时才跑，而不是面板一出现就跑：滑动采集会真的
+    /// 翻动用户的页面，在他还没想好要问什么的时候就动起来，像是电脑自作主张。
+    /// 放在发送时，翻页就成了「为了回答你这个问题去把页面看完」，顺理成章。
+    ///
+    /// 同一份上下文只读一次：`pendingText` 用掉就置空，接着追问同一个页面
+    /// 不会再翻一遍。换了标签页会标成过期，下次发送时重新采。
+    func captureText() async {
+        guard let pending = pendingText, var current = packet else { return }
+        pendingText = nil
+        isCapturing = true
+        await ContextCapture.captureText(pending, into: &current)
+        packet = current
+        isCapturing = false
+        contextIsStale = false
+        dumpIfNeeded()
+    }
+
+    /// 两个阶段一次跑完。手动刷新走这条。
+    func captureContext() async {
+        await captureShot()
+        await captureText()
+    }
+
+    private func dumpIfNeeded() {
+        guard settings.debugDumpEnabled, let packet else { return }
+        ContextCapture.dumpForDebug(packet)
     }
 
     func refreshContext() {
         Task { await captureContext() }
-    }
-
-    private var autoCaptureTask: Task<Void, Never>?
-
-    /// 合并短时间内的多次触发，避免切窗口时连着截好几次。
-    private func scheduleAutoCapture() {
-        autoCaptureTask?.cancel()
-        autoCaptureTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            guard !Task.isCancelled else { return }
-            await self?.captureContext()
-        }
     }
 
     func panelDidResignKey() {
@@ -118,8 +147,15 @@ final class AssistantModel: ObservableObject {
         contextIsStale = true
     }
 
+    /// 用户点回面板了。补一张新的截图和网址就够——正文和滑动采集留到发送时，
+    /// 免得他只是回来看一眼、还没打算问，页面就先翻起来了。
+    func panelDidBecomeKey() {
+        guard contextIsStale, !isStreaming, !isCapturing else { return }
+        Task { await captureShot() }
+    }
+
     func panelDidHide() {
-        autoCaptureTask?.cancel()
+        pendingText = nil
         contextIsStale = true
     }
 
@@ -199,12 +235,12 @@ final class AssistantModel: ObservableObject {
             withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) }
         }
         Task {
-            // 发之前先确认上下文是新的，省得用户还要自己点刷新。
-            let age = packet.map { Date().timeIntervalSince($0.capturedAt) } ?? .infinity
-            if packet == nil || contextIsStale || age > 20 {
-                contextIsStale = false
-                await captureContext()
+            // 截图过期了先补一张，然后读正文——滑动采集就发生在这一步。
+            // 不再按「超过 N 秒就重来」：那会在用户慢慢打字的时候突然翻动页面。
+            if packet == nil || contextIsStale {
+                await captureShot()
             }
+            await captureText()
             performSend(question: question)
         }
     }

@@ -10,6 +10,10 @@
 
 ### Changed
 
+- **Capture no longer re-runs on its own when you switch apps or browser tabs.** Activating another app while the panel is open now only records the new target and marks the context stale; it no longer triggers a capture. Clicking a tab in Chrome reactivates Chrome, so the old behaviour scanned on every tab switch — with scroll collection enabled that meant the page moved by itself while the user was still browsing.
+- **The panel appears before any page reading starts.** Opening it waits only for the screenshot, which has to be taken before the panel is on screen; reading the page text is no longer part of that wait. Previously the panel appeared only after the whole capture finished, so with scroll collection the user pressed the shortcut, saw nothing, and watched their page start scrolling on its own.
+- **Scroll collection now happens when you press send, not when the panel opens.** Scrolling the page before the user has even decided what to ask reads as the machine acting on its own; doing it as the question is sent reads as paging through the document to answer it. A follow-up question about the same page does not scroll again — the collected text is reused until the context goes stale.
+- **The panel no longer auto-hides while you are working in the app it captured.** Switching tabs in Chrome to find something is preparation for asking, so the idle countdown does not run there; it still runs once you move to an unrelated app.
 - The model is now told explicitly whether the page text is **complete, truncated by the length cap, or never fully collected**, and these are reported as distinct conditions. When the text is known to be incomplete, the prompt requires the answer to name the sentence it stops at instead of deflecting with "there is more below".
 - Page text truncation snaps to paragraph boundaries and the elision marker quotes the text on either side of the gap, so the model can tell which passage is missing rather than only how many characters.
 

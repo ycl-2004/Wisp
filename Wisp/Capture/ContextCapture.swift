@@ -4,10 +4,27 @@ import Foundation
 /// 编排一次上下文采集：确定前台应用 → 并行做截图与浏览器取文 → 合成 ContextPacket。
 enum ContextCapture {
 
+    /// 第二阶段要用到的东西。第一阶段查好，交给第二阶段接着跑。
+    struct PendingText {
+        let bundleID: String
+        let family: BrowserTextExtractor.Family
+        let appName: String
+        let pid: pid_t
+        let mode: CaptureMode
+        let basic: BrowserTextExtractor.Result
+    }
+
+    /// 第一阶段：确定目标应用 → 截图 → 问浏览器要网址和标题。
+    ///
+    /// 刻意不注入读正文的脚本，所以这一阶段很快。面板必须等它跑完才能显示
+    /// （否则浮窗会被截进画面里），但也**只**该等它这么久：读正文动辄几秒，
+    /// 滑动采集更久，那些要留到面板出现之后再做，不然用户按下快捷键会看到
+    /// 屏幕先自己动起来、面板迟迟不出现。
+    ///
     /// `excludingWindowIDs` 传入 Wisp 自己的窗口，双保险防止把浮窗截进去。
     /// `fallbackApp` 用于浮窗已经抢到焦点后再次刷新的情况：此时前台应用是 Wisp 自己。
-    static func capture(excludingWindowIDs: [CGWindowID] = [],
-                        fallbackApp: NSRunningApplication? = nil) async -> ContextPacket {
+    static func captureShot(excludingWindowIDs: [CGWindowID] = [],
+                            fallbackApp: NSRunningApplication? = nil) async -> (ContextPacket, PendingText?) {
         let settings = AppSettings.shared
         let ownBundleID = Bundle.main.bundleIdentifier
 
@@ -18,20 +35,20 @@ enum ContextCapture {
         guard let app = resolved, app.bundleIdentifier != ownBundleID else {
             var packet = ContextPacket(appName: String(localized: "未知应用"), bundleID: nil)
             packet.notes.append(.info(String(localized: "无法确定要读取哪个应用。请切换到目标应用后再按一次快捷键。")))
-            return packet
+            return (packet, nil)
         }
 
         let appName = app.localizedName ?? String(localized: "未知应用")
         let bundleID = app.bundleIdentifier
 
         if settings.isExcluded(bundleID: bundleID) {
-            return .excluded(appName: appName, bundleID: bundleID)
+            return (.excluded(appName: appName, bundleID: bundleID), nil)
         }
 
         var packet = ContextPacket(appName: appName, bundleID: bundleID)
+        let mode = settings.captureMode
 
-        // 第一步：先问浏览器当前分页是什么。快，而且能给截图指出该截哪个窗口。
-        // 下面的并发闭包会捕获它，所以必须是 let：捕获 var 在 Swift 6 里是错误。
+        // 先问浏览器当前分页是什么。快，而且能给截图指出该截哪个窗口。
         let family = BrowserTextExtractor.family(for: bundleID)
         let browser: BrowserTextExtractor.Result?
         if let bundleID, let family {
@@ -42,27 +59,9 @@ enum ContextCapture {
             browser = nil
         }
 
-        // 第二步：截图与整页正文并行。
-        async let shotResult = ScreenCapturer.capture(pid: app.processIdentifier,
-                                                      excludingWindowIDs: excludingWindowIDs,
-                                                      titleHint: browser?.pageTitle)
-        // 提前取出来：闭包跨并发边界，不能在里面碰 @MainActor 的 settings。
-        let mode = settings.captureMode
-        let pid = app.processIdentifier
-        async let contentResult: BrowserTextExtractor.Result? = {
-            // 纯截图模式到网址和标题为止，不注入任何脚本。
-            guard mode.readsPageText,
-                  let bundleID, let family, let basic = browser, !basic.basicFailed else { return browser }
-            return await runOffMain {
-                // 可变副本留在这个闭包里，不跨并发边界。
-                var current = basic
-                BrowserTextExtractor.pageContent(bundleID: bundleID, family: family,
-                                                 appName: appName, mode: mode, pid: pid, into: &current)
-                return current
-            }
-        }()
-
-        switch await shotResult {
+        switch await ScreenCapturer.capture(pid: app.processIdentifier,
+                                            excludingWindowIDs: excludingWindowIDs,
+                                            titleHint: browser?.pageTitle) {
         case .success(let shot):
             packet.screenshotJPEG = shot.jpeg
             packet.screenshotPixelSize = shot.pixelSize
@@ -78,30 +77,64 @@ enum ContextCapture {
             }
         }
 
-        if let result = await contentResult {
-            packet.url = result.url
-            packet.pageTitle = result.pageTitle
-            packet.selectedText = result.selection
-            packet.iframeURLs = result.iframes
-            packet.notes.append(contentsOf: result.notes)
-
-            packet.pageTextIsPartial = result.pageTextIsPartial
-            packet.usedScrollCollection = result.usedScrollCollection
-            if let text = result.pageText {
-                packet.pageTextTotalChars = text.count
-                packet.pageText = truncate(text, limit: settings.pageTextLimit)
-            }
-            if !result.iframes.isEmpty {
-                packet.notes.append(.info(String(localized: "页面含 \(result.iframes.count) 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。")))
-            }
+        if let browser {
+            packet.url = browser.url
+            packet.pageTitle = browser.pageTitle
+            packet.notes.append(contentsOf: browser.notes)
         } else if family == nil {
             packet.notes.append(.info(String(localized: "\(appName) 不是支持的浏览器，读不到整页文字，只能靠截图。")))
         }
 
-        if !mode.readsPageText {
-            packet.notes.append(.info(String(localized: "当前是「纯截图」采集模式，本次没有读取页面正文。")))
+        guard mode.readsPageText, let bundleID, let family,
+              let basic = browser, !basic.basicFailed else {
+            if !mode.readsPageText {
+                packet.notes.append(.info(String(localized: "当前是「纯截图」采集模式，本次没有读取页面正文。")))
+            }
+            return (packet, nil)
         }
 
+        return (packet, PendingText(bundleID: bundleID, family: family, appName: appName,
+                                    pid: app.processIdentifier, mode: mode, basic: basic))
+    }
+
+    /// 第二阶段：注入脚本读整页正文，必要时滚动采集。面板已经显示之后再调用。
+    static func captureText(_ pending: PendingText, into packet: inout ContextPacket) async {
+        let settings = AppSettings.shared
+        let result = await runOffMain {
+            // 可变副本留在这个闭包里，不跨并发边界。
+            var current = pending.basic
+            BrowserTextExtractor.pageContent(bundleID: pending.bundleID, family: pending.family,
+                                             appName: pending.appName, mode: pending.mode,
+                                             pid: pending.pid, into: &current)
+            return current
+        }
+
+        packet.url = result.url ?? packet.url
+        packet.pageTitle = result.pageTitle ?? packet.pageTitle
+        packet.selectedText = result.selection
+        packet.iframeURLs = result.iframes
+        // 第一阶段已经把 basic 的说明收进去了，这里只补第二阶段新增的那些。
+        packet.notes.append(contentsOf: result.notes.filter { !packet.notes.contains($0) })
+
+        packet.pageTextIsPartial = result.pageTextIsPartial
+        packet.usedScrollCollection = result.usedScrollCollection
+        if let text = result.pageText {
+            packet.pageTextTotalChars = text.count
+            packet.pageText = truncate(text, limit: settings.pageTextLimit)
+        }
+        if !result.iframes.isEmpty {
+            packet.notes.append(.info(String(localized: "页面含 \(result.iframes.count) 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。")))
+        }
+    }
+
+    /// 两个阶段一次跑完。手动刷新走这条。
+    static func capture(excludingWindowIDs: [CGWindowID] = [],
+                        fallbackApp: NSRunningApplication? = nil) async -> ContextPacket {
+        var (packet, pending) = await captureShot(excludingWindowIDs: excludingWindowIDs,
+                                                  fallbackApp: fallbackApp)
+        if let pending {
+            await captureText(pending, into: &packet)
+        }
         return packet
     }
 

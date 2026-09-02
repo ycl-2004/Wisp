@@ -4577,6 +4577,390 @@
           }
         }
       }
+    },
+    "纯截图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshot only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纯截图"
+          }
+        }
+      }
+    },
+    "读取页面正文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read page text"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取页面正文"
+          }
+        }
+      }
+    },
+    "允许滑动采集": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow scroll collection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许滑动采集"
+          }
+        }
+      }
+    },
+    "只发送当前窗口截图和网址，不注入任何脚本。最快，也最不打扰。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sends only the current window's screenshot and its URL, injecting no script at all. Fastest and least intrusive."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只发送当前窗口截图和网址，不注入任何脚本。最快，也最不打扰。"
+          }
+        }
+      }
+    },
+    "额外读取整页文字。普通网页能拿全；飞书文档、Notion 这类按需渲染的页面只能读到屏幕上的那一屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also reads the full page text. Complete on ordinary pages; on-demand-rendered pages such as Feishu Docs or Notion yield only what is on screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "额外读取整页文字。普通网页能拿全；飞书文档、Notion 这类按需渲染的页面只能读到屏幕上的那一屏。"
+          }
+        }
+      }
+    },
+    "遇到按需渲染的页面时，用真实滚轮事件把页面滚一遍并累积正文，读完滚回原位。需要「辅助功能」权限，采集期间会短暂借用鼠标指针（结束后放回原处）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On an on-demand-rendered page, scrolls through it with genuine scroll events to collect the whole text, then returns to where you were. Needs Accessibility permission, and briefly borrows the mouse pointer, which is put back afterwards."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遇到按需渲染的页面时，用真实滚轮事件把页面滚一遍并累积正文，读完滚回原位。需要「辅助功能」权限，采集期间会短暂借用鼠标指针（结束后放回原处）。"
+          }
+        }
+      }
+    },
+    "采集模式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture mode"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "采集模式"
+          }
+        }
+      }
+    },
+    "采集到什么程度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much to capture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "采集到什么程度"
+          }
+        }
+      }
+    },
+    "还没有「辅助功能」权限，滑动采集无法生效。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without Accessibility permission, scroll collection cannot work."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有「辅助功能」权限，滑动采集无法生效。"
+          }
+        }
+      }
+    },
+    "去授权": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grant access"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去授权"
+          }
+        }
+      }
+    },
+    "当前是「纯截图」采集模式，本次没有读取页面正文。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture mode is set to screenshot only, so no page text was read this time."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前是「纯截图」采集模式，本次没有读取页面正文。"
+          }
+        }
+      }
+    },
+    "\n\n[…… 此处省略正文中间 %1$lld 字。上一段结束于「%2$@」，下一段开始于「%3$@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n[…… %1$lld characters omitted from the middle here. The text above ends with “%2$@” and resumes at “%3$@”. If your answer needs this passage, say so and tell the user where to scroll ……]\n\n"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n[…… 此处省略正文中间 %1$lld 字。上一段结束于「%2$@」，下一段开始于「%3$@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n"
+          }
+        }
+      }
+    },
+    "这一页需要滚动才能读全，但 Wisp 还没有「辅助功能」权限，只能退回效果有限的脚本滚动。请到「系统设置 → 隐私与安全性 → 辅助功能」勾选 Wisp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page has to be scrolled to be read in full, but Wisp does not have Accessibility permission yet, so it fell back to script scrolling, which works on fewer pages. Enable Wisp under System Settings → Privacy & Security → Accessibility."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页需要滚动才能读全，但 Wisp 还没有「辅助功能」权限，只能退回效果有限的脚本滚动。请到「系统设置 → 隐私与安全性 → 辅助功能」勾选 Wisp。"
+          }
+        }
+      }
+    },
+    "这一页需要滚动才能读全，采集过程中断了，正文可能只有可视区域的一屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page has to be scrolled to be read in full, and collection was interrupted, so the text may cover only the visible screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页需要滚动才能读全，采集过程中断了，正文可能只有可视区域的一屏。"
+          }
+        }
+      }
+    },
+    "这一页的正文是按需渲染的，脚本滚动没能让它加载出更多内容，只读到 %lld 字。到设置里把采集模式切成「允许滑动采集」可以读全。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page renders its text on demand, and script scrolling did not make it load any more, so only %lld characters were read. Switching the capture mode to “Allow scroll collection” in Settings will read it in full."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页的正文是按需渲染的，脚本滚动没能让它加载出更多内容，只读到 %lld 字。到设置里把采集模式切成「允许滑动采集」可以读全。"
+          }
+        }
+      }
+    },
+    "这一页按需渲染，已滚动采集 %1$lld 屏读到文末，正文从 %2$lld 字补到 %3$lld 字。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page renders on demand; %1$lld screens were scrolled through to reach the end, taking the text from %2$lld to %3$lld characters."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页按需渲染，已滚动采集 %1$lld 屏读到文末，正文从 %2$lld 字补到 %3$lld 字。"
+          }
+        }
+      }
+    },
+    "超过时间预算": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the time budget ran out"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "超过时间预算"
+          }
+        }
+      }
+    },
+    "达到滚动上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the scroll limit was reached"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达到滚动上限"
+          }
+        }
+      }
+    },
+    "这一页按需渲染，%1$@，滚了 %2$lld 屏采到 %3$lld 字，可能还没到文末。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page renders on demand; %1$@, so after %2$lld screens only %3$lld characters were collected, possibly short of the end."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页按需渲染，%1$@，滚了 %2$lld 屏采到 %3$lld 字，可能还没到文末。"
+          }
+        }
+      }
+    },
+    "已按长度上限截断，原文共 %lld 字，中间省略部分见正文里的省略标记": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "truncated at the length cap; the original is %lld characters, and the elision marker in the text shows what was left out"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已按长度上限截断，原文共 %lld 字，中间省略部分见正文里的省略标记"
+          }
+        }
+      }
+    },
+    "这一页是虚拟滚动，正文没有采集到文末，后面还有未知数量的内容没读到": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this page uses virtual scrolling and the text was not collected to the end, so an unknown amount below was never read"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页是虚拟滚动，正文没有采集到文末，后面还有未知数量的内容没读到"
+          }
+        }
+      }
+    },
+    "，完整": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", complete"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，完整"
+          }
+        }
+      }
+    },
+    "注意：上面的正文不是全文。回答前先判断所需信息是否在其中；不在就直说没读到，不要用「后面还有内容」搪塞，而要指出正文断在哪一句、让用户滚动到该位置再问一次。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note: the text above is not the whole document. Before answering, decide whether the information you need is in it. If it is not, say so plainly. Do not deflect with “there is more below” — name the sentence the text stops at and ask the user to scroll there and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注意：上面的正文不是全文。回答前先判断所需信息是否在其中；不在就直说没读到，不要用「后面还有内容」搪塞，而要指出正文断在哪一句、让用户滚动到该位置再问一次。"
+          }
+        }
+      }
+    },
+    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。\n": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches the context of their current screen.\n\nThat context may include: the current app name and window title, the URL and title of the current web page, the full page text, the user's selected text, and a screenshot of the current window.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, may not have been collected all the way to the end, and cross-origin embedded frames may be unreadable. The context states whether the text is \"complete\" or incomplete and why. Trust that label; never assume what you were given is the whole document.\n3. If the information an answer needs is not in the text you were given, say so plainly, and point out which sentence the text stops at, which part of the screenshot to look at, or where the user needs to scroll.\n4. The screenshot covers only the visible area, while the page text covers the whole page. When they conflict, trust the text and explain the difference.\n5. Answer in the language the user asked in; default to Simplified Chinese.\n6. Be concise and direct. Lead with the conclusion.\n"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。\n"
+          }
+        }
+      }
     }
   }
 }
