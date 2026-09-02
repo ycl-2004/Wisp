@@ -33,6 +33,7 @@ jobs:
           -configuration Release
           -arch arm64
           -arch x86_64
+          -derivedDataPath "$RUNNER_TEMP/WispDerivedData"
           ONLY_ACTIVE_ARCH=NO
           CODE_SIGN_IDENTITY=-
           CODE_SIGNING_REQUIRED=YES
@@ -40,9 +41,11 @@ jobs:
 
       - name: Verify Release architecture, signature, and entitlements
         run: |
-          lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
-          codesign --verify --deep --strict Build/Release/Wisp.app
-          codesign -d --entitlements :- Build/Release/Wisp.app > /tmp/wisp-entitlements.plist
+          release_app="$RUNNER_TEMP/WispDerivedData/Build/Products/Release/Wisp.app"
+          test -d "$release_app"
+          lipo -info "$release_app/Contents/MacOS/Wisp"
+          codesign --verify --deep --strict "$release_app"
+          codesign -d --entitlements :- "$release_app" > /tmp/wisp-entitlements.plist
           if /usr/libexec/PlistBuddy -c 'Print :com.apple.security.get-task-allow' /tmp/wisp-entitlements.plist 2>/dev/null; then
             echo 'Release unexpectedly contains com.apple.security.get-task-allow' >&2
             exit 1
