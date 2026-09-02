@@ -14,6 +14,12 @@ final class IslandController: NSObject {
     private var cancellables = Set<AnyCancellable>()
     private var screenObserver: NSObjectProtocol?
 
+    /// 拖动期间的锚点，落盘前先放这儿。
+    /// 每帧直接取 NSEvent.mouseLocation，不累加位移：既没有漂移，也不受起手距离影响。
+    private var draggingAnchor: NSPoint?
+
+    var isDraggable: Bool { position == .bottom }
+
     var windowID: CGWindowID? {
         guard let panel else { return nil }
         return CGWindowID(panel.windowNumber)
@@ -26,6 +32,7 @@ final class IslandController: NSObject {
     // MARK: - 生命周期
 
     func start() {
+        migrateLegacyAnchorIfNeeded()
         guard AppSettings.shared.showIsland else { return }
         let panel = ensurePanel()
         relayout()
@@ -123,33 +130,114 @@ final class IslandController: NSObject {
 
     // MARK: - 布局
 
-    /// 窗口尺寸固定，不随状态变化。只更新位置和可点击区域。
+    /// 窗口尺寸固定不变，变的是小圆在窗口里的位置，以及窗口整体落在哪。
     private func relayout() {
         guard let panel else { return }
         let screen = ScreenGeometry.activeScreen ?? NSScreen.main!
         let info = ScreenGeometry.notch(on: screen)
         let model = IslandModel.shared
-        let state = IslandLayout.state(hovered: model.isHovered, generating: model.isGenerating)
+        let state = IslandLayout.state(hovered: model.isHovered,
+                                       generating: model.isGenerating,
+                                       dragging: model.isDragging)
 
-        let windowSize: CGSize
+        let frame: NSRect
         let interactive: CGRect
+
         switch position {
         case .bottom:
-            windowSize = IslandLayout.bottomWindowSize
-            interactive = IslandLayout.capsuleRect(state)
+            let size = IslandLayout.bottomWindowSize
+            let anchor = anchorPoint(on: screen)
+            let host = Self.screen(containing: anchor) ?? screen
+
+            // 窗口只是承载物：把它摆成「锚点正好落在小圆的默认位置上」，再夹回屏内。
+            var candidate = NSRect(x: anchor.x - IslandLayout.anchorInWindow.x,
+                                   y: anchor.y - IslandLayout.anchorInWindow.y,
+                                   width: size.width, height: size.height)
+            candidate = ScreenGeometry.clamp(candidate, on: host)
+            frame = candidate
+
+            // 窗口被屏幕边缘夹住之后，小圆仍然跟着锚点走 —— 这才是它能贴到边的原因。
+            // 但不能被窗口切掉，所以留出半径。
+            let radius = IslandLayout.idleDiameter / 2
+            let dotCenterX = min(max(anchor.x - candidate.minX, radius), size.width - radius)
+            if model.dotCenterX != dotCenterX { model.dotCenterX = dotCenterX }
+            interactive = IslandLayout.capsuleRect(state, dotCenterX: dotCenterX)
+
         case .notch:
-            windowSize = IslandLayout.notchWindowSize(notchWidth: info.width, hasNotch: info.hasNotch)
+            let size = IslandLayout.notchWindowSize(notchWidth: info.width, hasNotch: info.hasNotch)
+            frame = ScreenGeometry.islandFrame(width: size.width, height: size.height,
+                                               on: screen, position: .notch)
             interactive = IslandLayout.notchShapeRect(state,
                                                       notchWidth: info.width,
                                                       hasNotch: info.hasNotch)
         }
 
         hostingView?.interactiveRect = interactive
-
-        let frame = ScreenGeometry.islandFrame(width: windowSize.width, height: windowSize.height,
-                                               on: screen, position: position)
         if panel.frame != frame {
             panel.setFrame(frame, display: true)
         }
+    }
+
+    /// 当前该用哪个锚点：拖动中 > 用户存过的 > 默认底部居中。
+    private func anchorPoint(on screen: NSScreen) -> NSPoint {
+        if let draggingAnchor { return draggingAnchor }
+        if let stored = AppSettings.shared.islandAnchor,
+           Self.screen(containing: stored) != nil {
+            return stored
+        }
+        // 存过但那块屏幕已经不在了（副屏拔掉），退回默认位置。
+        return Self.defaultAnchor(on: screen)
+    }
+
+    static func defaultAnchor(on screen: NSScreen) -> NSPoint {
+        let size = IslandLayout.bottomWindowSize
+        let frame = ScreenGeometry.islandFrame(width: size.width, height: size.height,
+                                               on: screen, position: .bottom)
+        return NSPoint(x: frame.midX, y: frame.minY + IslandLayout.anchorInWindow.y)
+    }
+
+    private static func screen(containing point: NSPoint) -> NSScreen? {
+        NSScreen.screens.first { $0.frame.contains(point) }
+    }
+
+    /// 0.2.0 开发期存的是窗口原点，现在存小圆中心。读到旧值就地换算一次，别让位置丢了。
+    private func migrateLegacyAnchorIfNeeded() {
+        let settings = AppSettings.shared
+        guard settings.islandAnchor == nil, let origin = settings.legacyIslandOrigin else { return }
+        settings.islandAnchor = NSPoint(x: origin.x + IslandLayout.anchorInWindow.x,
+                                        y: origin.y + IslandLayout.anchorInWindow.y)
+        settings.legacyIslandOrigin = nil
+    }
+
+    // MARK: - 拖动
+
+    /// 手势每次变化都调这个。小圆直接钉在光标上，所见即所得。
+    func dragChanged() {
+        guard isDraggable else { return }
+        let model = IslandModel.shared
+        if !model.isDragging { model.isDragging = true }
+        draggingAnchor = NSEvent.mouseLocation
+        relayout()
+    }
+
+    func dragEnded() {
+        guard isDraggable else {
+            draggingAnchor = nil
+            IslandModel.shared.isDragging = false
+            return
+        }
+        if let anchor = draggingAnchor {
+            AppSettings.shared.islandAnchor = anchor
+        }
+        draggingAnchor = nil
+        IslandModel.shared.isDragging = false
+        // 松手后如果光标还停在上面，这一次 relayout 会把它重新展开。
+        relayout()
+    }
+
+    /// 设置里的「回到默认位置」。
+    func resetPosition() {
+        AppSettings.shared.islandAnchor = nil
+        relayout()
     }
 }

@@ -129,9 +129,9 @@ final class AssistantModel: ObservableObject {
     var contextAge: String {
         guard let packet else { return "" }
         let seconds = Int(Date().timeIntervalSince(packet.capturedAt))
-        if seconds < 3 { return "刚读取" }
-        if seconds < 60 { return "\(seconds) 秒前" }
-        return "\(seconds / 60) 分钟前"
+        if seconds < 3 { return String(localized: "刚读取") }
+        if seconds < 60 { return String(localized: "\(seconds) 秒前") }
+        return String(localized: "\(seconds / 60) 分钟前")
     }
 
     // MARK: - 对话
@@ -147,18 +147,36 @@ final class AssistantModel: ObservableObject {
 
     var turnLimitMessage: String? {
         guard let conversation = store.active, store.isAtTurnLimit(conversation) else { return nil }
-        return "这个对话已经到 \(store.maxUserTurns) 轮上限。新建一个，或删掉一个旧对话腾位置。"
+        return String(localized: "这个对话已经到 \(store.maxUserTurns) 轮上限。新建一个，或删掉一个旧对话腾位置。")
     }
 
     var conversationLimitMessage: String? {
         guard !store.canCreateNew else { return nil }
-        return "已经有 \(store.maxConversations) 个对话，到上限了。要新建请先手动删一个。"
+        return String(localized: "已经有 \(store.maxConversations) 个对话，到上限了。可以自己删一个，或者让它顶掉最久没用的那个。")
     }
 
+    /// 满额时要被顶掉的那个对话。UI 拿它的标题去问用户。
+    var evictionCandidateTitle: String? { store.evictionCandidate?.displayTitle }
+
+    @Published var confirmsEviction = false
+
     func newConversation() {
-        guard store.canCreateNew else { return }
+        guard store.canCreateNew else {
+            // 满了不是死路：把「要顶掉哪一个」摆出来让用户确认。
+            showsConversationList = true
+            confirmsEviction = true
+            return
+        }
         store.createNew()
         errorText = nil
+        showsConversationList = false
+    }
+
+    /// 用户确认之后才真的删。
+    func evictOldestAndCreate() {
+        store.createNewEvictingOldest()
+        errorText = nil
+        confirmsEviction = false
         showsConversationList = false
     }
 
@@ -243,7 +261,7 @@ final class AssistantModel: ObservableObject {
                 }
                 if accumulated.isEmpty {
                     self.store.removeMessage(assistantMessage.id, from: conversationID)
-                    self.errorText = "模型没有返回任何内容。可以换个模型名再试。"
+                    self.errorText = String(localized: "模型没有返回任何内容。可以换个模型名再试。")
                 } else {
                     self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)

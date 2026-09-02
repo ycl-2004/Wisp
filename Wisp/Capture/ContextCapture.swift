@@ -16,12 +16,12 @@ enum ContextCapture {
             resolved = fallbackApp
         }
         guard let app = resolved, app.bundleIdentifier != ownBundleID else {
-            var packet = ContextPacket(appName: "未知应用", bundleID: nil)
-            packet.notes.append("无法确定要读取哪个应用。请切换到目标应用后再按一次快捷键。")
+            var packet = ContextPacket(appName: String(localized: "未知应用"), bundleID: nil)
+            packet.notes.append(String(localized: "无法确定要读取哪个应用。请切换到目标应用后再按一次快捷键。"))
             return packet
         }
 
-        let appName = app.localizedName ?? "未知应用"
+        let appName = app.localizedName ?? String(localized: "未知应用")
         let bundleID = app.bundleIdentifier
 
         if settings.isExcluded(bundleID: bundleID) {
@@ -65,11 +65,11 @@ enum ContextCapture {
         case .failure(let error):
             switch error {
             case .noPermission:
-                packet.notes.append("还没有屏幕录制权限，本次没有截图。请到「系统设置 → 隐私与安全性 → 屏幕录制」勾选 Wisp。")
+                packet.notes.append(String(localized: "还没有屏幕录制权限，本次没有截图。请到「系统设置 → 隐私与安全性 → 屏幕录制」勾选 Wisp。"))
             case .noWindow:
-                packet.notes.append("找不到可截取的窗口。")
+                packet.notes.append(String(localized: "找不到可截取的窗口。"))
             case .failed(let message):
-                packet.notes.append("截图失败：\(message)")
+                packet.notes.append(String(localized: "截图失败：\(message)"))
             }
         }
 
@@ -85,10 +85,10 @@ enum ContextCapture {
                 packet.pageText = truncate(text, limit: settings.pageTextLimit)
             }
             if !result.iframes.isEmpty {
-                packet.notes.append("页面含 \(result.iframes.count) 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。")
+                packet.notes.append(String(localized: "页面含 \(result.iframes.count) 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。"))
             }
         } else if family == nil {
-            packet.notes.append("\(appName) 不是支持的浏览器，读不到整页文字，只能靠截图。")
+            packet.notes.append(String(localized: "\(appName) 不是支持的浏览器，读不到整页文字，只能靠截图。"))
         }
 
         return packet
@@ -111,7 +111,7 @@ enum ContextCapture {
         let head = String(text.prefix(headCount))
         let tail = String(text.suffix(tailCount))
         let omitted = text.count - headCount - tailCount
-        return head + "\n\n[…… 中间省略 \(omitted) 字 ……]\n\n" + tail
+        return head + String(localized: "\n\n[…… 中间省略 \(omitted) 字 ……]\n\n") + tail
     }
 
     // MARK: - 调试

@@ -44,7 +44,7 @@ struct ContextPacket: Identifiable {
     static func excluded(appName: String, bundleID: String?) -> ContextPacket {
         var p = ContextPacket(appName: appName, bundleID: bundleID)
         p.isExcluded = true
-        p.notes = ["「\(appName)」在排除列表中，本次不读取截图与页面文字。"]
+        p.notes = [String(localized: "「\(appName)」在排除列表中，本次不读取截图与页面文字。")]
         return p
     }
 

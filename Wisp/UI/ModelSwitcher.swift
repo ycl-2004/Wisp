@@ -87,7 +87,7 @@ struct ModelSwitcher: View {
         case .openAICompatible:
             var list = ModelCatalog.cloudPresets(baseURL: settings.baseURL)
             if ModelCatalog.isCustom(settings.model, in: list) {
-                list.append(.init(slug: settings.model, title: settings.model, note: "自定义"))
+                list.append(.init(slug: settings.model, title: settings.model, note: String(localized: "自定义")))
             }
             return list
         case .ollama:
@@ -101,7 +101,7 @@ struct ModelSwitcher: View {
     private var shortLabel: String {
         let model = currentModel
         if model.isEmpty {
-            return currentKind == .codexCLI ? "Codex 默认" : currentKind.title
+            return currentKind == .codexCLI ? String(localized: "Codex 默认") : currentKind.title
         }
         if let preset = models.first(where: { $0.slug == model }), preset.title != model {
             return preset.title

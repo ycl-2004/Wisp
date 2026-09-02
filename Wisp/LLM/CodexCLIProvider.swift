@@ -5,6 +5,10 @@ import Foundation
 /// 回答是一次性返回的。
 struct CodexCLIProvider: ChatProvider {
 
+    /// 一次调用的硬上限。codex 卡住不出声时，读循环阻塞在 availableData 上叫不醒，
+    /// 唯一可靠的解法是从外面把进程杀掉，让管道立刻 EOF。
+    static let wallClockTimeout: TimeInterval = 240
+
     /// GUI 应用拿不到登录 shell 的 PATH，只能自己找。
     static let searchPaths = [
         NSHomeDirectory() + "/.local/bin/codex",
@@ -23,10 +27,76 @@ struct CodexCLIProvider: ChatProvider {
         return detectedPath
     }
 
+    // MARK: - 子进程的跨线程句柄
+
+    /// 读循环跑在 detached task 里、阻塞在 availableData 上，Task.isCancelled 它看不见。
+    /// 所以取消和超时都不去「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
+    private final class RunBox: @unchecked Sendable {
+        enum Stop { case cancelled, timedOut }
+
+        private let lock = NSLock()
+        private var process: Process?
+        private var stopReason: Stop?
+        private var settled = false
+
+        /// 返回 false 表示进程还没起来就已经被取消，调用方应当立刻收手。
+        func adopt(_ process: Process) -> Bool {
+            lock.lock(); defer { lock.unlock() }
+            guard !settled else { return false }
+            self.process = process
+            return true
+        }
+
+        func stop(_ reason: Stop) {
+            lock.lock()
+            if stopReason == nil { stopReason = reason }
+            let target = process
+            settled = true
+            process = nil
+            lock.unlock()
+
+            guard let target, target.isRunning else { return }
+            target.terminate()
+            // SIGTERM 不一定收得住，补一刀兜底。
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
+                if target.isRunning { kill(target.processIdentifier, SIGKILL) }
+            }
+        }
+
+        /// 进程自己正常收尾，之后 stop() 就不该再动手。
+        func finish() {
+            lock.lock(); settled = true; process = nil; lock.unlock()
+        }
+
+        var reason: Stop? {
+            lock.lock(); defer { lock.unlock() }
+            return stopReason
+        }
+    }
+
+    /// 后台把 stderr 抽干。只读 stdout 的话，codex 往 stderr 写满管道缓冲区就会卡死，
+    /// 而它启动时正好会刷一批 skill 扫描的告警。
+    private final class DrainBuffer: @unchecked Sendable {
+        private let lock = NSLock()
+        private var data = Data()
+
+        func append(_ chunk: Data) {
+            lock.lock(); data.append(chunk); lock.unlock()
+        }
+
+        var text: String {
+            lock.lock(); defer { lock.unlock() }
+            return String(data: data, encoding: .utf8) ?? ""
+        }
+    }
+
     // MARK: - 流式（实为一次性返回）
 
     func stream(messages: [[String: Any]], config: ProviderConfig) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
+            let box = RunBox()
+            let stderrBuffer = DrainBuffer()
+
             let work = Task.detached {
                 var workDirectory: URL?
                 do {
@@ -69,7 +139,27 @@ struct CodexCLIProvider: ChatProvider {
                     process.standardOutput = stdout
                     process.standardError = stderr
 
-                    try process.run()
+                    let stderrHandle = stderr.fileHandleForReading
+                    stderrHandle.readabilityHandler = { handle in
+                        let chunk = handle.availableData
+                        if chunk.isEmpty {
+                            handle.readabilityHandler = nil
+                        } else {
+                            stderrBuffer.append(chunk)
+                        }
+                    }
+
+                    // 交给 RunBox 之后，取消和超时才有办法够到这个进程。
+                    guard box.adopt(process) else { throw ProviderError.cancelled }
+
+                    do {
+                        try process.run()
+                    } catch {
+                        stderrHandle.readabilityHandler = nil
+                        box.finish()
+                        throw ProviderError.network(error.localizedDescription)
+                    }
+
                     stdin.fileHandleForWriting.write(Data(prompt.utf8))
                     try? stdin.fileHandleForWriting.close()
 
@@ -77,11 +167,8 @@ struct CodexCLIProvider: ChatProvider {
                     var buffer = Data()
                     let handle = stdout.fileHandleForReading
 
+                    // 进程被 stop() 杀掉时，availableData 会立刻返回空，循环随之退出。
                     while true {
-                        if Task.isCancelled {
-                            process.terminate()
-                            throw ProviderError.cancelled
-                        }
                         let chunk = handle.availableData
                         if chunk.isEmpty { break }
                         buffer.append(chunk)
@@ -98,11 +185,17 @@ struct CodexCLIProvider: ChatProvider {
                     }
 
                     process.waitUntilExit()
+                    stderrHandle.readabilityHandler = nil
+                    box.finish()
 
+                    // 循环是被杀退出的还是自己跑完的，结论完全不同。
+                    if let reason = box.reason {
+                        throw reason == .timedOut
+                            ? ProviderError.codexTimedOut(Int(Self.wallClockTimeout))
+                            : ProviderError.cancelled
+                    }
                     if !delivered {
-                        let errorText = String(data: stderr.fileHandleForReading.readDataToEndOfFile(),
-                                               encoding: .utf8) ?? ""
-                        throw ProviderError.codexFailed(Self.condense(errorText),
+                        throw ProviderError.codexFailed(Self.condense(stderrBuffer.text),
                                                         status: process.terminationStatus)
                     }
                     continuation.finish()
@@ -113,9 +206,22 @@ struct CodexCLIProvider: ChatProvider {
                 } catch {
                     continuation.finish(throwing: ProviderError.network(error.localizedDescription))
                 }
+                // 无论走哪条路都要清掉临时目录，里面有这一轮的屏幕截图。
                 if let workDirectory { try? FileManager.default.removeItem(at: workDirectory) }
             }
-            continuation.onTermination = { _ in work.cancel() }
+
+            let watchdog = Task.detached {
+                try? await Task.sleep(nanoseconds: UInt64(Self.wallClockTimeout * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+                box.stop(.timedOut)
+            }
+
+            continuation.onTermination = { _ in
+                watchdog.cancel()
+                // 先杀进程再取消 task：反过来的话读循环仍然阻塞着，取消是空的。
+                box.stop(.cancelled)
+                work.cancel()
+            }
         }
     }
 
@@ -128,9 +234,18 @@ struct CodexCLIProvider: ChatProvider {
         process.standardOutput = pipe
         process.standardError = Pipe()
         try process.run()
-        process.waitUntilExit()
+
+        // `codex --version` 也可能挂住，同样给它一个上限。
+        let deadline = Date().addingTimeInterval(15)
+        while process.isRunning && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        if process.isRunning {
+            process.terminate()
+            throw ProviderError.codexTimedOut(15)
+        }
         guard process.terminationStatus == 0 else {
-            throw ProviderError.codexFailed("`codex --version` 返回 \(process.terminationStatus)",
+            throw ProviderError.codexFailed(String(localized: "`codex --version` 返回 \(process.terminationStatus)"),
                                             status: process.terminationStatus)
         }
     }
@@ -181,15 +296,15 @@ struct CodexCLIProvider: ChatProvider {
             guard !body.isEmpty else { continue }
             switch role {
             case "system":    lines.append(body)
-            case "assistant": lines.append("【上一轮你的回答】\n" + body)
-            default:          lines.append("【用户】\n" + body)
+            case "assistant": lines.append(String(localized: "【上一轮你的回答】\n") + body)
+            default:          lines.append(String(localized: "【用户】\n") + body)
             }
         }
 
         if !images.isEmpty {
-            lines.append("附件里是当前屏幕的截图，请结合它回答。")
+            lines.append(String(localized: "附件里是当前屏幕的截图，请结合它回答。"))
         }
-        lines.append("只回答问题本身，不要执行任何命令，不要读写文件。")
+        lines.append(String(localized: "只回答问题本身，不要执行任何命令，不要读写文件。"))
         return (lines.joined(separator: "\n\n---\n\n"), images)
     }
 

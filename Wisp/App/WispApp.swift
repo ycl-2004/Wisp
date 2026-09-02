@@ -1,3 +1,4 @@
+import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
@@ -22,12 +23,20 @@ struct WispApp: App {
 
 private struct MenuContent: View {
     @ObservedObject private var store = ConversationStore.shared
+    @ObservedObject private var updateNotice = UpdateNotice.shared
 
     var body: some View {
         Button("唤起助手") {
             PanelController.shared.toggle()
         }
         .keyboardShortcut(.space, modifiers: [.control, .option])
+
+        if let version = updateNotice.availableVersion {
+            Divider()
+            Button("有新版本 \(version)，去下载…") {
+                NSWorkspace.shared.open(UpdateChecker.releasesPage)
+            }
+        }
 
         Divider()
 

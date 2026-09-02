@@ -12,7 +12,9 @@ struct IslandView: View {
     @State private var phase: CGFloat = 0
 
     private var state: IslandLayout.State {
-        IslandLayout.state(hovered: model.isHovered, generating: model.isGenerating)
+        IslandLayout.state(hovered: model.isHovered,
+                           generating: model.isGenerating,
+                           dragging: model.isDragging)
     }
 
     var body: some View {
@@ -29,21 +31,29 @@ struct IslandView: View {
     // MARK: - 底部
 
     private var bottomBody: some View {
-        let size = IslandLayout.capsuleSize(state)
-        return VStack {
-            Spacer(minLength: 0)
+        let window = IslandLayout.bottomWindowSize
+        // 胶囊不再永远居中：位置由小圆的锚点决定，贴边时朝有空间的一侧展开。
+        let rect = IslandLayout.capsuleRect(state, dotCenterX: model.dotCenterX)
+        return ZStack(alignment: .topLeading) {
+            Color.clear.frame(width: window.width, height: window.height)
             ZStack {
                 capsuleBackground
-                content.frame(width: size.width, height: size.height)
+                content.frame(width: rect.width, height: rect.height)
             }
-            .frame(width: size.width, height: size.height)
+            .frame(width: rect.width, height: rect.height)
             .contentShape(Capsule())
             .onHover { hovering in model.setHovered(hovering) }
             .onTapGesture { PanelController.shared.show() }
-            .padding(.bottom, IslandLayout.bottomInset)
+            // 起手距离 4pt：点击照常打开面板，真的拖了才移动窗口。
+            .gesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged { _ in IslandController.shared.dragChanged() }
+                    .onEnded { _ in IslandController.shared.dragEnded() }
+            )
+            // IslandLayout 用 AppKit 坐标（原点左下），SwiftUI 是左上，这里换算一次。
+            .offset(x: rect.minX, y: window.height - rect.maxY)
         }
-        .frame(width: IslandLayout.bottomWindowSize.width,
-               height: IslandLayout.bottomWindowSize.height)
+        .frame(width: window.width, height: window.height)
     }
 
     private var capsuleBackground: some View {

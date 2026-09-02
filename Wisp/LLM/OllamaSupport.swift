@@ -14,14 +14,14 @@ enum OllamaSupport {
 
     static func probe(baseURL: String) async -> Status {
         guard let url = OpenAICompatibleProvider.endpoint(baseURL, path: "models") else {
-            return .failed("Base URL 格式不对")
+            return .failed(String(localized: "Base URL 格式不对"))
         }
         var request = URLRequest(url: url)
         request.timeoutInterval = 4
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                return .failed("服务有响应但返回异常")
+                return .failed(String(localized: "服务有响应但返回异常"))
             }
             let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
             let list = (object?["data"] as? [[String: Any]])?.compactMap { $0["id"] as? String } ?? []

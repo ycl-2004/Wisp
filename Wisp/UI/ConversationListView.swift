@@ -9,12 +9,18 @@ struct ConversationListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let message = model.conversationLimitMessage {
-                Text(message)
-                    .font(DS.meta)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, DS.gutter)
-                    .padding(.top, 8)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(message)
+                        .font(DS.meta)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let candidate = model.evictionCandidateTitle {
+                        Button("删掉「\(candidate)」并新建") { model.confirmsEviction = true }
+                            .font(DS.meta)
+                    }
+                }
+                .padding(.horizontal, DS.gutter)
+                .padding(.top, 8)
             }
 
             if store.conversations.isEmpty {
@@ -49,7 +55,13 @@ struct ConversationListView: View {
             }
             Button("取消", role: .cancel) { pendingDelete = nil }
         } message: {
-            Text("「\(pendingDelete?.title ?? "")」的全部消息会从本机删除，无法撤销，也没有回收站。")
+            Text("「\(pendingDelete?.displayTitle ?? "")」的全部消息会从本机删除，无法撤销，也没有回收站。")
+        }
+        .alert("腾出位置新建对话？", isPresented: $model.confirmsEviction) {
+            Button("删掉最旧的并新建", role: .destructive) { model.evictOldestAndCreate() }
+            Button("取消", role: .cancel) { model.confirmsEviction = false }
+        } message: {
+            Text("「\(model.evictionCandidateTitle ?? "")」是最久没更新的那个，它会被永久删除，无法撤销。")
         }
     }
 
@@ -67,7 +79,7 @@ struct ConversationListView: View {
                     .frame(width: 2, height: 20)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(conversation.title)
+                    Text(conversation.displayTitle)
                         .font(.system(size: 12, weight: isActive ? .medium : .regular))
                         .lineLimit(1)
                     Text("\(conversation.userTurnCount) 轮 · \(Self.formatter.string(from: conversation.updatedAt))")

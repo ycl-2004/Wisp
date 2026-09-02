@@ -69,13 +69,13 @@ enum BrowserTextExtractor {
             let raw = output.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let data = raw.data(using: .utf8),
                   let page = try? JSONDecoder().decode(PageExtraction.self, from: data) else {
-                result.notes.append("已连上 \(appName)，但页面正文的返回内容无法解析，本次只发送截图与网址。")
+                result.notes.append(String(localized: "已连上 \(appName)，但页面正文的返回内容无法解析，本次只发送截图与网址。"))
                 return
             }
             if let text = page.text, !text.isEmpty {
                 result.pageText = text
             } else if let error = page.error, !error.isEmpty {
-                result.notes.append("页面脚本报错，没读到正文：\(error)")
+                result.notes.append(String(localized: "页面脚本报错，没读到正文：\(error)"))
             } else {
                 result.notes.append(Self.emptyTextNote(url: result.url, appName: appName))
             }
@@ -212,7 +212,7 @@ enum BrowserTextExtractor {
             usleep(200_000)
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
             _ = group.wait(timeout: .now() + 1)
-            return .failure(ScriptError(message: "脚本超时", timedOut: true))
+            return .failure(ScriptError(message: String(localized: "脚本超时"), timedOut: true))
         }
         _ = group.wait(timeout: .now() + 2)
         process.waitUntilExit()
@@ -220,7 +220,7 @@ enum BrowserTextExtractor {
         if process.terminationStatus == 0 {
             return .success(String(data: outData, encoding: .utf8) ?? "")
         }
-        let message = String(data: errData, encoding: .utf8) ?? "未知错误"
+        let message = String(data: errData, encoding: .utf8) ?? String(localized: "未知错误")
         return .failure(ScriptError(message: message.trimmingCharacters(in: .whitespacesAndNewlines),
                                     code: errorCode(in: message)))
     }
@@ -242,18 +242,18 @@ enum BrowserTextExtractor {
         let internalPrefixes = ["chrome://", "chrome-extension://", "edge://", "brave://",
                                 "vivaldi://", "about:", "devtools://", "view-source:"]
         if let url, internalPrefixes.contains(where: { url.hasPrefix($0) }) {
-            return "当前是 \(appName) 的内部页面（\(url)），读不到正文，本次只有截图。"
+            return String(localized: "当前是 \(appName) 的内部页面（\(url)），读不到正文，本次只有截图。")
         }
-        return "脚本跑通了，但这个页面没有可提取的文字，本次只有截图。"
+        return String(localized: "脚本跑通了，但这个页面没有可提取的文字，本次只有截图。")
     }
 
     private static func note(for error: ScriptError, appName: String, bundleID: String, stage: Stage) -> String {
         let text = error.message
         if error.timedOut {
-            return "\(appName) 没有在限定时间内回应，本次没有读到页面文字。页面可能正忙。"
+            return String(localized: "\(appName) 没有在限定时间内回应，本次没有读到页面文字。页面可能正忙。")
         }
         if error.code == -1743 || text.contains("Not authorized") || text.contains("not allowed") {
-            return "系统还没允许 Wisp 控制 \(appName)。请到「系统设置 → 隐私与安全性 → 自动化」勾选 Wisp 下的 \(appName)。"
+            return String(localized: "系统还没允许 Wisp 控制 \(appName)。请到「系统设置 → 隐私与安全性 → 自动化」勾选 Wisp 下的 \(appName)。")
         }
         if text.contains("JavaScript") || text.contains("javascript") {
             switch stage {
@@ -261,14 +261,14 @@ enum BrowserTextExtractor {
                 if ChromeProfileInspector.supportsInspection(bundleID: bundleID) {
                     return ChromeProfileInspector.javaScriptDisabledHint(bundleID: bundleID, appName: appName)
                 }
-                return "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。Safari 在「Develop」菜单里打开一次即可。"
+                return String(localized: "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。Safari 在「Develop」菜单里打开一次即可。")
             case .basic:
-                return "读取 \(appName) 当前分页失败：\(text)"
+                return String(localized: "读取 \(appName) 当前分页失败：\(text)")
             }
         }
         if error.code == -1728 || text.contains("Can’t get") || text.contains("Can't get") {
-            return "\(appName) 当前没有可读取的分页窗口。"
+            return String(localized: "\(appName) 当前没有可读取的分页窗口。")
         }
-        return "读取 \(appName) 失败：\(text)"
+        return String(localized: "读取 \(appName) 失败：\(text)")
     }
 }

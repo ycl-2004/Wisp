@@ -11,42 +11,51 @@ enum ProviderError: LocalizedError {
     case cancelled
     case codexNotFound
     case codexFailed(String, status: Int32)
+    case codexTimedOut(Int)
     case ollamaNotRunning
+    case offline
+    case timedOut(Int)
 
     var errorDescription: String? {
         switch self {
         case .missingKey:
-            return "还没有填 API Key。请在设置里填写后再提问。"
+            return String(localized: "还没有填 API Key。请在设置里填写后再提问。")
         case .badBaseURL:
-            return "Base URL 格式不对，请填写形如 https://api.openai.com/v1 的地址。"
+            return String(localized: "Base URL 格式不对，请填写形如 https://api.openai.com/v1 的地址。")
         case .unauthorized:
-            return "API Key 被拒绝（401）。请检查 Key 是否正确、是否有该模型的权限。"
+            return String(localized: "API Key 被拒绝（401）。请检查 Key 是否正确、是否有该模型的权限。")
         case .rateLimited(let detail, let upstream, let resetHint):
             var text = upstream
-                ? "被限流（429）。这次是上游供应商满了，不是你的额度用光。免费模型经常这样，等几分钟再试，或换一个付费模型。"
-                : "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。"
+                ? String(localized: "被限流（429）。这次是上游供应商满了，不是你的额度用光。免费模型经常这样，等几分钟再试，或换一个付费模型。")
+                : String(localized: "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。")
             if let resetHint, !resetHint.isEmpty { text += "\n\(resetHint)" }
-            if !detail.isEmpty { text += "\n服务端说明：\(detail)" }
+            if !detail.isEmpty { text += String(localized: "\n服务端说明：\(detail)") }
             return text
         case .imageUnsupported(let detail):
-            return "这个模型或网关不接受图片输入。\(detail)"
+            return String(localized: "这个模型或网关不接受图片输入。\(detail)")
         case .http(let code, let message):
-            return "请求失败（HTTP \(code)）：\(message)"
+            return String(localized: "请求失败（HTTP \(code)）：\(message)")
         case .network(let message):
-            return "网络错误：\(message)"
+            return String(localized: "网络错误：\(message)")
         case .cancelled:
-            return "已取消。"
+            return String(localized: "已取消。")
         case .codexNotFound:
-            return "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。"
+            return String(localized: "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。")
         case .codexFailed(let detail, let status):
-            return "codex 执行失败（退出码 \(status)）：\(detail)"
+            return String(localized: "codex 执行失败（退出码 \(status)）：\(detail)")
+        case .codexTimedOut(let seconds):
+            return String(localized: "codex 超过 \(seconds) 秒没有返回，已经把它停掉了。可以换个更小的模型，或者先在终端直接跑一次 codex 确认它是通的。")
         case .ollamaNotRunning:
-            return "Ollama 没在运行。在设置里点「启动 Ollama」，或在终端跑 `ollama serve`。"
+            return String(localized: "Ollama 没在运行。在设置里点「启动 Ollama」，或在终端跑 `ollama serve`。")
+        case .offline:
+            return String(localized: "现在连不上网。检查一下网络，或者改用 Ollama / Codex CLI 这种本地接法。")
+        case .timedOut(let seconds):
+            return String(localized: "等了 \(seconds) 秒还没有任何响应，已经中断。可能是网络不稳，或者这个接口太慢。")
         }
     }
 }
 
-struct ProviderConfig {
+struct ProviderConfig: Sendable {
     var kind: ProviderKind = .openAICompatible
     var baseURL: String = ""
     var apiKey: String = ""

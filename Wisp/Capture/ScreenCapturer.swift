@@ -94,7 +94,7 @@ enum ScreenCapturer {
         do {
             let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
             guard let jpeg = encodeJPEG(image) else {
-                return .failure(.failed("JPEG 编码失败"))
+                return .failure(.failed(String(localized: "JPEG 编码失败")))
             }
             return .success(Shot(jpeg: jpeg,
                                  pixelSize: CGSize(width: image.width, height: image.height),

@@ -63,6 +63,20 @@ struct ChatView: View {
                         emptyState
                     }
 
+                    // 上次读盘出过问题就摆在最显眼的地方，不静默吞掉。
+                    if let issue = store.loadIssue {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text(issue.message)
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Button("知道了") { store.dismissLoadIssue() }
+                        }
+                        .font(DS.meta)
+                    }
+
                     if let error = model.errorText {
                         Label(error, systemImage: "exclamationmark.triangle")
                             .font(DS.meta)
@@ -118,7 +132,7 @@ struct ChatView: View {
 
             HStack(alignment: .bottom, spacing: 6) {
                 ChatInput(text: $model.input,
-                          placeholder: "问点什么…  Return 发送，Shift+Return 换行",
+                          placeholder: String(localized: "问点什么…  Return 发送，Shift+Return 换行"),
                           isEnabled: !inputDisabled,
                           onSubmit: { model.send() },
                           onEscape: { PanelController.shared.hide() },
@@ -151,7 +165,7 @@ struct ChatView: View {
         case .openAICompatible:
             return settings.model.isEmpty ? "云端接口" : settings.model
         case .ollama:
-            return settings.ollamaModel.isEmpty ? "Ollama（未选模型）" : "Ollama · \(settings.ollamaModel)"
+            return settings.ollamaModel.isEmpty ? String(localized: "Ollama（未选模型）") : "Ollama · \(settings.ollamaModel)"
         case .codexCLI:
             return settings.codexModel.isEmpty ? "Codex CLI" : "Codex CLI · \(settings.codexModel)"
         }

@@ -25,6 +25,11 @@ final class AppSettings: ObservableObject {
         static let showIsland = "showIsland"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
+        static let checkForUpdates = "checkForUpdates"
+        static let lastUpdateCheck = "lastUpdateCheck"
+        static let islandOrigin = "islandOrigin"   // 0.2.0 开发期的旧键，只用于迁移
+        static let islandAnchor = "islandAnchor"
+        static let appLanguage = "appLanguage"
     }
 
     private init() {
@@ -49,6 +54,8 @@ final class AppSettings: ObservableObject {
             K.showIsland: true,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
+            K.checkForUpdates: true,
+            K.appLanguage: "system",
         ])
     }
 
@@ -133,6 +140,55 @@ final class AppSettings: ObservableObject {
         set { d.set(max(0, newValue), forKey: K.idleDismissSeconds); objectWillChange.send() }
     }
 
+    /// 启动时去 GitHub 看一眼有没有新版本。只发一个不带标识的请求，不自动下载。
+    var checkForUpdates: Bool {
+        get { d.bool(forKey: K.checkForUpdates) }
+        set { d.set(newValue, forKey: K.checkForUpdates); objectWillChange.send() }
+    }
+
+    var lastUpdateCheck: Date? {
+        get { d.object(forKey: K.lastUpdateCheck) as? Date }
+        set { d.set(newValue, forKey: K.lastUpdateCheck) }
+    }
+
+    /// 用户把药丸拖到的位置，存的是**那颗小圆的中心**（屏幕坐标），不是窗口原点。
+    /// 窗口比小圆大得多（要给展开态留地方），拿窗口原点当锚点会让小圆永远靠不到屏幕边。
+    /// nil 表示还没拖过，用默认的底部居中。只对底部形态有意义。
+    var islandAnchor: CGPoint? {
+        get {
+            guard let raw = d.string(forKey: K.islandAnchor), !raw.isEmpty else { return nil }
+            return NSPointFromString(raw)
+        }
+        set {
+            if let newValue {
+                d.set(NSStringFromPoint(newValue), forKey: K.islandAnchor)
+            } else {
+                d.removeObject(forKey: K.islandAnchor)
+            }
+            objectWillChange.send()
+        }
+    }
+
+    var hasCustomIslandAnchor: Bool { islandAnchor != nil }
+
+    /// 旧键读写，只给迁移用。
+    var legacyIslandOrigin: CGPoint? {
+        get {
+            guard let raw = d.string(forKey: K.islandOrigin), !raw.isEmpty else { return nil }
+            return NSPointFromString(raw)
+        }
+        set {
+            if newValue == nil { d.removeObject(forKey: K.islandOrigin) }
+        }
+    }
+
+    /// 界面语言的选择本身（"system" / "en" / "zh-Hans"）。
+    /// 真正生效靠 AppLanguage.apply 写的 AppleLanguages，这里只记住用户选了什么。
+    var appLanguage: String {
+        get { d.string(forKey: K.appLanguage) ?? "system" }
+        set { d.set(newValue, forKey: K.appLanguage); objectWillChange.send() }
+    }
+
     var lastActiveConversationID: String? {
         get { d.string(forKey: K.lastActiveConversationID) }
         set { d.set(newValue, forKey: K.lastActiveConversationID) }
@@ -160,7 +216,7 @@ final class AppSettings: ObservableObject {
     func wipeLocalData() {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
-        for key in [K.lastActiveConversationID, K.panelFrame] {
+        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin, K.islandAnchor] {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

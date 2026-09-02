@@ -1,6 +1,7 @@
 name: Wisp
 options:
   bundleIdPrefix: com.yichenlin
+  developmentLanguage: zh-Hans
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -14,8 +15,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "4"
     DEVELOPMENT_TEAM: BQYHJCCRMP
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Apple Development"
@@ -23,6 +24,8 @@ settings:
     OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
     ENABLE_HARDENED_RUNTIME: YES
     SWIFT_STRICT_CONCURRENCY: minimal
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 
 targets:
   Wisp:
@@ -36,6 +39,8 @@ targets:
       path: Wisp/App/Info.plist
       properties:
         CFBundleName: Wisp
+        CFBundleLocalizations: [zh-Hans, en]
+        CFBundleDevelopmentRegion: zh-Hans
         CFBundleDisplayName: Wisp
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)

@@ -11,7 +11,10 @@ enum IslandLayout {
         case generating
     }
 
-    static func state(hovered: Bool, generating: Bool) -> State {
+    /// 拖动时一律按空闲算：拖的是那颗小圆，不是展开后的长条。
+    /// 展开态贴边时根本放不进去，会让人以为「拖不动了」。
+    static func state(hovered: Bool, generating: Bool, dragging: Bool = false) -> State {
+        if dragging { return .idle }
         if generating { return .generating }
         return hovered ? .hovered : .idle
     }
@@ -22,6 +25,14 @@ enum IslandLayout {
     static let bottomWindowSize = CGSize(width: 372, height: 76)
     /// 胶囊距窗口底边的留白，给阴影用。
     static let bottomInset: CGFloat = 12
+    /// 空闲小圆的直径。它是位置的锚点：存的、拖的、贴边贴的都是它。
+    static let idleDiameter: CGFloat = 40
+
+    /// 小圆中心在窗口内的默认位置（AppKit 坐标，原点左下）。
+    /// 窗口比小圆大得多，是为了给展开态留地方；真正代表「药丸在哪」的是这个点。
+    static var anchorInWindow: CGPoint {
+        CGPoint(x: bottomWindowSize.width / 2, y: bottomInset + idleDiameter / 2)
+    }
 
     static func capsuleSize(_ state: State) -> CGSize {
         switch state {
@@ -32,12 +43,18 @@ enum IslandLayout {
     }
 
     /// 胶囊在窗口内的矩形，AppKit 坐标（原点在左下）。用于把窗口其余部分的鼠标事件放行。
-    static func capsuleRect(_ state: State) -> CGRect {
+    /// `dotCenterX` 是小圆中心在窗口内的 x。展开时优先以它为中心；
+    /// 那一侧放不下就往窗口里还有空间的一边让，于是贴左边就朝右长、贴右边就朝左长，
+    /// 而不是被窗口边缘切掉。
+    static func capsuleRect(_ state: State, dotCenterX: CGFloat) -> CGRect {
         let size = capsuleSize(state)
-        return CGRect(x: ((bottomWindowSize.width - size.width) / 2).rounded(),
-                      y: bottomInset,
-                      width: size.width,
-                      height: size.height)
+        let maxX = max(0, bottomWindowSize.width - size.width)
+        let x = min(max(dotCenterX - size.width / 2, 0), maxX)
+        return CGRect(x: x.rounded(), y: bottomInset, width: size.width, height: size.height)
+    }
+
+    static func capsuleRect(_ state: State) -> CGRect {
+        capsuleRect(state, dotCenterX: anchorInWindow.x)
     }
 
     // MARK: - 刘海形态

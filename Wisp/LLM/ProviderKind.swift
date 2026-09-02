@@ -10,17 +10,17 @@ enum ProviderKind: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .openAICompatible: return "云端接口"
-        case .ollama:           return "Ollama 本地"
+        case .openAICompatible: return String(localized: "云端接口")
+        case .ollama:           return String(localized: "Ollama 本地")
         case .codexCLI:         return "Codex CLI"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .openAICompatible: return "任何 OpenAI 兼容接口，自带 Key"
-        case .ollama:           return "本机模型，不联网，不花钱"
-        case .codexCLI:         return "复用已登录的 Codex，免配 Key"
+        case .openAICompatible: return String(localized: "任何 OpenAI 兼容接口，自带 Key")
+        case .ollama:           return String(localized: "本机模型，不联网，不花钱")
+        case .codexCLI:         return String(localized: "复用已登录的 Codex，免配 Key")
         }
     }
 

@@ -1,0 +1,4566 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "version": "1.0",
+  "strings": {
+    "\n\n[…… 中间省略 %lld 字 ……]\n\n": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n[…… %lld characters omitted from the middle ……]\n\n"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n[…… 中间省略 %lld 字 ……]\n\n"
+          }
+        }
+      }
+    },
+    "\n\n[服务端错误] %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n[server error] %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n[服务端错误] %@"
+          }
+        }
+      }
+    },
+    "\n开法：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\nTo enable it: switch to a window of that profile, then choose View → Developer → Allow JavaScript from Apple Events."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n开法：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。"
+          }
+        }
+      }
+    },
+    "\n服务端说明：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\nServer said: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n服务端说明：%@"
+          }
+        }
+      }
+    },
+    "%1$@ 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 %2$@ 的「View → Developer」里打开一次即可。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ does not have “Allow JavaScript from Apple Events” enabled, so only the URL was read, not the page text. Enable it once under View → Developer in %2$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 %2$@ 的「View → Developer」里打开一次即可。"
+          }
+        }
+      }
+    },
+    "%1$lld 轮 · %2$@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld turns · %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 轮 · %2$@"
+          }
+        }
+      }
+    },
+    "%1$lld/%2$lld 个对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld/%2$lld conversations"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld/%2$lld 个对话"
+          }
+        }
+      }
+    },
+    "%@  · 可读图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@  · vision"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@  · 可读图"
+          }
+        }
+      }
+    },
+    "%@ 不是支持的浏览器，读不到整页文字，只能靠截图。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is not a supported browser, so no page text could be read — the screenshot is all there is."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 不是支持的浏览器，读不到整页文字，只能靠截图。"
+          }
+        }
+      }
+    },
+    "%@ 当前没有可读取的分页窗口。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ has no readable tab window right now."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 当前没有可读取的分页窗口。"
+          }
+        }
+      }
+    },
+    "%@ 没有在限定时间内回应，本次没有读到页面文字。页面可能正忙。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ did not respond in time, so no page text was read. The page may be busy."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 没有在限定时间内回应，本次没有读到页面文字。页面可能正忙。"
+          }
+        }
+      }
+    },
+    "%@ 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。Safari 在「Develop」菜单里打开一次即可。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ does not have “Allow JavaScript from Apple Events” enabled, so only the URL was read, not the page text. In Safari, enable it once from the Develop menu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。Safari 在「Develop」菜单里打开一次即可。"
+          }
+        }
+      }
+    },
+    "%lld 分钟前": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld minutes ago"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 分钟前"
+          }
+        }
+      }
+    },
+    "%lld 秒前": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld seconds ago"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 秒前"
+          }
+        }
+      }
+    },
+    "</屏幕上下文>": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "</screen context>"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "</屏幕上下文>"
+          }
+        }
+      }
+    },
+    "<屏幕上下文>": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "<screen context>"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "<屏幕上下文>"
+          }
+        }
+      }
+    },
+    "API Key 被拒绝（401）。请检查 Key 是否正确、是否有该模型的权限。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key rejected (401). Check that the key is correct and has access to this model."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key 被拒绝（401）。请检查 Key 是否正确、是否有该模型的权限。"
+          }
+        }
+      }
+    },
+    "Base URL 格式不对": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malformed Base URL"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base URL 格式不对"
+          }
+        }
+      }
+    },
+    "Base URL 格式不对，请填写形如 https://api.openai.com/v1 的地址。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Base URL is malformed. Use an address like https://api.openai.com/v1."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base URL 格式不对，请填写形如 https://api.openai.com/v1 的地址。"
+          }
+        }
+      }
+    },
+    "Codex 默认": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex 默认"
+          }
+        }
+      }
+    },
+    "GitHub 返回 HTTP %lld。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub returned HTTP %lld."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub 返回 HTTP %lld。"
+          }
+        }
+      }
+    },
+    "Inkling（免费备用）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inkling (free fallback)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inkling（免费备用）"
+          }
+        }
+      }
+    },
+    "JPEG 编码失败": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JPEG encoding failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JPEG 编码失败"
+          }
+        }
+      }
+    },
+    "MiniMax M3（免费）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MiniMax M3 (free)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MiniMax M3（免费）"
+          }
+        }
+      }
+    },
+    "Ollama 在运行，可读图的模型：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama is running. Vision-capable models: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama 在运行，可读图的模型：%@"
+          }
+        }
+      }
+    },
+    "Ollama 在运行，装了 %lld 个模型，但没找到能读图的。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama is running with %lld models installed, but none of them can read images."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama 在运行，装了 %lld 个模型，但没找到能读图的。"
+          }
+        }
+      }
+    },
+    "Ollama 本地": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama (local)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama 本地"
+          }
+        }
+      }
+    },
+    "Ollama 没在运行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama is not running"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama 没在运行"
+          }
+        }
+      }
+    },
+    "Ollama 没在运行。在设置里点「启动 Ollama」，或在终端跑 `ollama serve`。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama is not running. Click “Start Ollama” in Settings, or run `ollama serve` in a terminal."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama 没在运行。在设置里点「启动 Ollama」，或在终端跑 `ollama serve`。"
+          }
+        }
+      }
+    },
+    "Ollama（未选模型）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama (no model selected)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ollama（未选模型）"
+          }
+        }
+      }
+    },
+    "TLS 握手失败。如果是自建网关，检查它的证书。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLS handshake failed. If this is a self-hosted gateway, check its certificate."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLS 握手失败。如果是自建网关，检查它的证书。"
+          }
+        }
+      }
+    },
+    "Wisp 需要控制浏览器，以读取当前页面的网址与完整正文，作为提问的上下文。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wisp controls your browser to read the current page's URL and full text as context for your question."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wisp 需要控制浏览器，以读取当前页面的网址与完整正文，作为提问的上下文。"
+          }
+        }
+      }
+    },
+    "[较早一轮的屏幕上下文，已折叠] %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Screen context from an earlier turn, collapsed] %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[较早一轮的屏幕上下文，已折叠] %@"
+          }
+        }
+      }
+    },
+    "`codex --version` 返回 %d": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "`codex --version` returned %d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "`codex --version` 返回 %d"
+          }
+        }
+      }
+    },
+    "codex 可以运行，配置已保存。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex runs. Settings saved."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex 可以运行，配置已保存。"
+          }
+        }
+      }
+    },
+    "codex 执行失败（退出码 %1$d）：%2$@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex failed (exit code %1$d): %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex 执行失败（退出码 %1$d）：%2$@"
+          }
+        }
+      }
+    },
+    "codex 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或者先在终端直接跑一次 codex 确认它是通的。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex returned nothing for %lld seconds and was stopped. Try a smaller model, or run codex directly in a terminal first to confirm it works."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或者先在终端直接跑一次 codex 确认它是通的。"
+          }
+        }
+      }
+    },
+    "「%@」在排除列表中，本次不读取截图与页面文字。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” is on the exclusion list, so no screenshot or page text was read."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」在排除列表中，本次不读取截图与页面文字。"
+          }
+        }
+      }
+    },
+    "「%@」是最久没更新的那个，它会被永久删除，无法撤销。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” is the least recently updated one. It will be permanently deleted and cannot be recovered."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」是最久没更新的那个，它会被永久删除，无法撤销。"
+          }
+        }
+      }
+    },
+    "「%@」的全部消息会从本机删除，无法撤销，也没有回收站。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every message in “%@” will be deleted from this Mac. There is no undo and no trash."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的全部消息会从本机删除，无法撤销，也没有回收站。"
+          }
+        }
+      }
+    },
+    "【上一轮你的回答】\n": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Your previous answer]\n"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "【上一轮你的回答】\n"
+          }
+        }
+      }
+    },
+    "【用户】\n": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[User]\n"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "【用户】\n"
+          }
+        }
+      }
+    },
+    "上下文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Context"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上下文"
+          }
+        }
+      }
+    },
+    "上次的对话记录读不出来了，已经原样备份成 %@，当前列表是空的。备份文件在 Wisp 的应用支持目录里，没有被删除。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The previous conversation file could not be read. It was backed up unchanged as %@ and the list is now empty. The backup is still in Wisp's application-support folder — nothing was deleted."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次的对话记录读不出来了，已经原样备份成 %@，当前列表是空的。备份文件在 Wisp 的应用支持目录里，没有被删除。"
+          }
+        }
+      }
+    },
+    "上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limits"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限"
+          }
+        }
+      }
+    },
+    "不花钱 · 100 万上下文 · 免费里最强，但也最容易被占满。付费版 $1.000/百万": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free · 1M context · the strongest free option, and the one most often saturated. Paid tier is $1.000 per million"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不花钱 · 100 万上下文 · 免费里最强，但也最容易被占满。付费版 $1.000/百万"
+          }
+        }
+      }
+    },
+    "不花钱 · 100 万上下文 · 免费首选。付费版 $0.300/百万，说明底子不弱": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free · 1M context · the free pick. Its paid tier runs $0.300 per million, which says something about the model underneath"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不花钱 · 100 万上下文 · 免费首选。付费版 $0.300/百万，说明底子不弱"
+          }
+        }
+      }
+    },
+    "不选的话就跟随系统语言。这个设置只影响 Wisp 自己，不动系统设置。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left alone, Wisp follows your system language. This setting affects Wisp only and changes nothing system-wide."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不选的话就跟随系统语言。这个设置只影响 Wisp 自己，不动系统设置。"
+          }
+        }
+      }
+    },
+    "云端接口": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud endpoint"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "云端接口"
+          }
+        }
+      }
+    },
+    "仅截图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshot only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅截图"
+          }
+        }
+      }
+    },
+    "任何 OpenAI 兼容接口，自带 Key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint, your own key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何 OpenAI 兼容接口，自带 Key"
+          }
+        }
+      }
+    },
+    "会删除对话文件、调试文件和钥匙串里的 Key。系统的 Time Machine 备份和模型供应商那边的请求日志不在本应用控制范围内。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This deletes the conversation file, the debug files, and the key in your Keychain. Time Machine backups and your model provider's request logs are outside Wisp's control."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删除对话文件、调试文件和钥匙串里的 Key。系统的 Time Machine 备份和模型供应商那边的请求日志不在本应用控制范围内。"
+          }
+        }
+      }
+    },
+    "位置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Position"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置"
+          }
+        }
+      }
+    },
+    "你": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你"
+          }
+        }
+      }
+    },
+    "你去看别的窗口以后才开始倒计时。面板有焦点、鼠标停在上面、或者回答正在生成，都不会收起。收起只是把面板收回小药丸，对话不会丢。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The countdown only starts once you look at another window. It never collapses while the panel has focus, your pointer is over it, or an answer is streaming. Collapsing just tucks the panel back into the island — no conversation is lost."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你去看别的窗口以后才开始倒计时。面板有焦点、鼠标停在上面、或者回答正在生成，都不会收起。收起只是把面板收回小药丸，对话不会丢。"
+          }
+        }
+      }
+    },
+    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断，也可能有跨域嵌入框架读不到。如果答案所需的信息不在给到的正文里，直接说明这一点，并指出可以看截图的哪一部分或需要用户滚动到哪里。\n3. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n4. 用用户提问所使用的语言回答，默认简体中文。\n5. 回答简洁直接，先给结论。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches context from their current screen.\n\nThat context may include: the frontmost app name and window title, the current page's URL and title, the full page text, text the user has selected, and a screenshot of the current window.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, and cross-origin frames may be unreadable. If the information needed is not in the text you were given, say so plainly and point to the part of the screenshot to look at or where the user should scroll.\n3. The screenshot covers only the visible area; the page text covers the whole page. When they conflict, trust the text and explain the difference.\n4. Reply in the language the user asked in; default to English.\n5. Be concise and direct. Lead with the conclusion."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断，也可能有跨域嵌入框架读不到。如果答案所需的信息不在给到的正文里，直接说明这一点，并指出可以看截图的哪一部分或需要用户滚动到哪里。\n3. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n4. 用用户提问所使用的语言回答，默认简体中文。\n5. 回答简洁直接，先给结论。"
+          }
+        }
+      }
+    },
+    "便宜，40 万上下文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cheap, 400K context"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "便宜，40 万上下文"
+          }
+        }
+      }
+    },
+    "保存并测试连接": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save and test connection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存并测试连接"
+          }
+        }
+      }
+    },
+    "停止": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止"
+          }
+        }
+      }
+    },
+    "停止生成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop generating"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止生成"
+          }
+        }
+      }
+    },
+    "停止（⌘.）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop (⌘.)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止（⌘.）"
+          }
+        }
+      }
+    },
+    "全部删除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete everything"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部删除"
+          }
+        }
+      }
+    },
+    "关于": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于"
+          }
+        }
+      }
+    },
+    "减少": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decrease"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "减少"
+          }
+        }
+      }
+    },
+    "切换接法和模型：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch provider and model: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换接法和模型：%@"
+          }
+        }
+      }
+    },
+    "刚改完设置的话，Chrome 可能还没写盘，这行会慢一拍。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " If you just changed the setting, Chrome may not have written it to disk yet, so this line can lag behind."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刚改完设置的话，Chrome 可能还没写盘，这行会慢一拍。"
+          }
+        }
+      }
+    },
+    "刚读取": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "just now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刚读取"
+          }
+        }
+      }
+    },
+    "删掉「%@」并新建": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@” and start a new one"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删掉「%@」并新建"
+          }
+        }
+      }
+    },
+    "删掉最旧的并新建": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the oldest and start a new one"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删掉最旧的并新建"
+          }
+        }
+      }
+    },
+    "删除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
+          }
+        }
+      }
+    },
+    "删除全部对话与 API Key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete all conversations and the API key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部对话与 API Key"
+          }
+        }
+      }
+    },
+    "删除全部数据？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete all data?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部数据？"
+          }
+        }
+      }
+    },
+    "到上限不会自动删旧的。新建时会问你要不要顶掉最久没更新的那个，确认后才删。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is deleted automatically at the limit. When you start a new conversation Wisp asks whether to drop the least recently updated one, and only deletes after you confirm."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "到上限不会自动删旧的。新建时会问你要不要顶掉最久没更新的那个，确认后才删。"
+          }
+        }
+      }
+    },
+    "刷新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新"
+          }
+        }
+      }
+    },
+    "剩余额度 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ remaining"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩余额度 %@"
+          }
+        }
+      }
+    },
+    "助手": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistant"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "助手"
+          }
+        }
+      }
+    },
+    "去下载": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去下载"
+          }
+        }
+      }
+    },
+    "发送（⌘↩）· %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send (⌘↩) · %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送（⌘↩）· %@"
+          }
+        }
+      }
+    },
+    "取消": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "只保存对话文字与页面文字快照。截图从不写入硬盘。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only conversation text and page-text snapshots are stored. Screenshots are never written to disk."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只保存对话文字与页面文字快照。截图从不写入硬盘。"
+          }
+        }
+      }
+    },
+    "只向 GitHub 请求一次最新版本号，不发送任何关于你或你使用情况的信息，也不会自动下载或安装。关掉之后就完全不联网检查。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This asks GitHub once for the latest version number. It sends nothing about you or how you use Wisp, and never downloads or installs anything on its own. Turn it off and no check is made at all."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只向 GitHub 请求一次最新版本号，不发送任何关于你或你使用情况的信息，也不会自动下载或安装。关掉之后就完全不联网检查。"
+          }
+        }
+      }
+    },
+    "只回答问题本身，不要执行任何命令，不要读写文件。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer the question only. Do not run any commands and do not read or write files."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只回答问题本身，不要执行任何命令，不要读写文件。"
+          }
+        }
+      }
+    },
+    "可执行文件": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Executable"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可执行文件"
+          }
+        }
+      }
+    },
+    "可读整页": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full page"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可读整页"
+          }
+        }
+      }
+    },
+    "启动": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startup"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动"
+          }
+        }
+      }
+    },
+    "启动 Ollama": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Ollama"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动 Ollama"
+          }
+        }
+      }
+    },
+    "启动时检查有没有新版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for a new version at launch"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动时检查有没有新版本"
+          }
+        }
+      }
+    },
+    "唤起助手": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summon assistant"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "唤起助手"
+          }
+        }
+      }
+    },
+    "唤起助手：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summon assistant:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "唤起助手："
+          }
+        }
+      }
+    },
+    "回到当前对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to the current conversation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回到当前对话"
+          }
+        }
+      }
+    },
+    "回到默认位置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset position"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回到默认位置"
+          }
+        }
+      }
+    },
+    "在访达中显示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示"
+          }
+        }
+      }
+    },
+    "增加": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Increase"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增加"
+          }
+        }
+      }
+    },
+    "备份那份文件并重新开始": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive that file and start fresh"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份那份文件并重新开始"
+          }
+        }
+      }
+    },
+    "复制回答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy answer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制回答"
+          }
+        }
+      }
+    },
+    "复用你已经登录的 Codex，不用另配 API Key。以只读沙箱运行，不落会话文件。两点要知道：它每次都会带上约两万 token 的固定上下文，走的是你的 Codex 额度；而且没有逐字流式，回答会一次性出现。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuses the Codex you are already signed in to, so no separate API key is needed. It runs in a read-only sandbox and leaves no session files behind. Two things to know: every request carries roughly twenty thousand tokens of fixed context against your Codex quota, and there is no token-by-token streaming — the answer arrives all at once."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复用你已经登录的 Codex，不用另配 API Key。以只读沙箱运行，不落会话文件。两点要知道：它每次都会带上约两万 token 的固定上下文，走的是你的 Codex 额度；而且没有逐字流式，回答会一次性出现。"
+          }
+        }
+      }
+    },
+    "复用已登录的 Codex，免配 Key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuse your signed-in Codex, no key needed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复用已登录的 Codex，免配 Key"
+          }
+        }
+      }
+    },
+    "失败": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失败"
+          }
+        }
+      }
+    },
+    "头部那两行就是这次会发送的内容。浏览器里会连整页正文一起发，不只是看得见的那一屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The two lines in the header are exactly what will be sent. In a browser that includes the full page text, not just the visible portion."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "头部那两行就是这次会发送的内容。浏览器里会连整页正文一起发，不只是看得见的那一屏。"
+          }
+        }
+      }
+    },
+    "字符数": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Characters"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字符数"
+          }
+        }
+      }
+    },
+    "字，超出会保留头尾并标注省略": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " characters; anything longer keeps the head and tail and notes what was omitted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字，超出会保留头尾并标注省略"
+          }
+        }
+      }
+    },
+    "存储位置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage location"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储位置"
+          }
+        }
+      }
+    },
+    "完成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "对话记录被锁为只读": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation file is read-only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话记录被锁为只读"
+          }
+        }
+      }
+    },
+    "对话记录（%1$lld/%2$lld），可切换和删除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversations (%1$lld/%2$lld) — switch or delete"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话记录（%1$lld/%2$lld），可切换和删除"
+          }
+        }
+      }
+    },
+    "屏幕与权限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen & Permissions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕与权限"
+          }
+        }
+      }
+    },
+    "屏幕录制：已授权": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Recording: granted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕录制：已授权"
+          }
+        }
+      }
+    },
+    "屏幕录制：未授权": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Recording: not granted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕录制：未授权"
+          }
+        }
+      }
+    },
+    "展开": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expand"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开"
+          }
+        }
+      }
+    },
+    "崩溃日志由 macOS 自己保存在「控制台 → 崩溃报告」里。Wisp 不内置任何崩溃上报或统计 SDK，所以报问题时请自己附上那份日志。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS keeps crash logs itself, under Console → Crash Reports. Wisp bundles no crash-reporting or analytics SDK, so please attach that log yourself when reporting an issue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "崩溃日志由 macOS 自己保存在「控制台 → 崩溃报告」里。Wisp 不内置任何崩溃上报或统计 SDK，所以报问题时请自己附上那份日志。"
+          }
+        }
+      }
+    },
+    "已停用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disabled"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已停用"
+          }
+        }
+      }
+    },
+    "已取消。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消。"
+          }
+        }
+      }
+    },
+    "已备份为 %@，现在可以正常保存了。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archived as %@. Saving works normally again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已备份为 %@，现在可以正常保存了。"
+          }
+        }
+      }
+    },
+    "已开好的是 %@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "already enabled: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已开好的是 %@。"
+          }
+        }
+      }
+    },
+    "已排除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已排除"
+          }
+        }
+      }
+    },
+    "已经是最新的（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to date (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已经是最新的（%@）"
+          }
+        }
+      }
+    },
+    "已经有 %lld 个对话，到上限了。可以自己删一个，或者让它顶掉最久没用的那个。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have %lld conversations, which is the limit. Delete one yourself, or let Wisp drop the least recently used one."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已经有 %lld 个对话，到上限了。可以自己删一个，或者让它顶掉最久没用的那个。"
+          }
+        }
+      }
+    },
+    "已达上限，点一下可以顶掉最久没用的那个": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At the limit — click to drop the least recently used one"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已达上限，点一下可以顶掉最久没用的那个"
+          }
+        }
+      }
+    },
+    "已连上 %@，但页面正文的返回内容无法解析，本次只发送截图与网址。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected to %@, but its page-text response could not be parsed. Only the screenshot and URL were sent."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连上 %@，但页面正文的返回内容无法解析，本次只发送截图与网址。"
+          }
+        }
+      }
+    },
+    "常驻小药丸": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persistent island"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常驻小药丸"
+          }
+        }
+      }
+    },
+    "应用：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用：%@"
+          }
+        }
+      }
+    },
+    "底部（Dock 上方）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bottom (above the Dock)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "底部（Dock 上方）"
+          }
+        }
+      }
+    },
+    "开源许可": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open-source licenses"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开源许可"
+          }
+        }
+      }
+    },
+    "当前是 %1$@ 的内部页面（%2$@），读不到正文，本次只有截图。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is an internal %1$@ page (%2$@) with no readable text, so only the screenshot was captured."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前是 %1$@ 的内部页面（%2$@），读不到正文，本次只有截图。"
+          }
+        }
+      }
+    },
+    "当前用 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前用 %@"
+          }
+        }
+      }
+    },
+    "当前窗口所属的 %@ 配置文件没有开启「Allow JavaScript from Apple Events」，所以只读到网址，没有整页文字。这个开关每个配置文件要各开一次。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The %@ profile owning the current window does not have “Allow JavaScript from Apple Events” enabled, so only the URL was read, not the page text. This switch must be enabled once per profile."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前窗口所属的 %@ 配置文件没有开启「Allow JavaScript from Apple Events」，所以只读到网址，没有整页文字。这个开关每个配置文件要各开一次。"
+          }
+        }
+      }
+    },
+    "快捷键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard shortcut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键"
+          }
+        }
+      }
+    },
+    "思考中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "思考中…"
+          }
+        }
+      }
+    },
+    "恢复时间 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "resets at %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复时间 %@"
+          }
+        }
+      }
+    },
+    "截取时间：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captured at: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截取时间：%@"
+          }
+        }
+      }
+    },
+    "截图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图"
+          }
+        }
+      }
+    },
+    "截图 关": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshot off"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图 关"
+          }
+        }
+      }
+    },
+    "截图失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture failed: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图失败：%@"
+          }
+        }
+      }
+    },
+    "截图：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshot: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图：%@"
+          }
+        }
+      }
+    },
+    "所有对话和 API Key 都会被删除，无法撤销。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every conversation and the API key will be deleted. This cannot be undone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有对话和 API Key 都会被删除，无法撤销。"
+          }
+        }
+      }
+    },
+    "打开后会额外写入 last-context.json 与 last-screenshot.jpg，方便排查读不到文字的问题。平时请关掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This additionally writes last-context.json and last-screenshot.jpg, which helps diagnose missing page text. Leave it off normally."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开后会额外写入 last-context.json 与 last-screenshot.jpg，方便排查读不到文字的问题。平时请关掉。"
+          }
+        }
+      }
+    },
+    "打开登录项设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Login Items settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开登录项设置"
+          }
+        }
+      }
+    },
+    "打开系统设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统设置"
+          }
+        }
+      }
+    },
+    "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not find the codex executable. Enter its full path in Settings, or install the Codex CLI first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。"
+          }
+        }
+      }
+    },
+    "找不到 codex，请填完整路径。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex not found — enter its full path."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 codex，请填完整路径。"
+          }
+        }
+      }
+    },
+    "找不到可截取的窗口。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No capturable window found."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到可截取的窗口。"
+          }
+        }
+      }
+    },
+    "找不到许可文件。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The licence file could not be found."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到许可文件。"
+          }
+        }
+      }
+    },
+    "找不到这个域名。检查 Base URL 拼写是否正确。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host not found. Check the Base URL spelling."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到这个域名。检查 Base URL 拼写是否正确。"
+          }
+        }
+      }
+    },
+    "把当前正在读取的应用加进来": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the app being read right now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把当前正在读取的应用加进来"
+          }
+        }
+      }
+    },
+    "把每次采集的上下文写到 debug 文件夹": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write every captured context to the debug folder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把每次采集的上下文写到 debug 文件夹"
+          }
+        }
+      }
+    },
+    "报告问题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report an issue"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "报告问题"
+          }
+        }
+      }
+    },
+    "按住药丸拖动就能把它挪到桌面上任何地方，松手就记住，重新打开也在那儿。助手面板不受影响，始终从底部中间展开。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag the island to put it anywhere on the desktop. It remembers where you dropped it and comes back there next launch. The assistant panel is unaffected — it always opens from the bottom center."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住药丸拖动就能把它挪到桌面上任何地方，松手就记住，重新打开也在那儿。助手面板不受影响，始终从底部中间展开。"
+          }
+        }
+      }
+    },
+    "按本机偏好文件推断：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Based on this Mac's preference files: "
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按本机偏好文件推断："
+          }
+        }
+      }
+    },
+    "排除的应用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluded apps"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排除的应用"
+          }
+        }
+      }
+    },
+    "接法": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接法"
+          }
+        }
+      }
+    },
+    "收起": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起"
+          }
+        }
+      }
+    },
+    "改不了登录项：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not change the login item: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改不了登录项：%@"
+          }
+        }
+      }
+    },
+    "数据": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据"
+          }
+        }
+      }
+    },
+    "整页正文（%1$lld 字%2$@）：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full page text (%1$lld characters%2$@):"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整页正文（%1$lld 字%2$@）："
+          }
+        }
+      }
+    },
+    "整页正文：未取到，只能依赖截图。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full page text: not available; rely on the screenshot."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整页正文：未取到，只能依赖截图。"
+          }
+        }
+      }
+    },
+    "新对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New conversation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新对话"
+          }
+        }
+      }
+    },
+    "新建对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New conversation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建对话"
+          }
+        }
+      }
+    },
+    "无": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "none"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
+          }
+        }
+      }
+    },
+    "无截图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No screenshot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无截图"
+          }
+        }
+      }
+    },
+    "无整页正文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No page text"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无整页正文"
+          }
+        }
+      }
+    },
+    "无法生成测试图片。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not generate a test image."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法生成测试图片。"
+          }
+        }
+      }
+    },
+    "无法确定要读取哪个应用。请切换到目标应用后再按一次快捷键。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not determine which app to read. Switch to the target app and press the shortcut again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法确定要读取哪个应用。请切换到目标应用后再按一次快捷键。"
+          }
+        }
+      }
+    },
+    "显示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示"
+          }
+        }
+      }
+    },
+    "更多设置…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多设置…"
+          }
+        }
+      }
+    },
+    "更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新"
+          }
+        }
+      }
+    },
+    "最多保留 %lld 个对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep at most %lld conversations"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多保留 %lld 个对话"
+          }
+        }
+      }
+    },
+    "最强，也最贵": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The strongest, and the priciest"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最强，也最贵"
+          }
+        }
+      }
+    },
+    "有新版本 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is available"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版本 %@"
+          }
+        }
+      }
+    },
+    "有新版本 %@，去下载…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is available — download…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版本 %@，去下载…"
+          }
+        }
+      }
+    },
+    "有，只覆盖当前可视区域": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yes, covering only the currently visible area"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有，只覆盖当前可视区域"
+          }
+        }
+      }
+    },
+    "服务有响应但返回异常": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service responded, but the response was invalid"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务有响应但返回异常"
+          }
+        }
+      }
+    },
+    "服务端没有返回说明。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server returned no explanation."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端没有返回说明。"
+          }
+        }
+      }
+    },
+    "服务端说明：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server said: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端说明：%@"
+          }
+        }
+      }
+    },
+    "未知应用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown app"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知应用"
+          }
+        }
+      }
+    },
+    "未知错误": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown error"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知错误"
+          }
+        }
+      }
+    },
+    "未选择": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not selected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择"
+          }
+        }
+      }
+    },
+    "本对话 %1$lld/%2$lld 轮 · 共 %3$lld/%4$lld 个对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld/%2$lld turns here · %3$lld/%4$lld conversations"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本对话 %1$lld/%2$lld 轮 · 共 %3$lld/%4$lld 个对话"
+          }
+        }
+      }
+    },
+    "本机模型，不联网，不花钱": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device models, offline, free"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机模型，不联网，不花钱"
+          }
+        }
+      }
+    },
+    "权限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限"
+          }
+        }
+      }
+    },
+    "查看这次采集的说明": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See notes about this capture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看这次采集的说明"
+          }
+        }
+      }
+    },
+    "桌面上（可拖动）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the desktop (draggable)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面上（可拖动）"
+          }
+        }
+      }
+    },
+    "检查中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查中…"
+          }
+        }
+      }
+    },
+    "检测中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检测中…"
+          }
+        }
+      }
+    },
+    "模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型"
+          }
+        }
+      }
+    },
+    "模型没有返回任何内容。可以换个模型名再试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model returned nothing. Try a different model name."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型没有返回任何内容。可以换个模型名再试。"
+          }
+        }
+      }
+    },
+    "模型跑在本机，不联网也不花钱，但必须选一个能读图的模型，否则截图会被忽略。这里的清单直接读自本机 Ollama。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Models run on this Mac — no network, no cost — but you must pick one that can read images, or screenshots are ignored. This list is read straight from your local Ollama."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型跑在本机，不联网也不花钱，但必须选一个能读图的模型，否则截图会被忽略。这里的清单直接读自本机 Ollama。"
+          }
+        }
+      }
+    },
+    "正文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page text"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正文"
+          }
+        }
+      }
+    },
+    "正文 %lld 字": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld chars of page text"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正文 %lld 字"
+          }
+        }
+      }
+    },
+    "正文 %lld 字 · 截断": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld chars of page text · truncated"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正文 %lld 字 · 截断"
+          }
+        }
+      }
+    },
+    "正文 停用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page text disabled"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正文 停用"
+          }
+        }
+      }
+    },
+    "正文 未取到": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page text unavailable"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正文 未取到"
+          }
+        }
+      }
+    },
+    "每个对话最多 %lld 轮": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At most %lld turns per conversation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个对话最多 %lld 轮"
+          }
+        }
+      }
+    },
+    "永久删除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete permanently"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永久删除"
+          }
+        }
+      }
+    },
+    "永久删除这个对话？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently delete this conversation?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永久删除这个对话？"
+          }
+        }
+      }
+    },
+    "没有内置推荐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No built-in presets"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有内置推荐"
+          }
+        }
+      }
+    },
+    "没有收到 HTTP 响应。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No HTTP response received."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有收到 HTTP 响应。"
+          }
+        }
+      }
+    },
+    "没有检测到已安装的 Chromium 系浏览器配置文件。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No installed Chromium-family browser profiles were detected."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有检测到已安装的 Chromium 系浏览器配置文件。"
+          }
+        }
+      }
+    },
+    "没能从 GitHub 的响应里读出版本号。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read a version number from GitHub's response."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能从 GitHub 的响应里读出版本号。"
+          }
+        }
+      }
+    },
+    "测试中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testing…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试中…"
+          }
+        }
+      }
+    },
+    "测试会发一张 64×64 的小图，用来同时验证连通性、模型名和这个模型是否接受图片输入。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The test sends one 64×64 image, which checks connectivity, the model name, and whether the model accepts image input — all at once."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试会发一张 64×64 的小图，用来同时验证连通性、模型名和这个模型是否接受图片输入。"
+          }
+        }
+      }
+    },
+    "测试只检查能不能跑起 codex，不会真的发一次提问。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The test only checks that codex can start; it does not actually send a question."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试只检查能不能跑起 codex，不会真的发一次提问。"
+          }
+        }
+      }
+    },
+    "浏览器整页文字": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full page text from browsers"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览器整页文字"
+          }
+        }
+      }
+    },
+    "清除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
+          }
+        }
+      }
+    },
+    "清除 Key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除 Key"
+          }
+        }
+      }
+    },
+    "点一下切换这次要不要附截图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to toggle whether a screenshot is attached this turn"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点一下切换这次要不要附截图"
+          }
+        }
+      }
+    },
+    "版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        }
+      }
+    },
+    "现在检查": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在检查"
+          }
+        }
+      }
+    },
+    "现在连不上网。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No network connection."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在连不上网。"
+          }
+        }
+      }
+    },
+    "现在连不上网。检查一下网络，或者改用 Ollama / Codex CLI 这种本地接法。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No network connection. Check your connection, or switch to a local provider like Ollama or the Codex CLI."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在连不上网。检查一下网络，或者改用 Ollama / Codex CLI 这种本地接法。"
+          }
+        }
+      }
+    },
+    "生成中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成中…"
+          }
+        }
+      }
+    },
+    "用户选中的文字：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text the user selected:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用户选中的文字："
+          }
+        }
+      }
+    },
+    "界面语言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面语言"
+          }
+        }
+      }
+    },
+    "登录时自动启动 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch Wisp at login"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时自动启动 Wisp"
+          }
+        }
+      }
+    },
+    "目前没有排除任何应用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No apps are excluded."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前没有排除任何应用。"
+          }
+        }
+      }
+    },
+    "知道了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "知道了"
+          }
+        }
+      }
+    },
+    "离开面板后自动收起": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse automatically after you leave the panel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离开面板后自动收起"
+          }
+        }
+      }
+    },
+    "移除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "窗口标题：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window title: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口标题：%@"
+          }
+        }
+      }
+    },
+    "立即重启 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart Wisp now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即重启 Wisp"
+          }
+        }
+      }
+    },
+    "等了 %lld 秒还没有任何响应，已经中断。可能是网络不稳，或者这个接口太慢。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No response after %lld seconds, so the request was aborted. The network may be unstable, or this endpoint is too slow."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等了 %lld 秒还没有任何响应，已经中断。可能是网络不稳，或者这个接口太慢。"
+          }
+        }
+      }
+    },
+    "等待 %lld 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait %lld seconds"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待 %lld 秒"
+          }
+        }
+      }
+    },
+    "系统找不到这个 App 的登录项。把 Wisp.app 放到「应用程序」或「~/应用程序」里再试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS cannot find a login item for this app. Move Wisp.app into Applications or ~/Applications and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统找不到这个 App 的登录项。把 Wisp.app 放到「应用程序」或「~/应用程序」里再试。"
+          }
+        }
+      }
+    },
+    "系统把它拦下了。去「系统设置 → 通用 → 登录项与扩展」里允许 Wisp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS is holding it back. Allow Wisp under System Settings → General → Login Items & Extensions."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统把它拦下了。去「系统设置 → 通用 → 登录项与扩展」里允许 Wisp。"
+          }
+        }
+      }
+    },
+    "系统还没允许 Wisp 控制 %1$@。请到「系统设置 → 隐私与安全性 → 自动化」勾选 Wisp 下的 %2$@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS has not allowed Wisp to control %1$@ yet. Go to System Settings → Privacy & Security → Automation and enable %2$@ under Wisp."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统还没允许 Wisp 控制 %1$@。请到「系统设置 → 隐私与安全性 → 自动化」勾选 Wisp 下的 %2$@。"
+          }
+        }
+      }
+    },
+    "网址：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网址：%@"
+          }
+        }
+      }
+    },
+    "网络错误：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network error: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络错误：%@"
+          }
+        }
+      }
+    },
+    "老牌便宜款": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The old reliable budget option"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "老牌便宜款"
+          }
+        }
+      }
+    },
+    "脚本超时": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Script timed out"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本超时"
+          }
+        }
+      }
+    },
+    "脚本跑通了，但这个页面没有可提取的文字，本次只有截图。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script ran, but this page has no extractable text, so only the screenshot was captured."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本跑通了，但这个页面没有可提取的文字，本次只有截图。"
+          }
+        }
+      }
+    },
+    "腾出位置新建对话？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make room for a new conversation?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "腾出位置新建对话？"
+          }
+        }
+      }
+    },
+    "自动化（控制浏览器）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automation (controlling browsers)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动化（控制浏览器）"
+          }
+        }
+      }
+    },
+    "自动收起": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-collapse"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动收起"
+          }
+        }
+      }
+    },
+    "自动查找": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-detect"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动查找"
+          }
+        }
+      }
+    },
+    "自定义": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义"
+          }
+        }
+      }
+    },
+    "自定义…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义…"
+          }
+        }
+      }
+    },
+    "被排除的应用不会截图，也不会跑浏览器脚本。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluded apps are never captured and never scripted."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被排除的应用不会截图，也不会跑浏览器脚本。"
+          }
+        }
+      }
+    },
+    "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rate limited (429). Free models allow 20 requests per minute and 50 per day; topping an OpenRouter account up to 10 credits raises the daily cap to 1000."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。"
+          }
+        }
+      }
+    },
+    "被限流（429）。这次是上游供应商满了，不是你的额度用光。免费模型经常这样，等几分钟再试，或换一个付费模型。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rate limited (429). This one is the upstream provider being full, not your own quota. Free models hit this often — wait a few minutes or switch to a paid model."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被限流（429）。这次是上游供应商满了，不是你的额度用光。免费模型经常这样，等几分钟再试，或换一个付费模型。"
+          }
+        }
+      }
+    },
+    "设置…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置…"
+          }
+        }
+      }
+    },
+    "语言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言"
+          }
+        }
+      }
+    },
+    "请求": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求"
+          }
+        }
+      }
+    },
+    "请求发到 %@。Key 存在 macOS 钥匙串，不会写进对话文件。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requests go to %@. The key lives in the macOS Keychain and is never written to the conversation file."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求发到 %@。Key 存在 macOS 钥匙串，不会写进对话文件。"
+          }
+        }
+      }
+    },
+    "请求失败（HTTP %1$lld）：%2$@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request failed (HTTP %1$lld): %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求失败（HTTP %1$lld）：%2$@"
+          }
+        }
+      }
+    },
+    "读不到内容的嵌入框架（%lld 个）：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedded frames whose content is unreadable (%lld):"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读不到内容的嵌入框架（%lld 个）："
+          }
+        }
+      }
+    },
+    "读取 %1$@ 失败：%2$@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read %1$@: %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取 %1$@ 失败：%2$@"
+          }
+        }
+      }
+    },
+    "读取 %1$@ 当前分页失败：%2$@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the current tab of %1$@: %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取 %1$@ 当前分页失败：%2$@"
+          }
+        }
+      }
+    },
+    "读取中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取中…"
+          }
+        }
+      }
+    },
+    "读取整页文字还需要在浏览器里打开一次：Chrome 是「View → Developer → Allow JavaScript from Apple Events」，Safari 是「Develop → Allow JavaScript from Apple Events」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading full page text also needs one switch flipped in the browser: in Chrome it is View → Developer → Allow JavaScript from Apple Events; in Safari it is Develop → Allow JavaScript from Apple Events."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取整页文字还需要在浏览器里打开一次：Chrome 是「View → Developer → Allow JavaScript from Apple Events」，Safari 是「Develop → Allow JavaScript from Apple Events」。"
+          }
+        }
+      }
+    },
+    "调试": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试"
+          }
+        }
+      }
+    },
+    "贴住刘海": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Against the notch"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "贴住刘海"
+          }
+        }
+      }
+    },
+    "跟随 Codex 默认": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow Codex's default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随 Codex 默认"
+          }
+        }
+      }
+    },
+    "跟随 Codex 默认（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow Codex's default (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随 Codex 默认（%@）"
+          }
+        }
+      }
+    },
+    "跟随系统": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow the system"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
+    "输入 $0.030/百万 · 100 万上下文 · 最便宜": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "$0.030 per million in · 1M context · the cheapest"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 $0.030/百万 · 100 万上下文 · 最便宜"
+          }
+        }
+      }
+    },
+    "输入 $0.075/百万 · 131 万上下文 · 综合最稳": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "$0.075 per million in · 1.31M context · the most dependable all-rounder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 $0.075/百万 · 131 万上下文 · 综合最稳"
+          }
+        }
+      }
+    },
+    "还没开的是 %@；": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not yet enabled: %@; "
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没开的是 %@；"
+          }
+        }
+      }
+    },
+    "还没有填 API Key。请在设置里填写后再提问。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No API key yet. Add one in Settings before asking."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有填 API Key。请在设置里填写后再提问。"
+          }
+        }
+      }
+    },
+    "还没有对话。直接在下面提问就会自动建一个。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No conversations yet. Just ask below and one will be created."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有对话。直接在下面提问就会自动建一个。"
+          }
+        }
+      }
+    },
+    "还没有屏幕录制权限，本次没有截图。请到「系统设置 → 隐私与安全性 → 屏幕录制」勾选 Wisp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Screen Recording permission yet, so nothing was captured. Enable Wisp under System Settings → Privacy & Security → Screen Recording."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有屏幕录制权限，本次没有截图。请到「系统设置 → 隐私与安全性 → 屏幕录制」勾选 Wisp。"
+          }
+        }
+      }
+    },
+    "这一轮附了截图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A screenshot was attached this turn"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一轮附了截图"
+          }
+        }
+      }
+    },
+    "这个对话已经到 %lld 轮上限。新建一个，或删掉一个旧对话腾位置。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This conversation has reached its %lld-turn limit. Start a new one, or delete an old one to make room."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个对话已经到 %lld 轮上限。新建一个，或删掉一个旧对话腾位置。"
+          }
+        }
+      }
+    },
+    "这个开关每个浏览器配置文件要各开一次：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。没开的配置文件只能读到网址和截图。Safari 在「Develop」菜单里，且不分配置文件。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This switch must be enabled once per browser profile: switch to a window of that profile, then choose View → Developer → Allow JavaScript from Apple Events. Profiles without it yield only the URL and the screenshot. Safari keeps it in the Develop menu and does not split it by profile."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个开关每个浏览器配置文件要各开一次：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。没开的配置文件只能读到网址和截图。Safari 在「Develop」菜单里，且不分配置文件。"
+          }
+        }
+      }
+    },
+    "这个模型或网关不接受图片输入。%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This model or gateway does not accept image input. %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个模型或网关不接受图片输入。%@"
+          }
+        }
+      }
+    },
+    "这份对话记录来自更新版本的 Wisp（格式 v%1$lld，本版本只认到 v%2$lld）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This conversation file comes from a newer version of Wisp (format v%1$lld; this version only understands v%2$lld). To avoid overwriting it, nothing will be saved during this run. Update Wisp, or archive the file from Settings and start fresh."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这份对话记录来自更新版本的 Wisp（格式 v%1$lld，本版本只认到 v%2$lld）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。"
+          }
+        }
+      }
+    },
+    "连不上这个地址。检查 Base URL 和端口，以及对方服务是否在运行。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not connect to this address. Check the Base URL and port, and whether the service is running."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连不上这个地址。检查 Base URL 和端口，以及对方服务是否在运行。"
+          }
+        }
+      }
+    },
+    "连接正常，这个模型接受图片输入。配置已保存。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected, and this model accepts image input. Settings saved."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接正常，这个模型接受图片输入。配置已保存。"
+          }
+        }
+      }
+    },
+    "退出 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Wisp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 Wisp"
+          }
+        }
+      }
+    },
+    "通用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "重开之后生效。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takes effect after a restart."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重开之后生效。"
+          }
+        }
+      }
+    },
+    "重新扫描本机模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescan local models"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描本机模型"
+          }
+        }
+      }
+    },
+    "重新检测": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新检测"
+          }
+        }
+      }
+    },
+    "重新读取当前屏幕（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-read the current screen (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新读取当前屏幕（%@）"
+          }
+        }
+      }
+    },
+    "问点什么…  Return 发送，Shift+Return 换行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask something…  Return to send, Shift+Return for a new line"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问点什么…  Return 发送，Shift+Return 换行"
+          }
+        }
+      }
+    },
+    "问点关于当前屏幕的事": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask about what's on screen"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问点关于当前屏幕的事"
+          }
+        }
+      }
+    },
+    "闲置时只有一颗图标大小，鼠标移上去才展开成一条，点一下打开助手。生成回答时会变宽并给出停止键。它只跟踪当前是哪个应用，不截图也不读页面。主面板打开时它会自动收起。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idle it is just an icon; hover to expand it into a bar, click to open the assistant. While an answer streams it widens and offers a stop button. It only tracks which app is frontmost — it never captures the screen or reads pages. It hides itself while the main panel is open."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "闲置时只有一颗图标大小，鼠标移上去才展开成一条，点一下打开助手。生成回答时会变宽并给出停止键。它只跟踪当前是哪个应用，不截图也不读页面。主面板打开时它会自动收起。"
+          }
+        }
+      }
+    },
+    "附件里是当前屏幕的截图，请结合它回答。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The attachment is a screenshot of the current screen. Take it into account when answering."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "附件里是当前屏幕的截图，请结合它回答。"
+          }
+        }
+      }
+    },
+    "隐藏上下文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide context"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏上下文"
+          }
+        }
+      }
+    },
+    "页面含 %lld 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The page contains %lld cross-origin embedded frames whose text cannot be read — judge those from the screenshot."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面含 %lld 个跨域嵌入框架，其内部文字读不到，只能靠截图判断。"
+          }
+        }
+      }
+    },
+    "页面文字上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page text limit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面文字上限"
+          }
+        }
+      }
+    },
+    "页面标题：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page title: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面标题：%@"
+          }
+        }
+      }
+    },
+    "页面脚本报错，没读到正文：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The page script errored, so no text was read: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面脚本报错，没读到正文：%@"
+          }
+        }
+      }
+    },
+    "项目主页": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Project page"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目主页"
+          }
+        }
+      }
+    },
+    "（地址无效）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(invalid address)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（地址无效）"
+          }
+        }
+      }
+    },
+    "（当时读到正文 %lld 字，此处不再重复）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (%lld characters of page text were read then; not repeated here)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（当时读到正文 %lld 字，此处不再重复）"
+          }
+        }
+      }
+    },
+    "，原文共 %lld 字，中间已省略": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", %lld in the original, middle omitted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，原文共 %lld 字，中间已省略"
+          }
+        }
+      }
+    }
+  }
+}

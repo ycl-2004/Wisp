@@ -8,6 +8,7 @@ struct SettingsView: View {
             ModelSettingsView().tabItem { Label("模型", systemImage: "cpu") }
             CaptureSettingsView().tabItem { Label("屏幕与权限", systemImage: "lock.shield") }
             DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }
+            GeneralSettingsView().tabItem { Label("通用", systemImage: "gearshape") }
         }
         .frame(width: 580, height: 470)
     }
@@ -133,7 +134,7 @@ struct ModelSettingsView: View {
                         )) {
                             Text("未选择").tag("")
                             ForEach(models, id: \.self) { name in
-                                Text(OllamaSupport.looksLikeVisionModel(name) ? "\(name)  · 可读图" : name)
+                                Text(OllamaSupport.looksLikeVisionModel(name) ? String(localized: "\(name)  · 可读图") : name)
                                     .tag(name)
                             }
                         }
@@ -161,7 +162,7 @@ struct ModelSettingsView: View {
             let vision = models.filter(OllamaSupport.looksLikeVisionModel)
             Label(vision.isEmpty
                   ? "Ollama 在运行，装了 \(models.count) 个模型，但没找到能读图的。"
-                  : "Ollama 在运行，可读图的模型：\(vision.joined(separator: "、"))",
+                  : "Ollama 在运行，可读图的模型：\(vision.joined(separator: String(localized: "、")))",
                   systemImage: vision.isEmpty ? "exclamationmark.triangle" : "checkmark.circle")
                 .font(.system(size: 11))
                 .foregroundStyle(vision.isEmpty ? .orange : .green)
@@ -203,8 +204,9 @@ struct ModelSettingsView: View {
                 label: "模型",
                 presets: ModelCatalog.codexPresets(),
                 placeholder: "gpt-5.6-sol",
-                emptyOptionTitle: ModelCatalog.codexConfiguredModel.map { "跟随 Codex 默认（\($0)）" }
-                    ?? "跟随 Codex 默认",
+                emptyOptionTitle: ModelCatalog.codexConfiguredModel
+                    .map { String(localized: "跟随 Codex 默认（\($0)）") }
+                    ?? String(localized: "跟随 Codex 默认"),
                 value: Binding(get: { settings.codexModel },
                                set: { settings.codexModel = $0; testResult = nil })
             )
@@ -246,7 +248,7 @@ struct ModelSettingsView: View {
 
     private var endpointText: String {
         OpenAICompatibleProvider.endpoint(kind == .ollama ? settings.ollamaBaseURL : settings.baseURL)?
-            .absoluteString ?? "（地址无效）"
+            .absoluteString ?? String(localized: "（地址无效）")
     }
 
     private func probeOllama() {
@@ -284,10 +286,10 @@ struct ModelSettingsView: View {
             do {
                 try await ProviderConfig.provider(for: kind).validate(config: config)
                 testResult = (true, kind == .codexCLI
-                              ? "codex 可以运行，配置已保存。"
-                              : "连接正常，这个模型接受图片输入。配置已保存。")
+                              ? String(localized: "codex 可以运行，配置已保存。")
+                              : String(localized: "连接正常，这个模型接受图片输入。配置已保存。"))
             } catch let error as ProviderError {
-                testResult = (false, error.errorDescription ?? "失败")
+                testResult = (false, error.errorDescription ?? String(localized: "失败"))
             } catch {
                 testResult = (false, error.localizedDescription)
             }
@@ -338,7 +340,7 @@ private struct ProviderCard: View {
 
 /// 模型选择行：预设走下拉，最后一项是「自定义」，选中才露出输入框。
 private struct ModelPickerRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let presets: [ModelCatalog.Preset]
     let placeholder: String
     /// 非 nil 时，下拉最上面多一项代表「空值」。
@@ -421,7 +423,7 @@ private struct ModelPickerRow: View {
 }
 
 private struct Field<Content: View>: View {
-    let label: String
+    let label: LocalizedStringKey
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -439,8 +441,8 @@ private struct Field<Content: View>: View {
 }
 
 private struct Note: View {
-    let text: String
-    init(_ text: String) { self.text = text }
+    let text: LocalizedStringKey
+    init(_ text: LocalizedStringKey) { self.text = text }
 
     var body: some View {
         Text(text)
@@ -482,11 +484,24 @@ private struct CaptureSettingsView: View {
                     get: { settings.islandPosition },
                     set: { settings.islandPosition = $0; IslandController.shared.applyPositionChange() }
                 )) {
-                    Text("底部（Dock 上方）").tag("bottom")
+                    Text("桌面上（可拖动）").tag("bottom")
                     Text("贴住刘海").tag("notch")
                 }
                 .pickerStyle(.radioGroup)
                 .disabled(!settings.showIsland)
+
+                if settings.islandPosition == "bottom" {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text("按住药丸拖动就能把它挪到桌面上任何地方，松手就记住，重新打开也在那儿。助手面板不受影响，始终从底部中间展开。")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        Button("回到默认位置") { IslandController.shared.resetPosition() }
+                            .disabled(!settings.hasCustomIslandAnchor || !settings.showIsland)
+                    }
+                }
+
                 Text("闲置时只有一颗图标大小，鼠标移上去才展开成一条，点一下打开助手。生成回答时会变宽并给出停止键。它只跟踪当前是哪个应用，不截图也不读页面。主面板打开时它会自动收起。")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
@@ -654,7 +669,7 @@ private struct DataSettingsView: View {
                                value: Binding(get: { settings.maxUserTurns },
                                               set: { settings.maxUserTurns = $0 }),
                                in: 5...200)
-                Text("到上限不会自动删旧的。要腾位置必须自己删。")
+                Text("到上限不会自动删旧的。新建时会问你要不要顶掉最久没更新的那个，确认后才删。")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
@@ -709,11 +724,11 @@ private struct DataSettingsView: View {
 
 /// 原生 Stepper 的竖向双箭头在紧凑设置行里太拥挤；改成轻量横向减／加控件。
 private struct CompactStepper: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var value: Int
     let range: ClosedRange<Int>
 
-    init(_ title: String, value: Binding<Int>, in range: ClosedRange<Int>) {
+    init(_ title: LocalizedStringKey, value: Binding<Int>, in range: ClosedRange<Int>) {
         self.title = title
         _value = value
         self.range = range
@@ -751,7 +766,7 @@ private struct CompactStepper: View {
     }
 
     private func stepButton(systemName: String,
-                            label: String,
+                            label: LocalizedStringKey,
                             enabled: Bool,
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -763,7 +778,204 @@ private struct CompactStepper: View {
         .buttonStyle(.plain)
         .foregroundStyle(enabled ? Color.secondary : Color.primary.opacity(0.24))
         .disabled(!enabled)
-        .accessibilityLabel("\(label)\(title)")
-        .help("\(label)\(title)")
+        .accessibilityLabel(Text(label))
+        .help(label)
+    }
+}
+
+
+// MARK: - 通用
+
+private struct GeneralSettingsView: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @EnvironmentObject private var store: ConversationStore
+
+    @State private var launchAtLogin = LaunchAtLogin.isEnabled
+    @State private var launchError: String?
+    @State private var updateState: UpdateChecker.Outcome?
+    @State private var checking = false
+    @State private var showsNotices = false
+    @State private var archivedName: String?
+    @State private var language = AppLanguage.current
+    @State private var languageChanged = false
+
+    private var version: String {
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (build \(build))"
+    }
+
+    var body: some View {
+        Form {
+            Section("语言") {
+                Picker("界面语言", selection: Binding(
+                    get: { language },
+                    set: { newValue in
+                        language = newValue
+                        AppLanguage.apply(newValue)
+                        languageChanged = true
+                    }
+                )) {
+                    ForEach(AppLanguage.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                if languageChanged {
+                    HStack(spacing: 10) {
+                        Text("重开之后生效。")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Button("立即重启 Wisp") { AppRelaunch.now() }
+                        Spacer()
+                    }
+                }
+                Text("不选的话就跟随系统语言。这个设置只影响 Wisp 自己，不动系统设置。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("启动") {
+                Toggle("登录时自动启动 Wisp", isOn: Binding(
+                    get: { launchAtLogin },
+                    set: { setLaunchAtLogin($0) }
+                ))
+                if let note = LaunchAtLogin.statusNote {
+                    HStack(spacing: 8) {
+                        Text(note)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Button("打开登录项设置") { LaunchAtLogin.openLoginItemsSettings() }
+                    }
+                }
+                if let launchError {
+                    Text(launchError).font(.system(size: 10)).foregroundStyle(.red)
+                }
+            }
+
+            Section("更新") {
+                Toggle("启动时检查有没有新版本", isOn: Binding(
+                    get: { settings.checkForUpdates },
+                    set: { settings.checkForUpdates = $0 }
+                ))
+                HStack(spacing: 10) {
+                    Button(checking ? "检查中…" : "现在检查") { runCheck() }
+                        .disabled(checking)
+                    updateLine
+                    Spacer()
+                }
+                Text("只向 GitHub 请求一次最新版本号，不发送任何关于你或你使用情况的信息，也不会自动下载或安装。关掉之后就完全不联网检查。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if store.isReadOnly {
+                Section("对话记录被锁为只读") {
+                    Text(store.loadIssue?.message ?? "")
+                        .font(.system(size: 11))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("备份那份文件并重新开始", role: .destructive) {
+                        archivedName = store.archiveBlockingFileAndReset()
+                    }
+                    if let archivedName {
+                        Text("已备份为 \(archivedName)，现在可以正常保存了。")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section("关于") {
+                LabeledContent("版本", value: version)
+                HStack(spacing: 10) {
+                    Button("项目主页") { NSWorkspace.shared.open(UpdateChecker.releasesPage) }
+                    Button("报告问题") { NSWorkspace.shared.open(UpdateChecker.issuesPage) }
+                    Button("开源许可") { showsNotices = true }
+                    Spacer()
+                }
+                Text("崩溃日志由 macOS 自己保存在「控制台 → 崩溃报告」里。Wisp 不内置任何崩溃上报或统计 SDK，所以报问题时请自己附上那份日志。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .formStyle(.grouped)
+        .sheet(isPresented: $showsNotices) { NoticesSheet() }
+        .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
+    }
+
+    @ViewBuilder
+    private var updateLine: some View {
+        switch updateState {
+        case .upToDate(let current):
+            Label("已经是最新的（\(current)）", systemImage: "checkmark.circle")
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+        case .available(let latest):
+            HStack(spacing: 6) {
+                Label("有新版本 \(latest)", systemImage: "arrow.down.circle")
+                    .font(.system(size: 11))
+                Button("去下载") { NSWorkspace.shared.open(UpdateChecker.releasesPage) }
+            }
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+        case nil:
+            EmptyView()
+        }
+    }
+
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        do {
+            try LaunchAtLogin.set(enabled)
+            launchError = nil
+        } catch {
+            launchError = String(localized: "改不了登录项：\(error.localizedDescription)")
+        }
+        launchAtLogin = LaunchAtLogin.isEnabled
+    }
+
+    private func runCheck() {
+        checking = true
+        Task {
+            let outcome = await UpdateChecker.check()
+            await MainActor.run {
+                updateState = outcome
+                checking = false
+            }
+        }
+    }
+}
+
+/// 第三方许可全文。随 App 一起分发，MIT 要求保留版权声明。
+private struct NoticesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private var text: String {
+        guard let url = Bundle.main.url(forResource: "THIRD-PARTY-NOTICES", withExtension: "txt"),
+              let content = try? String(contentsOf: url, encoding: .utf8) else {
+            return String(localized: "找不到许可文件。")
+        }
+        return content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("开源许可").font(.system(size: 14, weight: .semibold))
+            ScrollView {
+                Text(text)
+                    .font(.system(size: 10, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack {
+                Spacer()
+                Button("完成") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 520, height: 420)
     }
 }

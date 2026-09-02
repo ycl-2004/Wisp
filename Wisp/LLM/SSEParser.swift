@@ -20,7 +20,7 @@ enum SSEParser {
         // 有的网关会把错误塞进流里。
         if let error = object["error"] as? [String: Any],
            let message = error["message"] as? String {
-            return .delta("\n\n[服务端错误] \(message)")
+            return .delta(String(localized: "\n\n[服务端错误] \(message)"))
         }
         guard let choices = object["choices"] as? [[String: Any]],
               let first = choices.first else { return .ignored }
@@ -51,6 +51,6 @@ enum SSEParser {
             if let detail = object["detail"] as? String { return detail }
         }
         let raw = String(data: data, encoding: .utf8) ?? ""
-        return raw.isEmpty ? "服务端没有返回说明。" : String(raw.prefix(400))
+        return raw.isEmpty ? String(localized: "服务端没有返回说明。") : String(raw.prefix(400))
     }
 }

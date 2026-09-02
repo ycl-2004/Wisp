@@ -82,18 +82,23 @@ enum ChromeProfileInspector {
     static func javaScriptDisabledHint(bundleID: String, appName: String) -> String {
         let list = profiles(bundleID: bundleID)
         guard !list.isEmpty else {
-            return "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 \(appName) 的「View → Developer」里打开一次即可。"
+            return String(localized: "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 \(appName) 的「View → Developer」里打开一次即可。")
         }
         let off = list.filter { !$0.allowsJavaScript }.map(\.displayName)
         let on = list.filter { $0.allowsJavaScript }.map(\.displayName)
 
-        var text = "当前窗口所属的 \(appName) 配置文件没有开启「Allow JavaScript from Apple Events」，所以只读到网址，没有整页文字。这个开关每个配置文件要各开一次。"
-        text += "\n开法：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。"
+        var text = String(localized: "当前窗口所属的 \(appName) 配置文件没有开启「Allow JavaScript from Apple Events」，所以只读到网址，没有整页文字。这个开关每个配置文件要各开一次。")
+        text += String(localized: "\n开法：切到该配置文件的窗口，菜单栏「View → Developer → Allow JavaScript from Apple Events」。")
         if !off.isEmpty || !on.isEmpty {
-            var detail = "按本机偏好文件推断："
-            if !off.isEmpty { detail += "还没开的是 \(off.joined(separator: "、"))；" }
-            if !on.isEmpty { detail += "已开好的是 \(on.joined(separator: "、"))。" }
-            detail += "刚改完设置的话，Chrome 可能还没写盘，这行会慢一拍。"
+            var detail = String(localized: "按本机偏好文件推断：")
+            let separator = String(localized: "、")
+            if !off.isEmpty {
+                detail += String(localized: "还没开的是 \(off.joined(separator: separator))；")
+            }
+            if !on.isEmpty {
+                detail += String(localized: "已开好的是 \(on.joined(separator: separator))。")
+            }
+            detail += String(localized: "刚改完设置的话，Chrome 可能还没写盘，这行会慢一拍。")
             text += "\n（\(detail)）"
         }
         return text

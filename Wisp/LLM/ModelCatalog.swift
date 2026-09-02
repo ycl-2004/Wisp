@@ -24,23 +24,23 @@ enum ModelCatalog {
             return [
                 Preset(slug: "z-ai/glm-5.3-flash",
                        title: "GLM-5.3 Flash",
-                       note: "输入 $0.075/百万 · 131 万上下文 · 综合最稳"),
+                       note: String(localized: "输入 $0.075/百万 · 131 万上下文 · 综合最稳")),
                 Preset(slug: "qwen/qwen3.7-flash",
                        title: "Qwen3.7 Flash",
-                       note: "输入 $0.030/百万 · 100 万上下文 · 最便宜"),
+                       note: String(localized: "输入 $0.030/百万 · 100 万上下文 · 最便宜")),
                 Preset(slug: "minimax/minimax-m3:free",
-                       title: "MiniMax M3（免费）",
-                       note: "不花钱 · 100 万上下文 · 免费首选。付费版 $0.300/百万，说明底子不弱"),
+                       title: String(localized: "MiniMax M3（免费）"),
+                       note: String(localized: "不花钱 · 100 万上下文 · 免费首选。付费版 $0.300/百万，说明底子不弱")),
                 Preset(slug: "thinkingmachines/inkling:free",
-                       title: "Inkling（免费备用）",
-                       note: "不花钱 · 100 万上下文 · 免费里最强，但也最容易被占满。付费版 $1.000/百万"),
+                       title: String(localized: "Inkling（免费备用）"),
+                       note: String(localized: "不花钱 · 100 万上下文 · 免费里最强，但也最容易被占满。付费版 $1.000/百万")),
             ]
         }
         if host.contains("api.openai.com") {
             return [
-                Preset(slug: "gpt-5-mini", title: "GPT-5 mini", note: "便宜，40 万上下文"),
-                Preset(slug: "gpt-4o-mini", title: "GPT-4o mini", note: "老牌便宜款"),
-                Preset(slug: "gpt-5", title: "GPT-5", note: "最强，也最贵"),
+                Preset(slug: "gpt-5-mini", title: "GPT-5 mini", note: String(localized: "便宜，40 万上下文")),
+                Preset(slug: "gpt-4o-mini", title: "GPT-4o mini", note: String(localized: "老牌便宜款")),
+                Preset(slug: "gpt-5", title: "GPT-5", note: String(localized: "最强，也最贵")),
             ]
         }
         return []

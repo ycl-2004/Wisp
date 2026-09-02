@@ -42,7 +42,7 @@ struct ContextHeaderView: View {
 
             appIcon
 
-            Text(model.packet?.appName ?? "读取中…")
+            Text(model.packet?.appName ?? String(localized: "读取中…"))
                 .font(DS.title)
                 .lineLimit(1)
                 .fixedSize()
@@ -68,8 +68,7 @@ struct ContextHeaderView: View {
 
             Button { model.newConversation() } label: { Image(systemName: "square.and.pencil") }
                 .buttonStyle(IconButtonStyle())
-                .disabled(!store.canCreateNew)
-                .help(store.canCreateNew ? "新建对话" : "已达对话数上限，请先删除一个")
+                .help(store.canCreateNew ? "新建对话" : "已达上限，点一下可以顶掉最久没用的那个")
 
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }
@@ -153,19 +152,23 @@ struct ContextHeaderView: View {
     }
 
     private var screenshotChipText: String {
-        guard let packet = model.packet else { return "截图" }
-        if packet.isExcluded { return "已停用" }
-        guard packet.hasScreenshot else { return "无截图" }
-        return settings.sendScreenshot ? "截图" : "截图 关"
+        guard let packet = model.packet else { return String(localized: "截图") }
+        if packet.isExcluded { return String(localized: "已停用") }
+        guard packet.hasScreenshot else { return String(localized: "无截图") }
+        return settings.sendScreenshot ? String(localized: "截图") : String(localized: "截图 关")
     }
 
     private var pageTextChipText: String {
-        guard let packet = model.packet else { return "正文" }
-        if packet.isExcluded { return "正文 停用" }
+        guard let packet = model.packet else { return String(localized: "正文") }
+        if packet.isExcluded { return String(localized: "正文 停用") }
         guard let text = packet.pageText, !text.isEmpty else {
-            return BrowserTextExtractor.family(for: packet.bundleID) == nil ? "无整页正文" : "正文 未取到"
+            return BrowserTextExtractor.family(for: packet.bundleID) == nil
+                ? String(localized: "无整页正文")
+                : String(localized: "正文 未取到")
         }
-        return packet.isTruncated ? "正文 \(text.count) 字 · 截断" : "正文 \(text.count) 字"
+        return packet.isTruncated
+            ? String(localized: "正文 \(text.count) 字 · 截断")
+            : String(localized: "正文 \(text.count) 字")
     }
 
     // MARK: - 说明

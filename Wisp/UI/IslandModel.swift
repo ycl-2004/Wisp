@@ -15,6 +15,10 @@ final class IslandModel: ObservableObject {
     @Published var isDimmed = false
     /// 正在生成回答。药丸会变宽、亮起流光并给出停止键。
     @Published var isGenerating = false
+    /// 正在被拖动。此时收成小圆，免得展开态贴边放不下。
+    @Published var isDragging = false
+    /// 小圆中心在窗口内的 x。由 IslandController 在布局时算好写进来。
+    @Published var dotCenterX: CGFloat = IslandLayout.anchorInWindow.x
 
     private init() {
         update(NSWorkspace.shared.frontmostApplication)
@@ -59,7 +63,7 @@ final class IslandModel: ObservableObject {
 
     /// 右侧那一小行提示。
     var hint: String {
-        if isExcluded { return "已排除" }
-        return canReadPageText ? "可读整页" : "仅截图"
+        if isExcluded { return String(localized: "已排除") }
+        return canReadPageText ? String(localized: "可读整页") : String(localized: "仅截图")
     }
 }

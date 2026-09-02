@@ -6,11 +6,16 @@ struct OpenAICompatibleProvider: ChatProvider {
 
     private let session: URLSession
 
+    /// 多久没有任何新数据就判定这条流断了。流式回答里它是「静默上限」，不是总时长上限。
+    static let idleTimeout: TimeInterval = 60
+
     init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForRequest = Self.idleTimeout
         config.timeoutIntervalForResource = 300
-        config.waitsForConnectivity = true
+        // 关掉它。开着的话断网不会报错，而是最多干等 timeoutIntervalForResource（5 分钟），
+        // 期间界面一直显示「生成中」且没有任何提示。宁可立刻失败。
+        config.waitsForConnectivity = false
         session = URLSession(configuration: config)
     }
 
@@ -50,7 +55,7 @@ struct OpenAICompatibleProvider: ChatProvider {
                     let (bytes, response) = try await session.bytes(for: urlRequest)
 
                     guard let http = response as? HTTPURLResponse else {
-                        throw ProviderError.network("没有收到 HTTP 响应。")
+                        throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
                     }
                     guard (200..<300).contains(http.statusCode) else {
                         var data = Data()
@@ -71,12 +76,8 @@ struct OpenAICompatibleProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError.cancelled)
                 } catch let error as ProviderError {
                     continuation.finish(throwing: error)
-                } catch let error as URLError where error.code == .cancelled {
-                    continuation.finish(throwing: ProviderError.cancelled)
-                } catch let error as URLError
-                    where config.kind == .ollama
-                        && (error.code == .cannotConnectToHost || error.code == .timedOut) {
-                    continuation.finish(throwing: ProviderError.ollamaNotRunning)
+                } catch let error as URLError {
+                    continuation.finish(throwing: Self.mapTransport(error, kind: config.kind))
                 } catch {
                     continuation.finish(throwing: ProviderError.network(error.localizedDescription))
                 }
@@ -90,7 +91,7 @@ struct OpenAICompatibleProvider: ChatProvider {
     func validate(config: ProviderConfig) async throws {
         if config.kind.needsAPIKey, config.apiKey.isEmpty { throw ProviderError.missingKey }
         guard let jpeg = ScreenCapturer.tinyTestJPEG() else {
-            throw ProviderError.network("无法生成测试图片。")
+            throw ProviderError.network(String(localized: "无法生成测试图片。"))
         }
         let base64 = jpeg.base64EncodedString()
         let body: [String: Any] = [
@@ -110,13 +111,11 @@ struct OpenAICompatibleProvider: ChatProvider {
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: urlRequest)
-        } catch let error as URLError
-            where config.kind == .ollama
-                && (error.code == .cannotConnectToHost || error.code == .timedOut) {
-            throw ProviderError.ollamaNotRunning
+        } catch let error as URLError {
+            throw Self.mapTransport(error, kind: config.kind)
         }
         guard let http = response as? HTTPURLResponse else {
-            throw ProviderError.network("没有收到 HTTP 响应。")
+            throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
         }
         guard (200..<300).contains(http.statusCode) else {
             throw Self.mapError(status: http.statusCode, data: data, response: http)
@@ -124,6 +123,33 @@ struct OpenAICompatibleProvider: ChatProvider {
     }
 
     // MARK: - 错误映射
+
+    /// 传输层错误统一在这里翻译，省得每个 catch 各写一套。
+    static func mapTransport(_ error: URLError, kind: ProviderKind) -> ProviderError {
+        // 本地 Ollama 连不上，几乎总是因为服务没起来，直接给可操作的提示。
+        let localServiceDown: Set<URLError.Code> = [
+            .cannotConnectToHost, .cannotFindHost, .timedOut, .networkConnectionLost,
+        ]
+        if kind == .ollama, localServiceDown.contains(error.code) {
+            return .ollamaNotRunning
+        }
+        switch error.code {
+        case .cancelled:
+            return .cancelled
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
+            return .offline
+        case .timedOut:
+            return .timedOut(Int(idleTimeout))
+        case .cannotFindHost, .dnsLookupFailed:
+            return .network(String(localized: "找不到这个域名。检查 Base URL 拼写是否正确。"))
+        case .cannotConnectToHost:
+            return .network(String(localized: "连不上这个地址。检查 Base URL 和端口，以及对方服务是否在运行。"))
+        case .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate:
+            return .network(String(localized: "TLS 握手失败。如果是自建网关，检查它的证书。"))
+        default:
+            return .network(error.localizedDescription)
+        }
+    }
 
     static func mapError(status: Int, data: Data, response: HTTPURLResponse? = nil) -> ProviderError {
         let message = SSEParser.errorMessage(from: data)
@@ -138,14 +164,14 @@ struct OpenAICompatibleProvider: ChatProvider {
                 let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining")
                 let reset = response.value(forHTTPHeaderField: "X-RateLimit-Reset")
                 var parts: [String] = []
-                if let remaining { parts.append("剩余额度 \(remaining)") }
+                if let remaining { parts.append(String(localized: "剩余额度 \(remaining)")) }
                 if let reset, let seconds = Double(reset) {
                     let date = seconds > 1_000_000_000_000
                         ? Date(timeIntervalSince1970: seconds / 1000)
                         : Date(timeIntervalSince1970: seconds)
                     let formatter = DateFormatter()
                     formatter.dateFormat = "HH:mm"
-                    parts.append("恢复时间 \(formatter.string(from: date))")
+                    parts.append(String(localized: "恢复时间 \(formatter.string(from: date))"))
                 }
                 if !parts.isEmpty { hint = parts.joined(separator: " · ") }
             }
@@ -155,7 +181,7 @@ struct OpenAICompatibleProvider: ChatProvider {
         let imageHints = ["image", "vision", "multimodal", "image_url", "not support", "unsupported"]
         if (status == 400 || status == 415 || status == 422),
            imageHints.contains(where: { lowered.contains($0) }) {
-            return .imageUnsupported("服务端说明：\(message)")
+            return .imageUnsupported(String(localized: "服务端说明：\(message)"))
         }
         return .http(status, message)
     }
