@@ -27,7 +27,7 @@ enum ProviderError: LocalizedError {
         case .rateLimited(let detail, let upstream, let resetHint):
             var text = upstream
                 ? String(localized: "被限流（429）。这次是上游供应商满了，不是你的额度用光。免费模型经常这样，等几分钟再试，或换一个付费模型。")
-                : String(localized: "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。")
+                : String(localized: "被限流（429）。已经碰到这家服务商的速率上限，等一会儿再试，或换一个模型。免费额度一般按每分钟和每天分开计。")
             if let resetHint, !resetHint.isEmpty { text += "\n\(resetHint)" }
             if !detail.isEmpty { text += String(localized: "\n服务端说明：\(detail)") }
             return text
@@ -66,7 +66,9 @@ struct ProviderConfig: Sendable {
         let settings = AppSettings.shared
         switch ProviderKind.current {
         case .openAICompatible:
-            guard let key = KeychainStore.load() else { throw ProviderError.missingKey }
+            guard let key = KeychainStore.load(for: settings.cloudProvider) else {
+                throw ProviderError.missingKey
+            }
             return ProviderConfig(kind: .openAICompatible,
                                   baseURL: settings.baseURL,
                                   apiKey: key,

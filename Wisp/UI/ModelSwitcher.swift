@@ -20,6 +20,19 @@ struct ModelSwitcher: View {
                 }
             }
 
+            if currentKind == .openAICompatible {
+                Section("服务商") {
+                    ForEach(providerChoices) { provider in
+                        Button {
+                            settings.selectCloudProvider(provider)
+                        } label: {
+                            Label(providerLabel(provider),
+                                  systemImage: provider == settings.cloudProvider ? "checkmark" : "cloud")
+                        }
+                    }
+                }
+            }
+
             if !models.isEmpty {
                 Section("模型") {
                     ForEach(models, id: \.slug) { preset in
@@ -82,10 +95,24 @@ struct ModelSwitcher: View {
         }
     }
 
+    /// 内置的几家；用户正用着「自定义」时把它也列出来，好知道自己在哪。
+    private var providerChoices: [CloudProvider] {
+        settings.cloudProvider == .custom
+            ? CloudProvider.builtIn + [.custom]
+            : CloudProvider.builtIn
+    }
+
+    /// 没配 Key 的那几家先标出来，省得切过去发一条才发现。
+    private func providerLabel(_ provider: CloudProvider) -> String {
+        guard provider != .custom, !KeychainStore.hasKey(for: provider) else { return provider.title }
+        return String(localized: "\(provider.title)（未配置 Key）")
+    }
+
     private var models: [ModelCatalog.Preset] {
         switch currentKind {
         case .openAICompatible:
-            var list = ModelCatalog.cloudPresets(baseURL: settings.baseURL)
+            var list = ModelCatalog.cloudPresets(provider: settings.cloudProvider,
+                                                baseURL: settings.baseURL)
             if ModelCatalog.isCustom(settings.model, in: list) {
                 list.append(.init(slug: settings.model, title: settings.model, note: String(localized: "自定义")))
             }
@@ -113,7 +140,10 @@ struct ModelSwitcher: View {
     }
 
     private var fullLabel: String {
-        currentModel.isEmpty ? currentKind.title : "\(currentKind.title) · \(currentModel)"
+        var parts = [currentKind.title]
+        if currentKind == .openAICompatible { parts.append(settings.cloudProvider.title) }
+        if !currentModel.isEmpty { parts.append(currentModel) }
+        return parts.joined(separator: " · ")
     }
 }
 

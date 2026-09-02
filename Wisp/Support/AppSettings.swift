@@ -52,6 +52,8 @@ final class AppSettings: ObservableObject {
     private enum K {
         static let providerKind = "providerKind"
         static let baseURL = "baseURL"
+        static let cloudProvider = "cloudProvider"
+        static let cloudModels = "cloudModels"
         static let ollamaBaseURL = "ollamaBaseURL"
         static let ollamaModel = "ollamaModel"
         static let codexPath = "codexPath"
@@ -79,12 +81,12 @@ final class AppSettings: ObservableObject {
     private init() {
         d.register(defaults: [
             K.providerKind: ProviderKind.openAICompatible.rawValue,
-            K.baseURL: "https://api.openai.com/v1",
+            K.baseURL: CloudProvider.openRouter.baseURL ?? "",
             K.ollamaBaseURL: OllamaSupport.defaultBaseURL,
             K.ollamaModel: "",
             K.codexPath: "",
             K.codexModel: "",
-            K.model: "gpt-4o-mini",
+            K.model: CloudProvider.openRouter.defaultModel,
             K.excludedBundleIDs: [
                 "com.1password.1password",
                 "com.apple.keychainaccess",
@@ -130,13 +132,39 @@ final class AppSettings: ObservableObject {
     }
 
     var baseURL: String {
-        get { d.string(forKey: K.baseURL) ?? "https://api.openai.com/v1" }
+        get { d.string(forKey: K.baseURL) ?? CloudProvider.openRouter.baseURL ?? "" }
         set { d.set(newValue, forKey: K.baseURL); objectWillChange.send() }
     }
 
     var model: String {
-        get { d.string(forKey: K.model) ?? "gpt-4o-mini" }
+        get { d.string(forKey: K.model) ?? CloudProvider.openRouter.defaultModel }
         set { d.set(newValue, forKey: K.model); objectWillChange.send() }
+    }
+
+    /// 云端接法当前选的是哪一家。0.2.x 只存了 Base URL，读不到就按它反推一次。
+    var cloudProvider: CloudProvider {
+        get {
+            if let raw = d.string(forKey: K.cloudProvider),
+               let provider = CloudProvider(rawValue: raw) { return provider }
+            return CloudProvider.matching(baseURL: baseURL) ?? .custom
+        }
+        set { d.set(newValue.rawValue, forKey: K.cloudProvider); objectWillChange.send() }
+    }
+
+    /// 每家各自选过的模型。切回来时不用重挑，也免得把上一家的模型名发给下一家。
+    private var cloudModels: [String: String] {
+        get { d.dictionary(forKey: K.cloudModels) as? [String: String] ?? [:] }
+        set { d.set(newValue, forKey: K.cloudModels) }
+    }
+
+    /// 换一家：Base URL 跟着走，模型换成这一家上次用的（没用过就用它的第一个推荐）。
+    func selectCloudProvider(_ provider: CloudProvider) {
+        let previous = cloudProvider
+        guard provider != previous else { return }
+        if !model.isEmpty { cloudModels[previous.rawValue] = model }
+        cloudProvider = provider
+        if let url = provider.baseURL { baseURL = url }
+        model = cloudModels[provider.rawValue] ?? provider.defaultModel
     }
 
     var excludedBundleIDs: [String] {
@@ -268,7 +296,8 @@ final class AppSettings: ObservableObject {
     func wipeLocalData() {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
-        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin, K.islandAnchor] {
+        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin,
+                    K.islandAnchor, K.cloudModels] {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

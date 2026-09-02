@@ -66,7 +66,7 @@
         }
       }
     },
-    "%1$@ 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 %2$@ 的「View → Developer」里打开一次即可。": {
+    "%@ 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 %@ 的「View → Developer」里打开一次即可。": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -82,7 +82,7 @@
         }
       }
     },
-    "%1$lld 轮 · %2$@": {
+    "%lld 轮 · %@": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -98,7 +98,7 @@
         }
       }
     },
-    "%1$lld/%2$lld 个对话": {
+    "%lld/%lld 个对话": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -562,7 +562,7 @@
         }
       }
     },
-    "codex 执行失败（退出码 %1$d）：%2$@": {
+    "codex 执行失败（退出码 %d）：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -898,22 +898,6 @@
         }
       }
     },
-    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断，也可能有跨域嵌入框架读不到。如果答案所需的信息不在给到的正文里，直接说明这一点，并指出可以看截图的哪一部分或需要用户滚动到哪里。\n3. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n4. 用用户提问所使用的语言回答，默认简体中文。\n5. 回答简洁直接，先给结论。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches context from their current screen.\n\nThat context may include: the frontmost app name and window title, the current page's URL and title, the full page text, text the user has selected, and a screenshot of the current window.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, and cross-origin frames may be unreadable. If the information needed is not in the text you were given, say so plainly and point to the part of the screenshot to look at or where the user should scroll.\n3. The screenshot covers only the visible area; the page text covers the whole page. When they conflict, trust the text and explain the difference.\n4. Reply in the language the user asked in; default to English.\n5. Be concise and direct. Lead with the conclusion."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断，也可能有跨域嵌入框架读不到。如果答案所需的信息不在给到的正文里，直接说明这一点，并指出可以看截图的哪一部分或需要用户滚动到哪里。\n3. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n4. 用用户提问所使用的语言回答，默认简体中文。\n5. 回答简洁直接，先给结论。"
-          }
-        }
-      }
-    },
     "便宜，40 万上下文": {
       "localizations": {
         "en": {
@@ -1006,22 +990,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "滚动动态页面后回到原位。需要辅助功能权限。"
-          }
-        }
-      }
-    },
-    "请求发送到 %@。API Key 保存在 macOS 钥匙串。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Requests go to %@. The API Key is stored in macOS Keychain."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请求发送到 %@。API Key 保存在 macOS 钥匙串。"
           }
         }
       }
@@ -2066,7 +2034,7 @@
         }
       }
     },
-    "对话记录（%1$lld/%2$lld），可切换和删除": {
+    "对话记录（%lld/%lld），可切换和删除": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2370,7 +2338,7 @@
         }
       }
     },
-    "当前是 %1$@ 的内部页面（%2$@），读不到正文，本次只有截图。": {
+    "当前是 %@ 的内部页面（%@），读不到正文，本次只有截图。": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2850,7 +2818,7 @@
         }
       }
     },
-    "整页正文（%1$lld 字%2$@）：": {
+    "整页正文（%lld 字%@）：": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3218,7 +3186,7 @@
         }
       }
     },
-    "本对话 %1$lld/%2$lld 轮 · 共 %3$lld/%4$lld 个对话": {
+    "本对话 %lld/%lld 轮 · 共 %lld/%lld 个对话": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3970,7 +3938,7 @@
         }
       }
     },
-    "系统还没允许 Wisp 控制 %1$@。请到「系统设置 → 隐私与安全性 → 自动化」勾选 Wisp 下的 %2$@。": {
+    "系统还没允许 Wisp 控制 %@。请到「系统设置 → 隐私与安全性 → 自动化」勾选 Wisp 下的 %@。": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4178,22 +4146,6 @@
         }
       }
     },
-    "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rate limited (429). Free models allow 20 requests per minute and 50 per day; topping an OpenRouter account up to 10 credits raises the daily cap to 1000."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "被限流（429）。免费模型的额度是每分钟 20 次、每天 50 次；OpenRouter 账户充值满 10 credits 后每天上限提到 1000 次。"
-          }
-        }
-      }
-    },
     "被限流（429）。这次是上游供应商满了，不是你的额度用光。免费模型经常这样，等几分钟再试，或换一个付费模型。": {
       "localizations": {
         "en": {
@@ -4274,7 +4226,7 @@
         }
       }
     },
-    "请求失败（HTTP %1$lld）：%2$@": {
+    "请求失败（HTTP %lld）：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4306,7 +4258,7 @@
         }
       }
     },
-    "读取 %1$@ 失败：%2$@": {
+    "读取 %@ 失败：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4322,7 +4274,7 @@
         }
       }
     },
-    "读取 %1$@ 当前分页失败：%2$@": {
+    "读取 %@ 当前分页失败：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4610,7 +4562,7 @@
         }
       }
     },
-    "这份对话记录来自更新版本的 Wisp（格式 v%1$lld，本版本只认到 v%2$lld）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。": {
+    "这份对话记录来自更新版本的 Wisp（格式 v%lld，本版本只认到 v%lld）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5138,7 +5090,7 @@
         }
       }
     },
-    "\n\n[…… 此处省略正文中间 %1$lld 字。上一段结束于「%2$@」，下一段开始于「%3$@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n": {
+    "\n\n[…… 此处省略正文中间 %lld 字。上一段结束于「%@」，下一段开始于「%@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5202,7 +5154,7 @@
         }
       }
     },
-    "这一页按需渲染，已滚动采集 %1$lld 屏读到文末，正文从 %2$lld 字补到 %3$lld 字。": {
+    "这一页按需渲染，已滚动采集 %lld 屏读到文末，正文从 %lld 字补到 %lld 字。": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5250,7 +5202,7 @@
         }
       }
     },
-    "这一页按需渲染，%1$@，滚了 %2$lld 屏采到 %3$lld 字，可能还没到文末。": {
+    "这一页按需渲染，%@，滚了 %lld 屏采到 %lld 字，可能还没到文末。": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5330,18 +5282,18 @@
         }
       }
     },
-    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。\n": {
+    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches the context of their current screen.\n\nThat context may include: the current app name and window title, the URL and title of the current web page, the full page text, the user's selected text, and a screenshot of the current window.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, may not have been collected all the way to the end, and cross-origin embedded frames may be unreadable. The context states whether the text is \"complete\" or incomplete and why. Trust that label; never assume what you were given is the whole document.\n3. If the information an answer needs is not in the text you were given, say so plainly, and point out which sentence the text stops at, which part of the screenshot to look at, or where the user needs to scroll.\n4. The screenshot covers only the visible area, while the page text covers the whole page. When they conflict, trust the text and explain the difference.\n5. Answer in the language the user asked in; default to Simplified Chinese.\n6. Be concise and direct. Lead with the conclusion.\n"
+            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches the context of their current screen.\n\nThat context may include: the current app name and window title, the URL and title of the current web page, the full page text, the user's selected text, and a screenshot of the current window.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, may not have been collected all the way to the end, and cross-origin embedded frames may be unreadable. The context states whether the text is \"complete\" or incomplete and why. Trust that label; never assume what you were given is the whole document.\n3. If the information an answer needs is not in the text you were given, say so plainly, and point out which sentence the text stops at, which part of the screenshot to look at, or where the user needs to scroll.\n4. The screenshot covers only the visible area, while the page text covers the whole page. When they conflict, trust the text and explain the difference.\n5. Answer in the language the user asked in; default to English.\n6. Be concise and direct. Lead with the conclusion.\n"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。\n"
+            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。"
           }
         }
       }
@@ -5358,6 +5310,422 @@
           "stringUnit": {
             "state": "translated",
             "value": "已跟到新的页面，正文还没读取。发送问题时会读取当前页面。"
+          }
+        }
+      }
+    },
+    "智谱 GLM": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智谱 GLM"
+          }
+        }
+      }
+    },
+    "一个 Key 通到各家模型，带若干免费模型。免费模型限流严，付费模型更稳。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One key reaches models from every vendor, free ones included. Free models are rate-limited hard; paid ones are steadier."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个 Key 通到各家模型，带若干免费模型。免费模型限流严，付费模型更稳。"
+          }
+        }
+      }
+    },
+    "Flash 和 Flash-Lite 有免费额度，不用绑卡；Pro 系列只能付费用。截图场景性价比最高。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flash and Flash-Lite have a free tier and need no card; Pro is paid only. Best value for screenshot work."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flash 和 Flash-Lite 有免费额度，不用绑卡；Pro 系列只能付费用。截图场景性价比最高。"
+          }
+        }
+      }
+    },
+    "GPT-5.6 三档全系支持图片输入，按量计费，没有免费额度。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All three GPT-5.6 tiers accept image input. Pay as you go; there is no free tier."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPT-5.6 三档全系支持图片输入，按量计费，没有免费额度。"
+          }
+        }
+      }
+    },
+    "走 Anthropic 的 OpenAI 兼容层。图片输入官方标注完全支持，但这层的官方定位是「测试和对比模型能力」，不承诺长期生产可用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goes through Anthropic's OpenAI compatibility layer. Image input is documented as fully supported, but Anthropic positions this layer for testing and comparing models, not for long-term production."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "走 Anthropic 的 OpenAI 兼容层。图片输入官方标注完全支持，但这层的官方定位是「测试和对比模型能力」，不承诺长期生产可用。"
+          }
+        }
+      }
+    },
+    "国内可直连。GLM-4.6V Flash 免费，GLM-5.3-Flash 是原生多模态、100 万上下文。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reachable from mainland China. GLM-4.6V Flash is free; GLM-5.3-Flash is natively multimodal with a 1M context."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内可直连。GLM-4.6V Flash 免费，GLM-5.3-Flash 是原生多模态、100 万上下文。"
+          }
+        }
+      }
+    },
+    "最快最省 · 免费额度里限额最宽（15 次/分、1000 次/天）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastest and cheapest · the roomiest free-tier limits (15/min, 1000/day)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最快最省 · 免费额度里限额最宽（15 次/分、1000 次/天）"
+          }
+        }
+      }
+    },
+    "当前主力 Flash · 多模态最稳 · 免费额度 10 次/分、250 次/天": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current mainstream Flash · steadiest multimodal · free tier 10/min, 250/day"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前主力 Flash · 多模态最稳 · 免费额度 10 次/分、250 次/天"
+          }
+        }
+      }
+    },
+    "上一代 Flash · 速度和能力折中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous-generation Flash · a middle ground on speed and capability"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上一代 Flash · 速度和能力折中"
+          }
+        }
+      }
+    },
+    "老牌性价比款 · 跑得久，行为最可预期": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The long-running value pick · been around, most predictable behavior"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "老牌性价比款 · 跑得久，行为最可预期"
+          }
+        }
+      }
+    },
+    "输入 $0.20/百万 · 最省，日常够用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "$0.20/M input · cheapest, enough for everyday use"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 $0.20/百万 · 最省，日常够用"
+          }
+        }
+      }
+    },
+    "输入 $2.00/百万 · 能力和成本的平衡点": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "$2.00/M input · the balance point between capability and cost"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 $2.00/百万 · 能力和成本的平衡点"
+          }
+        }
+      }
+    },
+    "输入 $5.00/百万 · 最强，也最贵": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "$5.00/M input · the strongest, and the priciest"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 $5.00/百万 · 最强，也最贵"
+          }
+        }
+      }
+    },
+    "最快最省的一档，适合看一眼截图就答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The fastest, cheapest tier — good for a glance at a screenshot and an answer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最快最省的一档，适合看一眼截图就答"
+          }
+        }
+      }
+    },
+    "日常主力，长正文和截图混着读也稳": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The everyday workhorse; steady when long page text and screenshots are mixed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常主力，长正文和截图混着读也稳"
+          }
+        }
+      }
+    },
+    "最强的一档，慢且贵，留给硬问题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The strongest tier — slow and expensive; save it for hard questions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最强的一档，慢且贵，留给硬问题"
+          }
+        }
+      }
+    },
+    "原生多模态 · 100 万上下文 · GLM-5.3 的十分之一价": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natively multimodal · 1M context · one tenth the price of GLM-5.3"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生多模态 · 100 万上下文 · GLM-5.3 的十分之一价"
+          }
+        }
+      }
+    },
+    "GLM-4.6V Flash（免费）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GLM-4.6V Flash (free)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GLM-4.6V Flash（免费）"
+          }
+        }
+      }
+    },
+    "不花钱的视觉模型，日常看截图够用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A free vision model; enough for everyday screenshot reading"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不花钱的视觉模型，日常看截图够用"
+          }
+        }
+      }
+    },
+    "付费视觉主力，比 Flash 版读图更细": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The paid vision workhorse; reads images more finely than the Flash build"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付费视觉主力，比 Flash 版读图更细"
+          }
+        }
+      }
+    },
+    "偏界面和代码截图理解": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leans toward understanding UI and code screenshots"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏界面和代码截图理解"
+          }
+        }
+      }
+    },
+    "服务商": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务商"
+          }
+        }
+      }
+    },
+    "获取": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "获取"
+          }
+        }
+      }
+    },
+    "请求发送到 %@。API Key 按服务商分开保存在 macOS 钥匙串。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requests go to %@. API keys are stored per provider in the macOS Keychain."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求发送到 %@。API Key 按服务商分开保存在 macOS 钥匙串。"
+          }
+        }
+      }
+    },
+    "%@（未配置 Key）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (no key)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（未配置 Key）"
+          }
+        }
+      }
+    },
+    "被限流（429）。已经碰到这家服务商的速率上限，等一会儿再试，或换一个模型。免费额度一般按每分钟和每天分开计。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rate limited (429). You hit this provider's rate ceiling — wait a moment and retry, or switch models. Free tiers usually meter per minute and per day separately."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被限流（429）。已经碰到这家服务商的速率上限，等一会儿再试，或换一个模型。免费额度一般按每分钟和每天分开计。"
           }
         }
       }

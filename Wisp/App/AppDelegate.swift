@@ -69,6 +69,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 #endif
 
+        // 0.2.x 只存一份 API Key，不分服务商。升上来时把它记到当时实际在用的那家名下，
+        // 否则设置页按新账号名去读会读成空，用户会以为 Key 丢了。
+        KeychainStore.migrateLegacyKeyIfNeeded(to: AppSettings.shared.cloudProvider)
+
         // 首次启动时把屏幕录制授权框弹出来，别等到用户第一次按快捷键才发现没权限。
         if !Permissions.hasScreenRecording {
             DispatchQueue.global(qos: .userInitiated).async {

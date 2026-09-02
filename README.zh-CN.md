@@ -154,7 +154,10 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 
 菜单栏图标 → **设置 → 模型**：
 
-- **云端接口：** 填 Base URL、模型名和 API Key。Key 存在 macOS 钥匙串，不写进对话 JSON。
+- **云端接口：** 先选服务商 —— OpenRouter、Google Gemini、OpenAI、Anthropic、智谱 GLM，
+  或者「自定义」填任意 OpenAI 兼容地址 —— 再选模型、填这一家的 API Key。
+  选了服务商，Base URL 和模型列表会自动带出来。Key 边填边存、按服务商分开放在 macOS
+  钥匙串，不写进对话 JSON，所以几家可以同时配好随时切，切换也不会把 Key 弄丢。
 - **Ollama：** 启动 Ollama 后刷新模型列表。只有能读图的模型才看得懂截图。
 - **Codex CLI：** 选中检测到的 `codex` 可执行文件，可选地指定模型。用的是你已有的 Codex 登录。
 

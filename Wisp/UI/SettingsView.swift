@@ -91,8 +91,17 @@ struct ModelSettingsView: View {
                 ScrollView { inner }
             }
         }
+        .onChange(of: settings.cloudProvider) { _, provider in
+            // Key 是一家一份的。换家就得把输入框换成新那家的那份，
+            // 否则「保存并测试」会把上一家的 Key 写到新那家名下。
+            apiKey = KeychainStore.load(for: provider) ?? ""
+            testResult = nil
+        }
         .onAppear {
-            if !keyLoaded { apiKey = KeychainStore.load() ?? ""; keyLoaded = true }
+            if !keyLoaded {
+                apiKey = KeychainStore.load(for: settings.cloudProvider) ?? ""
+                keyLoaded = true
+            }
             if kind == .ollama { probeOllama() }
             if kind == .codexCLI, settings.codexPath.isEmpty,
                let detected = CodexCLIProvider.detectedPath {
@@ -142,30 +151,87 @@ struct ModelSettingsView: View {
         }
     }
 
+    private var cloudProvider: CloudProvider { settings.cloudProvider }
+
     private var cloudFields: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Field(label: "Base URL") {
-                TextField("https://api.openai.com/v1", text: Binding(
-                    get: { settings.baseURL },
-                    set: { settings.baseURL = $0; testResult = nil }
-                ))
+            Field(label: "服务商") {
+                HStack(spacing: 6) {
+                    Picker("", selection: Binding(
+                        get: { cloudProvider },
+                        set: { switchCloudProvider(to: $0) }
+                    )) {
+                        ForEach(CloudProvider.builtIn) { provider in
+                            Text(provider.title).tag(provider)
+                        }
+                        Divider()
+                        Text(CloudProvider.custom.title).tag(CloudProvider.custom)
+                    }
+                    .labelsHidden()
+                    if let note = cloudProvider.note {
+                        InfoButton(message: note)
+                    }
+                }
             }
+
+            // 选了某一家就把 Base URL 定死，省得改坏；只有「自定义」才让手填。
+            Field(label: "Base URL") {
+                if cloudProvider == .custom {
+                    TextField("https://api.openai.com/v1", text: Binding(
+                        get: { settings.baseURL },
+                        set: { settings.baseURL = $0; testResult = nil }
+                    ))
+                } else {
+                    HStack(spacing: 6) {
+                        Text(settings.baseURL)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+
             ModelPickerRow(
                 label: "模型",
-                presets: ModelCatalog.cloudPresets(baseURL: settings.baseURL),
-                placeholder: "gpt-4o-mini",
+                presets: ModelCatalog.cloudPresets(provider: cloudProvider, baseURL: settings.baseURL),
+                placeholder: cloudProvider.defaultModel.isEmpty ? "gpt-5.6-luna" : cloudProvider.defaultModel,
                 emptyOptionTitle: nil,
                 value: Binding(get: { settings.model },
                                set: { settings.model = $0; testResult = nil })
             )
+
             Field(label: "API Key") {
                 HStack(spacing: 6) {
-                    SecureField("sk-…", text: $apiKey)
-                        .onChange(of: apiKey) { testResult = nil }
-                    InfoButton(message: String(localized: "请求发送到 \(endpointText)。API Key 保存在 macOS 钥匙串。"))
+                    SecureField(cloudProvider.keyPlaceholder, text: $apiKey)
+                        .onChange(of: apiKey) { _, newValue in
+                            testResult = nil
+                            persistKey(newValue, for: settings.cloudProvider)
+                        }
+                    if let console = cloudProvider.keyConsoleURL {
+                        Link("获取", destination: console)
+                            .font(.system(size: 11))
+                    }
+                    InfoButton(message: String(localized: "请求发送到 \(endpointText)。API Key 按服务商分开保存在 macOS 钥匙串。"))
                 }
             }
         }
+    }
+
+    /// 换一家：Base URL 和模型交给 AppSettings 处理。输入框里的 Key 由下面那个
+    /// onChange 统一换，这样从药丸菜单换家时这里也跟得上。
+    private func switchCloudProvider(to provider: CloudProvider) {
+        settings.selectCloudProvider(provider)
+    }
+
+    /// 边填边存。以前只有点「保存并测试连接」才写钥匙串，填完 Key 直接切到另一家
+    /// 或者关掉窗口，刚填的就没了。空值不覆盖已存的那份——清空要走「清除 Key」，
+    /// 否则光标划过输入框就可能把 Key 抹掉。
+    private func persistKey(_ value: String, for provider: CloudProvider) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != KeychainStore.load(for: provider) else { return }
+        _ = KeychainStore.save(trimmed, for: provider)
     }
 
     private var ollamaFields: some View {
@@ -279,9 +345,11 @@ struct ModelSettingsView: View {
             HStack(spacing: 8) {
                 Button(testing ? "测试中…" : "保存并测试连接") { runTest() }
                     .disabled(testing || (kind.needsAPIKey && apiKey.isEmpty))
-                if kind.needsAPIKey, KeychainStore.hasKey {
+                if kind.needsAPIKey, KeychainStore.hasKey(for: settings.cloudProvider) {
                     Button("清除 Key") {
-                        KeychainStore.delete(); apiKey = ""; testResult = nil
+                        KeychainStore.delete(for: settings.cloudProvider)
+                        apiKey = ""
+                        testResult = nil
                     }
                 }
                 Spacer(minLength: 0)
@@ -325,7 +393,7 @@ struct ModelSettingsView: View {
         switch kind {
         case .openAICompatible:
             let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = KeychainStore.save(trimmed)
+            _ = KeychainStore.save(trimmed, for: settings.cloudProvider)
             config = ProviderConfig(kind: .openAICompatible, baseURL: settings.baseURL,
                                     apiKey: trimmed, model: settings.model)
         case .ollama:
@@ -465,11 +533,11 @@ private struct ModelPickerRow: View {
             }
         }
         .onChange(of: presets.map(\.slug)) {
-            // 换了 Base URL，推荐列表会变；当前值若不在新列表里就转成自定义。
-            if ModelCatalog.isCustom(value, in: presets) {
-                custom = true
-                customText = value
-            }
+            // 换了服务商，推荐列表整个换掉。当前值在新列表里就退回下拉，
+            // 不在就转成自定义——只往「自定义」单向切的话，换家之后输入框会一直挂着上一家的模型名。
+            let isCustom = ModelCatalog.isCustom(value, in: presets)
+            custom = isCustom
+            if isCustom { customText = value }
         }
     }
 }
@@ -816,7 +884,7 @@ private struct DataSettingsView: View {
         .alert("删除全部数据？", isPresented: $confirmWipe) {
             Button("全部删除", role: .destructive) {
                 model.store.deleteAll()
-                KeychainStore.delete()
+                KeychainStore.deleteAll()
                 settings.wipeLocalData()
             }
             Button("取消", role: .cancel) {}

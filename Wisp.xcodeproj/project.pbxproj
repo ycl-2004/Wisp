@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		016759EA92EDD6C776F9F109 /* PanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85FF8C396007A624B07DA1AB /* PanelController.swift */; };
+		04B889D70CB50B944444082E /* CloudProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A604783198612F2968B1896A /* CloudProvider.swift */; };
 		0703DEB9FBBE978FA71F0BB1 /* ContextPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7339DF1CAC5DA144A82DC6AE /* ContextPacket.swift */; };
 		076499BAE87170419633CE7B /* IslandController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFDDE97B2E58D892999896D6 /* IslandController.swift */; };
 		0C5B168409E54C375ADF9E76 /* AssistantModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEF314AEBA5E6E234FD7AA8 /* AssistantModel.swift */; };
@@ -83,6 +84,7 @@
 		988E5400CE1465D199F2AD70 /* IslandRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandRenderer.swift; sourceTree = "<group>"; };
 		99D441EE599D76138A965327 /* BrowserTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTextExtractor.swift; sourceTree = "<group>"; };
 		9F4E1D88EEB5DA461FD8D519 /* ConversationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListView.swift; sourceTree = "<group>"; };
+		A604783198612F2968B1896A /* CloudProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProvider.swift; sourceTree = "<group>"; };
 		A60CFEA13AA889AB6399E24A /* ScreenCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCapturer.swift; sourceTree = "<group>"; };
 		AFDDE97B2E58D892999896D6 /* IslandController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandController.swift; sourceTree = "<group>"; };
 		BC136157986B3A2685C9826B /* OllamaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaSupport.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				7072DCC5DC79AC7662B4D26E /* ChatProvider.swift */,
+				A604783198612F2968B1896A /* CloudProvider.swift */,
 				305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */,
 				0FD38FF45C779D119B8505DB /* ModelCatalog.swift */,
 				BC136157986B3A2685C9826B /* OllamaSupport.swift */,
@@ -321,6 +324,7 @@
 				53DF2688169FDFA6A55A0324 /* ChatProvider.swift in Sources */,
 				5ACE7792C363EE4679FC8635 /* ChatView.swift in Sources */,
 				FB7B27C6542489196AE83284 /* ChromeProfileInspector.swift in Sources */,
+				04B889D70CB50B944444082E /* CloudProvider.swift in Sources */,
 				B31E746175621480603B27A5 /* CodexCLIProvider.swift in Sources */,
 				B9526A014D8AC4B802FDC1D1 /* ContextCapture.swift in Sources */,
 				FF82F88F62AF5E7B496F7260 /* ContextHeaderView.swift in Sources */,

@@ -17,33 +17,11 @@ enum ModelCatalog {
 
     // MARK: - 云端
 
-    static func cloudPresets(baseURL: String) -> [Preset] {
-        let host = URLComponents(string: baseURL.trimmingCharacters(in: .whitespaces))?.host?.lowercased() ?? ""
-
-        if host.contains("openrouter.ai") {
-            return [
-                Preset(slug: "z-ai/glm-5.3-flash",
-                       title: "GLM-5.3 Flash",
-                       note: String(localized: "输入 $0.075/百万 · 131 万上下文 · 综合最稳")),
-                Preset(slug: "qwen/qwen3.7-flash",
-                       title: "Qwen3.7 Flash",
-                       note: String(localized: "输入 $0.030/百万 · 100 万上下文 · 最便宜")),
-                Preset(slug: "minimax/minimax-m3:free",
-                       title: String(localized: "MiniMax M3（免费）"),
-                       note: String(localized: "不花钱 · 100 万上下文 · 免费首选。付费版 $0.300/百万，说明底子不弱")),
-                Preset(slug: "thinkingmachines/inkling:free",
-                       title: String(localized: "Inkling（免费备用）"),
-                       note: String(localized: "不花钱 · 100 万上下文 · 免费里最强，但也最容易被占满。付费版 $1.000/百万")),
-            ]
-        }
-        if host.contains("api.openai.com") {
-            return [
-                Preset(slug: "gpt-5-mini", title: "GPT-5 mini", note: String(localized: "便宜，40 万上下文")),
-                Preset(slug: "gpt-4o-mini", title: "GPT-4o mini", note: String(localized: "老牌便宜款")),
-                Preset(slug: "gpt-5", title: "GPT-5", note: String(localized: "最强，也最贵")),
-            ]
-        }
-        return []
+    /// 云端模型列表跟着服务商走。选了「自定义」就按用户填的 Base URL 反查一次，
+    /// 手填的地址正好是某家时照样能带出推荐。
+    static func cloudPresets(provider: CloudProvider, baseURL: String) -> [Preset] {
+        guard provider == .custom else { return provider.presets }
+        return CloudProvider.matching(baseURL: baseURL)?.presets ?? []
     }
 
     // MARK: - Codex

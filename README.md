@@ -203,8 +203,12 @@ not automatically recapture while a response is generating.
 
 Open the menu-bar icon → **Settings → Model**:
 
-- **Cloud endpoint:** enter a Base URL, model name, and API key. The key is
-  stored in the macOS Keychain rather than the conversation JSON.
+- **Cloud endpoint:** pick a provider — OpenRouter, Google Gemini, OpenAI,
+  Anthropic, Zhipu GLM, or *Custom* for any other OpenAI-compatible address —
+  then pick a model and enter that provider's API key. Choosing a provider
+  fills in the Base URL and its model list for you. Keys are saved as you type,
+  one per provider, in the macOS Keychain rather than the conversation JSON, so
+  several providers stay configured side by side and switching never loses one.
 - **Ollama:** start Ollama and refresh the model list. Only a vision-capable
   model can interpret a screenshot.
 - **Codex CLI:** select a detected `codex` executable and optionally choose a
