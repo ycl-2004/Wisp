@@ -1,6 +1,6 @@
 # Wisp release notes
 
-## Unreleased
+## 0.3.0 — 2026-09-02
 
 ### Added
 
@@ -122,6 +122,17 @@
 - **Release builds no longer inherit `get-task-allow`.** Release configuration
   and documented packaging commands set
   `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO`, and CI rejects regressions.
+
+### Validation
+
+- All 11 XCTest cases pass on macOS with Xcode 26.6, covering enhanced
+  shortcuts, CLI prompt truncation, private temporary-directory cleanup, and
+  Claude Code event, authentication, isolation, and completion handling.
+- The ad-hoc-signed Universal 2 Release contains both `arm64` and `x86_64`,
+  reports `0.3.0 (build 5)`, omits `com.apple.security.get-task-allow`, and
+  retains a valid signature after a ZIP round trip.
+- `Wisp-macOS-universal.zip` contains no `__MACOSX` or AppleDouble `._` entries,
+  and its published SHA-256 checksum verifies.
 
 ## 0.2.0 — 2026-09-01
 

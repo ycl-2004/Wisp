@@ -44,7 +44,7 @@ that Wisp removes when the command ends. The interface ships in English and
 Simplified Chinese and follows your system language.
 
 > **Current distribution status:** the latest release is
-> `v0.2.0 (build 4)`, a Universal 2 build with `arm64` and `x86_64` slices.
+> `v0.3.0 (build 5)`, a Universal 2 build with `arm64` and `x86_64` slices.
 > Releases are ad-hoc signed and
 > not Apple-notarized, so the first launch may require Control-click →
 > **Open**.
@@ -324,8 +324,8 @@ The full policy is in [PRIVACY.md](PRIVACY.md).
 
 ## Current release
 
-The current release is `0.2.0 (build 4)`; see
-[CHANGELOG.md](CHANGELOG.md). It corresponds to Git tag `v0.2.0`.
+The current release is `0.3.0 (build 5)`; see
+[CHANGELOG.md](CHANGELOG.md). It corresponds to Git tag `v0.3.0`.
 
 | Artifact | Purpose |
 | --- | --- |
