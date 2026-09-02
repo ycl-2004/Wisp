@@ -5,6 +5,7 @@ struct ChatView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
     @State private var focusRequest = 0
+    @State private var inputHeight = ChatInput.defaultHeight
 
     /// 到轮次上限或对话数上限时不让继续输入。
     private var inputDisabled: Bool {
@@ -144,7 +145,9 @@ struct ChatView: View {
                           isEnabled: !inputDisabled,
                           onSubmit: { model.send() },
                           onEscape: { PanelController.shared.hide() },
-                          focusRequest: $focusRequest)
+                          focusRequest: $focusRequest,
+                          measuredHeight: $inputHeight)
+                    .frame(height: inputHeight)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                     .background(
@@ -283,20 +286,27 @@ private struct MessageRow: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(.tertiary)
                 }
-                if message.role == .assistant, !message.text.isEmpty {
-                    Button {
-                        model.copyToPasteboard(message.text)
-                        copied = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { copied = false }
-                    } label: {
-                        Image(systemName: copied ? "checkmark" : "doc.on.doc").font(.system(size: 9.5))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.tertiary)
-                    .help("复制回答")
+            }
+
+            // 始终保留复制按钮的布局位置，避免鼠标移入时按钮出现／消失导致
+            // MessageRow 重新排版、父级 hover 瞬间变成 false。
+            if message.role == .assistant, !message.text.isEmpty {
+                Button {
+                    model.copyToPasteboard(message.text)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { copied = false }
+                } label: {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 9.5))
+                        .frame(width: 18, height: 16)
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(copied ? Color.accentColor : Color.secondary.opacity(0.7))
+                .contentShape(Rectangle())
+                .accessibilityLabel(Text("复制回答"))
+                .help("复制回答")
             }
         }
-        .frame(height: 12)
+        .frame(minHeight: 16)
     }
 }

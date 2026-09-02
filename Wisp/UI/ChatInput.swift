@@ -12,8 +12,10 @@ struct ChatInput: NSViewRepresentable {
     var onSubmit: () -> Void
     var onEscape: () -> Void
     @Binding var focusRequest: Int
+    @Binding var measuredHeight: CGFloat
 
     static let minHeight: CGFloat = 18
+    static let defaultHeight: CGFloat = minHeight + 2
     static let maxLines = 6
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -60,6 +62,7 @@ struct ChatInput: NSViewRepresentable {
             textView.string = text
             textView.needsDisplay = true
         }
+        context.coordinator.scheduleMeasurement()
         if context.coordinator.lastFocusRequest != focusRequest {
             context.coordinator.lastFocusRequest = focusRequest
             DispatchQueue.main.async {
@@ -70,18 +73,34 @@ struct ChatInput: NSViewRepresentable {
 
     /// 让 SwiftUI 知道该给多高：跟着内容长，最多 maxLines 行。
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSScrollView, context: Context) -> CGSize? {
-        guard let textView = nsView.documentView as? PlaceholderTextView,
-              let layoutManager = textView.layoutManager,
-              let container = textView.textContainer else { return nil }
+        guard let textView = nsView.documentView as? PlaceholderTextView else { return nil }
         let width = proposal.width ?? nsView.bounds.width
-        container.containerSize = NSSize(width: max(1, width - textView.textContainerInset.width * 2),
-                                         height: .greatestFiniteMagnitude)
+        return CGSize(width: width, height: Self.measuredHeight(for: textView, width: width))
+    }
+
+    private static func measuredHeight(for textView: PlaceholderTextView, width: CGFloat) -> CGFloat {
+        guard let layoutManager = textView.layoutManager,
+              let container = textView.textContainer else { return defaultHeight }
+
+        let contentWidth = max(1, width - textView.textContainerInset.width * 2)
+        container.widthTracksTextView = false
+        container.containerSize = NSSize(width: contentWidth, height: .greatestFiniteMagnitude)
+
+        // NSTextView can keep the old usedRect after a newline is removed. Rebuild the
+        // current layout before reading it, and account for explicit blank lines too.
+        let range = NSRange(location: 0, length: textView.textStorage?.length ?? 0)
+        layoutManager.invalidateLayout(forCharacterRange: range, actualCharacterRange: nil)
         layoutManager.ensureLayout(for: container)
-        let used = layoutManager.usedRect(for: container).height
+
         let lineHeight = layoutManager.defaultLineHeight(for: textView.font ?? .systemFont(ofSize: 13))
+        let usedHeight = layoutManager.usedRect(for: container).height
+        let explicitLineCount = max(1, textView.string.reduce(into: 1) { count, character in
+            if character == "\n" { count += 1 }
+        })
+        let contentHeight = max(usedHeight, lineHeight * CGFloat(explicitLineCount))
         let maxHeight = lineHeight * CGFloat(Self.maxLines)
-        let height = min(max(used, Self.minHeight), maxHeight) + textView.textContainerInset.height * 2
-        return CGSize(width: width, height: ceil(height))
+        return ceil(min(max(contentHeight, Self.minHeight), maxHeight)
+                    + textView.textContainerInset.height * 2)
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
@@ -96,6 +115,19 @@ struct ChatInput: NSViewRepresentable {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
             textView.needsDisplay = true
+            scheduleMeasurement()
+        }
+
+        func scheduleMeasurement() {
+            guard let textView else { return }
+            DispatchQueue.main.async { [weak self, weak textView] in
+                guard let self, let textView else { return }
+                let width = max(textView.bounds.width, self.scrollView?.bounds.width ?? 0)
+                guard width > 0 else { return }
+                let height = ChatInput.measuredHeight(for: textView, width: width)
+                guard abs(self.parent.measuredHeight - height) > 0.5 else { return }
+                self.parent.measuredHeight = height
+            }
         }
     }
 }

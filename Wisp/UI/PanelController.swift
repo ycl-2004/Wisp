@@ -49,6 +49,8 @@ final class PanelController: NSObject, NSWindowDelegate {
             NSApp.activate(ignoringOtherApps: true)
             NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
             refreshIdleTimer()
+            // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。
+            model.startFollowingFrontWindow()
             // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
             // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
         }

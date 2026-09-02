@@ -499,34 +499,30 @@ private struct CaptureModeOption: View {
     @State private var hovering = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 4) {
-            Button(action: action) {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: mode.symbol)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-                    Text(mode.title)
-                        .font(.system(size: 11.5, weight: .medium))
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    if selected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color.accentColor)
-                    }
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: mode.symbol)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                Text(mode.title)
+                    .font(.system(size: 11.5, weight: .medium))
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.accentColor)
                 }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            InfoButton(message: mode.detail)
-                .padding(.top, -2)
+            // Keep the hit target as large as the visual card, including its empty space.
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .padding(.trailing, 24)
+            .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
+        .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(selected ? Color.accentColor.opacity(0.10)
@@ -537,6 +533,12 @@ private struct CaptureModeOption: View {
                 .strokeBorder(selected ? Color.accentColor.opacity(0.55) : Color.primary.opacity(0.10),
                               lineWidth: selected ? 1.2 : 0.5)
         )
+        .overlay(alignment: .topTrailing) {
+            InfoButton(message: mode.detail)
+                .padding(.top, 7)
+                .padding(.trailing, 7)
+        }
+        .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: selected)
         .animation(.easeOut(duration: 0.12), value: hovering)
@@ -689,7 +691,10 @@ private struct CaptureSettingsView: View {
 
             Section {
                 HStack {
-                    TextField("字符数", value: Binding(
+                    Text("字符数")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.primary)
+                    TextField("", value: Binding(
                         get: { settings.pageTextLimit },
                         set: { settings.pageTextLimit = $0 }
                     ), format: .number)
@@ -698,6 +703,7 @@ private struct CaptureSettingsView: View {
                     Spacer()
                     InfoButton(message: String(localized: "超出上限时保留开头和结尾，并标记省略。"))
                 }
+                .accessibilityElement(children: .contain)
             } header: {
                 SettingsSectionHeader("页面文字上限")
             }

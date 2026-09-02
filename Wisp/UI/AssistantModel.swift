@@ -69,6 +69,8 @@ final class AssistantModel: ObservableObject {
                 self.contextIsStale = true
                 // 切走／切回都可能改变「该不该自动收起」的答案，重新判一次。
                 PanelController.shared.refreshIdleTimer()
+                // 头部要立刻跟上新的应用和网址，不必等用户手动刷新。
+                self.followFrontWindow()
             }
         }
     }
@@ -147,6 +149,87 @@ final class AssistantModel: ObservableObject {
         contextIsStale = true
     }
 
+    // MARK: - 跟随当前窗口
+
+    private var followTimer: Timer?
+    /// 上一次跟随时看到的「应用 + 窗口标题」，用来判断有没有真的换过窗口。
+    private var lastFollowKey: String?
+    private var followTask: Task<Void, Never>?
+
+    /// 面板显示期间，让头部的应用名和链接跟着当前窗口走。
+    ///
+    /// 只轮询窗口标题（`CGWindowList`，不起子进程），发现变化了才去问一次网址。
+    /// 换标签页不会发任何系统通知，但窗口标题会变，所以这是唯一能发现它的办法。
+    /// 注意这里**不**截图、**不**读正文、**不**滑动——那些仍然只在发送时做。
+    func startFollowingFrontWindow() {
+        stopFollowingFrontWindow()
+        lastFollowKey = nil
+        followTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.followFrontWindow() }
+        }
+    }
+
+    func stopFollowingFrontWindow() {
+        followTimer?.invalidate()
+        followTimer = nil
+        followTask?.cancel()
+        followTask = nil
+    }
+
+    /// 检查前台窗口有没有换过；换了才更新头部。
+    func followFrontWindow() {
+        guard PanelController.shared.isVisible, !isStreaming, !isCapturing else { return }
+
+        let ownBundleID = Bundle.main.bundleIdentifier
+        let front = NSWorkspace.shared.frontmostApplication
+        // 前台是 Wisp 自己，说明用户正在面板里打字。保持现状，别把头部改掉。
+        guard let app = front, app.bundleIdentifier != ownBundleID else { return }
+
+        let title = ContextCapture.frontWindowTitle(pid: app.processIdentifier) ?? ""
+        let key = "\(app.processIdentifier)|\(title)"
+        guard key != lastFollowKey else { return }
+        lastFollowKey = key
+        targetApp = app
+
+        followTask?.cancel()
+        followTask = Task { [weak self] in
+            guard let info = await ContextCapture.captureHeader(fallbackApp: app) else { return }
+            guard !Task.isCancelled else { return }
+            await MainActor.run { self?.applyHeader(info) }
+        }
+    }
+
+    /// 把跟随到的窗口信息写进当前上下文。
+    ///
+    /// 换了页面就把正文清掉：留着上一页的正文配这一页的网址，模型会拿旧内容
+    /// 回答新问题，比没有正文更糟。清掉之后头部显示「正文未读取」，发送时才真去读。
+    private func applyHeader(_ info: ContextCapture.HeaderInfo) {
+        guard var current = packet else { return }
+        let pageChanged = (info.url != current.url) || (info.bundleID != current.bundleID)
+
+        current.appName = info.appName
+        current.bundleID = info.bundleID
+        current.windowTitle = info.windowTitle ?? current.windowTitle
+        current.url = info.url
+        current.pageTitle = info.pageTitle
+
+        if pageChanged {
+            current.pageText = nil
+            current.pageTextTotalChars = nil
+            current.pageTextIsPartial = false
+            current.usedScrollCollection = false
+            current.selectedText = nil
+            current.iframeURLs = []
+            // 上一页的说明作废，但「要用户去开权限」那类留着——那跟哪个页面无关，
+            // 抹掉的话用户就再也看不到该去授权了。
+            current.notes = current.notes.filter(\.needsUserAction)
+            current.notes.append(.info(String(localized: "已跟到新的页面，正文还没读取。发送问题时会读取当前页面。")))
+            pendingText = nil
+            contextIsStale = true
+        }
+        packet = current
+    }
+
     /// 用户点回面板了。补一张新的截图和网址就够——正文和滑动采集留到发送时，
     /// 免得他只是回来看一眼、还没打算问，页面就先翻起来了。
     func panelDidBecomeKey() {
@@ -157,6 +240,7 @@ final class AssistantModel: ObservableObject {
     func panelDidHide() {
         pendingText = nil
         contextIsStale = true
+        stopFollowingFrontWindow()
     }
 
     private var contextIsStale = false

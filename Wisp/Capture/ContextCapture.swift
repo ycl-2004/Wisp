@@ -14,6 +14,64 @@ enum ContextCapture {
         let basic: BrowserTextExtractor.Result
     }
 
+    /// 只说明「现在是哪个窗口」：应用名、窗口标题、网址、页面标题。
+    struct HeaderInfo {
+        var appName: String
+        var bundleID: String?
+        var windowTitle: String?
+        var url: String?
+        var pageTitle: String?
+    }
+
+    /// 前台应用最上层窗口的标题。
+    ///
+    /// 走 `CGWindowList` 直接读，不起子进程，便宜到可以每秒轮询。用途是发现
+    /// 「用户在浏览器里换了标签页」——那不会触发任何系统通知，但窗口标题会变。
+    /// 需要录屏权限才能读到 `kCGWindowName`，而 Wisp 为了截图本来就要这个权限。
+    static func frontWindowTitle(pid: pid_t) -> String? {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                                    kCGNullWindowID) as? [[String: Any]] else { return nil }
+        // 列表是从前到后排的，第一个正常层级的窗口就是最上面那个。
+        for window in list {
+            guard (window[kCGWindowOwnerPID as String] as? pid_t) == pid,
+                  (window[kCGWindowLayer as String] as? Int) == 0,
+                  let name = window[kCGWindowName as String] as? String,
+                  !name.isEmpty else { continue }
+            return name
+        }
+        return nil
+    }
+
+    /// 轻量跟随：只问「这是哪个窗口、哪个网址」。
+    ///
+    /// 不截图，也不注入读正文的脚本——只用浏览器那条不需要 JS 开关的
+    /// `basicInfo`，所以很快，面板开着时可以反复调用。让头部的应用名和链接
+    /// 跟着当前窗口走，用户就不必每换一个标签页就手动点一次刷新。
+    static func captureHeader(fallbackApp: NSRunningApplication? = nil) async -> HeaderInfo? {
+        let ownBundleID = Bundle.main.bundleIdentifier
+        var resolved = NSWorkspace.shared.frontmostApplication
+        if resolved == nil || resolved?.bundleIdentifier == ownBundleID {
+            resolved = fallbackApp
+        }
+        guard let app = resolved, app.bundleIdentifier != ownBundleID else { return nil }
+
+        let bundleID = app.bundleIdentifier
+        guard !AppSettings.shared.isExcluded(bundleID: bundleID) else { return nil }
+
+        let appName = app.localizedName ?? String(localized: "未知应用")
+        var info = HeaderInfo(appName: appName, bundleID: bundleID,
+                              windowTitle: frontWindowTitle(pid: app.processIdentifier))
+
+        if let bundleID, let family = BrowserTextExtractor.family(for: bundleID) {
+            let basic = await runOffMain {
+                BrowserTextExtractor.basicInfo(bundleID: bundleID, family: family, appName: appName)
+            }
+            info.url = basic.url
+            info.pageTitle = basic.pageTitle
+        }
+        return info
+    }
+
     /// 第一阶段：确定目标应用 → 截图 → 问浏览器要网址和标题。
     ///
     /// 刻意不注入读正文的脚本，所以这一阶段很快。面板必须等它跑完才能显示
