@@ -20,6 +20,33 @@ struct ModelSwitcher: View {
                 }
             }
 
+            if currentKind == .openAICompatible {
+                Section("服务商") {
+                    ForEach(providerChoices) { provider in
+                        Button {
+                            settings.selectCloudProvider(provider)
+                        } label: {
+                            Label(providerLabel(provider),
+                                  systemImage: provider == settings.cloudProvider ? "checkmark" : "cloud")
+                        }
+                    }
+                }
+            }
+
+            if currentKind == .codexCLI {
+                Section("本地 Cli") {
+                    ForEach(CLIProvider.allCases) { provider in
+                        Button {
+                            settings.cliProvider = provider
+                            if provider == .agy { state.refreshAgy() }
+                        } label: {
+                            Label(provider.title,
+                                  systemImage: provider == settings.cliProvider ? "checkmark" : "terminal")
+                        }
+                    }
+                }
+            }
+
             if !models.isEmpty {
                 Section("模型") {
                     ForEach(models, id: \.slug) { preset in
@@ -37,6 +64,9 @@ struct ModelSwitcher: View {
 
             if currentKind == .ollama {
                 Button("重新扫描本机模型") { state.refreshOllama() }
+            }
+            if currentKind == .codexCLI, settings.cliProvider == .agy {
+                Button("重新扫描 Agy 模型") { state.refreshAgy() }
             }
             SettingsLink { Text("更多设置…") }
         } label: {
@@ -61,7 +91,10 @@ struct ModelSwitcher: View {
         .fixedSize()
         .onHover { hovering = $0 }
         .help("切换接法和模型：\(fullLabel)")
-        .onAppear { if currentKind == .ollama { state.refreshOllamaIfStale() } }
+        .onAppear {
+            if currentKind == .ollama { state.refreshOllamaIfStale() }
+            if currentKind == .codexCLI, settings.cliProvider == .agy { state.refreshAgyIfStale() }
+        }
     }
 
     private var currentKind: ProviderKind { ProviderKind.current }
@@ -70,7 +103,12 @@ struct ModelSwitcher: View {
         switch currentKind {
         case .openAICompatible: return settings.model
         case .ollama:           return settings.ollamaModel
-        case .codexCLI:         return settings.codexModel
+        case .codexCLI:
+            switch settings.cliProvider {
+            case .codex:      return settings.codexModel
+            case .agy:        return settings.agyModel
+            case .claudeCode: return settings.claudeCodeModel
+            }
         }
     }
 
@@ -78,14 +116,33 @@ struct ModelSwitcher: View {
         switch currentKind {
         case .openAICompatible: settings.model = slug
         case .ollama:           settings.ollamaModel = slug
-        case .codexCLI:         settings.codexModel = slug
+        case .codexCLI:
+            switch settings.cliProvider {
+            case .codex:      settings.codexModel = slug
+            case .agy:        settings.agyModel = slug
+            case .claudeCode: settings.claudeCodeModel = slug
+            }
         }
+    }
+
+    /// 内置的几家；用户正用着「自定义」时把它也列出来，好知道自己在哪。
+    private var providerChoices: [CloudProvider] {
+        settings.cloudProvider == .custom
+            ? CloudProvider.builtIn + [.custom]
+            : CloudProvider.builtIn
+    }
+
+    /// 没配 Key 的那几家先标出来，省得切过去发一条才发现。
+    private func providerLabel(_ provider: CloudProvider) -> String {
+        guard provider != .custom, !KeychainStore.hasKey(for: provider) else { return provider.title }
+        return String(localized: "\(provider.title)（未配置 Key）")
     }
 
     private var models: [ModelCatalog.Preset] {
         switch currentKind {
         case .openAICompatible:
-            var list = ModelCatalog.cloudPresets(baseURL: settings.baseURL)
+            var list = ModelCatalog.cloudPresets(provider: settings.cloudProvider,
+                                                baseURL: settings.baseURL)
             if ModelCatalog.isCustom(settings.model, in: list) {
                 list.append(.init(slug: settings.model, title: settings.model, note: String(localized: "自定义")))
             }
@@ -93,7 +150,11 @@ struct ModelSwitcher: View {
         case .ollama:
             return state.ollamaModels.map { .init(slug: $0, title: $0, note: "") }
         case .codexCLI:
-            return ModelCatalog.codexPresets()
+            switch settings.cliProvider {
+            case .codex:      return ModelCatalog.codexPresets()
+            case .agy:        return state.agyModels.isEmpty ? AgyCLIProvider.fallbackModels : state.agyModels
+            case .claudeCode: return ClaudeCodeCLIProvider.presets
+            }
         }
     }
 
@@ -101,7 +162,14 @@ struct ModelSwitcher: View {
     private var shortLabel: String {
         let model = currentModel
         if model.isEmpty {
-            return currentKind == .codexCLI ? String(localized: "Codex 默认") : currentKind.title
+            if currentKind == .codexCLI {
+                switch settings.cliProvider {
+                case .codex:      return String(localized: "Codex 默认")
+                case .agy:        return String(localized: "Agy 默认")
+                case .claudeCode: return String(localized: "Claude Code 默认")
+                }
+            }
+            return currentKind.title
         }
         if let preset = models.first(where: { $0.slug == model }), preset.title != model {
             return preset.title
@@ -113,7 +181,11 @@ struct ModelSwitcher: View {
     }
 
     private var fullLabel: String {
-        currentModel.isEmpty ? currentKind.title : "\(currentKind.title) · \(currentModel)"
+        var parts = [currentKind.title]
+        if currentKind == .openAICompatible { parts.append(settings.cloudProvider.title) }
+        if currentKind == .codexCLI { parts.append(settings.cliProvider.title) }
+        if !currentModel.isEmpty { parts.append(currentModel) }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -123,7 +195,9 @@ final class ModelMenuState: ObservableObject {
     static let shared = ModelMenuState()
 
     @Published private(set) var ollamaModels: [String] = []
+    @Published private(set) var agyModels: [ModelCatalog.Preset] = []
     private var lastProbe: Date?
+    private var lastAgyScan: Date?
 
     private init() {}
 
@@ -141,6 +215,20 @@ final class ModelMenuState: ObservableObject {
             } else {
                 ollamaModels = []
             }
+        }
+    }
+
+    func refreshAgyIfStale() {
+        if let lastAgyScan, Date().timeIntervalSince(lastAgyScan) < 60 { return }
+        refreshAgy()
+    }
+
+    func refreshAgy() {
+        lastAgyScan = Date()
+        let configuredPath = AppSettings.shared.agyPath
+        Task {
+            let models = await AgyCLIProvider.scanModels(configuredPath: configuredPath)
+            if !models.isEmpty { agyModels = models }
         }
     }
 }

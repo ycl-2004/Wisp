@@ -13,6 +13,9 @@ xcuserdata/
 # Local diagnostics
 cm.err
 
+# Local-only research notes
+docs/agy-cli-research.md
+
 # Local environment and signing material
 .env
 .env.*

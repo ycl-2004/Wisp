@@ -52,10 +52,17 @@ final class AppSettings: ObservableObject {
     private enum K {
         static let providerKind = "providerKind"
         static let baseURL = "baseURL"
+        static let cloudProvider = "cloudProvider"
+        static let cloudModels = "cloudModels"
         static let ollamaBaseURL = "ollamaBaseURL"
         static let ollamaModel = "ollamaModel"
         static let codexPath = "codexPath"
         static let codexModel = "codexModel"
+        static let cliProvider = "cliProvider"
+        static let agyPath = "agyPath"
+        static let agyModel = "agyModel"
+        static let claudeCodePath = "claudeCodePath"
+        static let claudeCodeModel = "claudeCodeModel"
         static let model = "model"
         static let excludedBundleIDs = "excludedBundleIDs"
         static let pageTextLimit = "pageTextLimit"
@@ -63,6 +70,8 @@ final class AppSettings: ObservableObject {
         static let maxConversations = "maxConversations"
         static let maxUserTurns = "maxUserTurns"
         static let sendScreenshot = "sendScreenshot"
+        static let shortcutTrigger = "shortcutTrigger"
+        static let advancedShortcut = "advancedShortcut"
         static let lastActiveConversationID = "lastActiveConversationID"
         static let panelFrame = "panelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
@@ -79,12 +88,17 @@ final class AppSettings: ObservableObject {
     private init() {
         d.register(defaults: [
             K.providerKind: ProviderKind.openAICompatible.rawValue,
-            K.baseURL: "https://api.openai.com/v1",
+            K.baseURL: CloudProvider.openRouter.baseURL ?? "",
             K.ollamaBaseURL: OllamaSupport.defaultBaseURL,
             K.ollamaModel: "",
             K.codexPath: "",
             K.codexModel: "",
-            K.model: "gpt-4o-mini",
+            K.cliProvider: CLIProvider.codex.rawValue,
+            K.agyPath: "",
+            K.agyModel: "",
+            K.claudeCodePath: "",
+            K.claudeCodeModel: "",
+            K.model: CloudProvider.openRouter.defaultModel,
             K.excludedBundleIDs: [
                 "com.1password.1password",
                 "com.apple.keychainaccess",
@@ -95,6 +109,7 @@ final class AppSettings: ObservableObject {
             K.maxConversations: 10,
             K.maxUserTurns: 30,
             K.sendScreenshot: true,
+            K.shortcutTrigger: ShortcutTriggerMode.standard.rawValue,
             K.debugDumpEnabled: false,
             K.showIsland: true,
             K.islandPosition: "bottom",
@@ -129,14 +144,90 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.codexModel); objectWillChange.send() }
     }
 
+    var cliProvider: CLIProvider {
+        get { CLIProvider(rawValue: d.string(forKey: K.cliProvider) ?? "") ?? .codex }
+        set { d.set(newValue.rawValue, forKey: K.cliProvider); objectWillChange.send() }
+    }
+
+    var agyPath: String {
+        get { d.string(forKey: K.agyPath) ?? "" }
+        set { d.set(newValue, forKey: K.agyPath); objectWillChange.send() }
+    }
+
+    var agyModel: String {
+        get { d.string(forKey: K.agyModel) ?? "" }
+        set { d.set(newValue, forKey: K.agyModel); objectWillChange.send() }
+    }
+
+    var claudeCodePath: String {
+        get { d.string(forKey: K.claudeCodePath) ?? "" }
+        set { d.set(newValue, forKey: K.claudeCodePath); objectWillChange.send() }
+    }
+
+    var claudeCodeModel: String {
+        get { d.string(forKey: K.claudeCodeModel) ?? "" }
+        set { d.set(newValue, forKey: K.claudeCodeModel); objectWillChange.send() }
+    }
+
     var baseURL: String {
-        get { d.string(forKey: K.baseURL) ?? "https://api.openai.com/v1" }
+        get { d.string(forKey: K.baseURL) ?? CloudProvider.openRouter.baseURL ?? "" }
         set { d.set(newValue, forKey: K.baseURL); objectWillChange.send() }
     }
 
     var model: String {
-        get { d.string(forKey: K.model) ?? "gpt-4o-mini" }
+        get { d.string(forKey: K.model) ?? CloudProvider.openRouter.defaultModel }
         set { d.set(newValue, forKey: K.model); objectWillChange.send() }
+    }
+
+    /// 云端接法当前选的是哪一家。0.2.x 只存了 Base URL，读不到就按它反推一次。
+    var cloudProvider: CloudProvider {
+        get {
+            if let raw = d.string(forKey: K.cloudProvider),
+               let provider = CloudProvider(rawValue: raw) { return provider }
+            return CloudProvider.matching(baseURL: baseURL) ?? .custom
+        }
+        set { d.set(newValue.rawValue, forKey: K.cloudProvider); objectWillChange.send() }
+    }
+
+    /// 每家各自选过的模型。切回来时不用重挑，也免得把上一家的模型名发给下一家。
+    private var cloudModels: [String: String] {
+        get { d.dictionary(forKey: K.cloudModels) as? [String: String] ?? [:] }
+        set { d.set(newValue, forKey: K.cloudModels) }
+    }
+
+    /// 0.2.x 的出厂 Base URL 和模型。register 的默认值后来换成了 OpenRouter，
+    /// 判断老配置属于哪一家时只能用这两个常量，不能读当前的默认值。
+    static let legacyDefaultBaseURL = "https://api.openai.com/v1"
+    static let legacyDefaultModel = "gpt-4o-mini"
+
+    /// 0.2.x 升上来时，认出那份不分家的 Key 属于哪一家，顺便把当时的云端配置钉住。
+    ///
+    /// 只有实际改过 Base URL 的用户才在 UserDefaults 里落过盘；没落盘的那批人用的是
+    /// 0.2.x 的出厂 OpenAI 地址。而 `baseURL` 现在会返回 register 的新默认值 OpenRouter，
+    /// 照它反查，OpenAI 的 Key 会被记到 OpenRouter 名下，地址和模型也跟着静默换掉——
+    /// 旧条目迁移完就删了，退不回去。所以这里一律读实际落盘的值。
+    ///
+    /// 只在真有旧条目时调用，全新安装不该被当成升级来改动一份本来就对的默认配置。
+    func adoptLegacyCloudConfig() -> CloudProvider {
+        if let persisted = d.object(forKey: K.baseURL) as? String {
+            return CloudProvider.matching(baseURL: persisted) ?? .custom
+        }
+        // 把 0.2.x 的出厂值显式写回去，之后按新逻辑读就不会再漂移。
+        baseURL = Self.legacyDefaultBaseURL
+        if d.object(forKey: K.model) == nil { model = Self.legacyDefaultModel }
+        let provider = CloudProvider.matching(baseURL: Self.legacyDefaultBaseURL) ?? .custom
+        cloudProvider = provider
+        return provider
+    }
+
+    /// 换一家：Base URL 跟着走，模型换成这一家上次用的（没用过就用它的第一个推荐）。
+    func selectCloudProvider(_ provider: CloudProvider) {
+        let previous = cloudProvider
+        guard provider != previous else { return }
+        if !model.isEmpty { cloudModels[previous.rawValue] = model }
+        cloudProvider = provider
+        if let url = provider.baseURL { baseURL = url }
+        model = cloudModels[provider.rawValue] ?? provider.defaultModel
     }
 
     var excludedBundleIDs: [String] {
@@ -169,6 +260,28 @@ final class AppSettings: ObservableObject {
     var sendScreenshot: Bool {
         get { d.bool(forKey: K.sendScreenshot) }
         set { d.set(newValue, forKey: K.sendScreenshot); objectWillChange.send() }
+    }
+
+    var shortcutTrigger: ShortcutTriggerMode {
+        get {
+            ShortcutTriggerMode(rawValue: d.string(forKey: K.shortcutTrigger) ?? "") ?? .standard
+        }
+        set { d.set(newValue.rawValue, forKey: K.shortcutTrigger); objectWillChange.send() }
+    }
+
+    var advancedShortcut: AdvancedShortcut? {
+        get {
+            guard let data = d.data(forKey: K.advancedShortcut) else { return nil }
+            return try? JSONDecoder().decode(AdvancedShortcut.self, from: data)
+        }
+        set {
+            if let newValue, let data = try? JSONEncoder().encode(newValue) {
+                d.set(data, forKey: K.advancedShortcut)
+            } else {
+                d.removeObject(forKey: K.advancedShortcut)
+            }
+            objectWillChange.send()
+        }
     }
 
     var debugDumpEnabled: Bool {
@@ -268,7 +381,8 @@ final class AppSettings: ObservableObject {
     func wipeLocalData() {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
-        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin, K.islandAnchor] {
+        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin,
+                    K.islandAnchor, K.cloudModels] {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

@@ -370,7 +370,7 @@ final class AssistantModel: ObservableObject {
             var counter = 0
             do {
                 let config = try ProviderConfig.current()
-                let provider = ProviderConfig.provider(for: config.kind)
+                let provider = ProviderConfig.provider(for: config)
                 for try await chunk in provider.stream(messages: payload, config: config) {
                     if Task.isCancelled { break }
                     accumulated += chunk
@@ -390,7 +390,8 @@ final class AssistantModel: ObservableObject {
                 if accumulated.isEmpty {
                     self.store.removeMessage(assistantMessage.id, from: conversationID)
                 } else {
-                    self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
+                    let incomplete = accumulated + "\n\n" + String(localized: "（回答未完成：生成过程已中断。）")
+                    self.store.updateStreaming(text: incomplete, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
                 if let providerError = error as? ProviderError {

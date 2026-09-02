@@ -105,14 +105,12 @@ struct CodexCLIProvider: ChatProvider {
             let work = Task.detached {
                 var workDirectory: URL?
                 do {
-                    guard let binary = Self.resolvePath(config.codexPath) else {
+                    guard let binary = Self.resolvePath(config.cliPath) else {
                         throw ProviderError.codexNotFound
                     }
 
                     let (prompt, imageData) = Self.flatten(messages)
-                    let directory = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("Wisp-codex-\(UUID().uuidString)", isDirectory: true)
-                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    let directory = try CLITemporaryDirectory.create(prefix: "Wisp-codex")
                     workDirectory = directory
 
                     var arguments = [
@@ -212,7 +210,7 @@ struct CodexCLIProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError.network(error.localizedDescription))
                 }
                 // 无论走哪条路都要清掉临时目录，里面有这一轮的屏幕截图。
-                if let workDirectory { try? FileManager.default.removeItem(at: workDirectory) }
+                if let workDirectory { CLITemporaryDirectory.remove(workDirectory) }
             }
 
             let watchdog = Task.detached {
@@ -233,27 +231,16 @@ struct CodexCLIProvider: ChatProvider {
     }
 
     func validate(config: ProviderConfig) async throws {
-        guard let binary = Self.resolvePath(config.codexPath) else { throw ProviderError.codexNotFound }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: binary)
-        process.arguments = ["--version"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        try process.run()
-
-        // `codex --version` 也可能挂住，同样给它一个上限。
-        let deadline = Date().addingTimeInterval(15)
-        while process.isRunning && Date() < deadline {
-            try? await Task.sleep(nanoseconds: 50_000_000)
+        guard let binary = Self.resolvePath(config.cliPath) else { throw ProviderError.codexNotFound }
+        // `codex --version` 也可能挂住，同样给它一个上限；两条管道都由 CLICommand
+        // 抽干，免得哪天 codex 在这里也刷一批 skill 扫描告警就把自己堵死。
+        guard let result = await CLICommand.run(binary, ["--version"], timeout: 15) else {
+            throw ProviderError.codexNotFound
         }
-        if process.isRunning {
-            process.terminate()
-            throw ProviderError.codexTimedOut(15)
-        }
-        guard process.terminationStatus == 0 else {
-            throw ProviderError.codexFailed(String(localized: "`codex --version` 返回 \(process.terminationStatus)"),
-                                            status: process.terminationStatus)
+        if result.timedOut { throw ProviderError.codexTimedOut(15) }
+        guard result.status == 0 else {
+            throw ProviderError.codexFailed(String(localized: "`codex --version` 返回 \(result.status)"),
+                                            status: result.status)
         }
     }
 
@@ -277,8 +264,15 @@ struct CodexCLIProvider: ChatProvider {
         return nil
     }
 
-    /// 把 messages 摊平成一段纯文本，外加要附上的图片。
-    static func flatten(_ messages: [[String: Any]]) -> (prompt: String, images: [Data]) {
+    /// 段落之间的分隔。两个 CLI provider 拼出来的 prompt 要长一个样。
+    static let sectionSeparator = "\n\n---\n\n"
+
+    /// 把 messages 摊平成正文段落，外加要附上的图片。
+    ///
+    /// 收尾那两段由调用方自己补。Codex 用 `--image` 把截图作为附件递进去，
+    /// 全程不需要碰文件系统；AGY 的 headless 输入只收文本，截图得先落盘再报路径，
+    /// 于是两边对「能不能读文件」的说法正好相反，不能共用一份。
+    static func flattenBody(_ messages: [[String: Any]]) -> (sections: [String], images: [Data]) {
         var lines: [String] = []
         var images: [Data] = []
 
@@ -308,11 +302,17 @@ struct CodexCLIProvider: ChatProvider {
             }
         }
 
+        return (lines, images)
+    }
+
+    /// Codex 的完整 prompt：截图作为附件递进去，全程不碰文件系统。
+    static func flatten(_ messages: [[String: Any]]) -> (prompt: String, images: [Data]) {
+        var (sections, images) = flattenBody(messages)
         if !images.isEmpty {
-            lines.append(String(localized: "附件里是当前屏幕的截图，请结合它回答。"))
+            sections.append(String(localized: "附件里是当前屏幕的截图，请结合它回答。"))
         }
-        lines.append(String(localized: "只回答问题本身，不要执行任何命令，不要读写文件。"))
-        return (lines.joined(separator: "\n\n---\n\n"), images)
+        sections.append(String(localized: "只回答问题本身，不要执行任何命令，不要读写文件。"))
+        return (sections.joined(separator: sectionSeparator), images)
     }
 
     private static func condense(_ text: String) -> String {

@@ -35,8 +35,8 @@ Wisp 常驻菜单栏。按下 `⌃⌥Space`，它会先记住此刻最前面的�
 接着它会截取当前窗口；如果最前面的是支持的浏览器，还会读出网址、标题、选中的文字和整页正文。
 不用再在两个应用之间来回复制粘贴。
 
-它是一层本地优先的桌面外壳，模型由你自己选：OpenAI 兼容接口、Ollama，或者 Codex CLI。
-对话文字和页面文字快照存在你自己的 Mac 上；截图只在当次请求期间留在内存里，除非你自己打开调试采集。
+它是一层本地优先的桌面外壳，模型由你自己选：OpenAI 兼容接口、Ollama，或者 Agent CLI（包含 Codex、AGY 与 Claude Code）。
+对话文字和页面文字快照存在你自己的 Mac 上；本地 CLI 可能把当次截图写进一个私有临时目录，命令结束后由 Wisp 删除。
 界面提供简体中文和英文，跟随系统语言。
 
 > **当前分发状态：** 最新版本是 `v0.2.0 (build 4)`，Universal 2 构建，含 `arm64` 与
@@ -70,14 +70,14 @@ open "$HOME/Applications/Wisp.app"
 - 读取浏览器整页正文需要**自动化**权限，以及浏览器里的 `Allow JavaScript from Apple Events` 开关。
 - 云端接口需要联网和你自己的 API Key。
 - Ollama 接法需要本机已经跑起 Ollama 服务。
-- Codex 接法需要本机装好并已登录的 Codex CLI。
+- Agent CLI 接法需要本机装好并已登录的 Codex CLI、AGY CLI 或 Claude Code。
 
 ## 为什么是 Wisp
 
 - **上下文在面板出现之前就采集好了。** Wisp 先记住目标应用，所以助手面板不会把自己截进去。
 - **请求边界是看得见的。** 头部会显示当前应用、浏览器信息、截图与整页文字的状态，以及对话计数。
 - **采集是按需的。** 常驻的小药丸只跟踪当前是哪个应用，不持续录屏，也不跑浏览器脚本。
-- **模型连接是你自己的。** 云端兼容接口、本地 Ollama 模型，或者你已经登录的 Codex CLI。
+- **模型连接是你自己的。** 云端兼容接口、本地 Ollama 模型，或者你已经登录的 Agent CLI（Codex、AGY 或 Claude Code）。
 - **保留多久由你说了算。** 对话数与轮数上限可配置，删除由你发起，没有藏起来的自动清理。
 
 ## 功能
@@ -99,11 +99,17 @@ open "$HOME/Applications/Wisp.app"
 - 常驻小药丸显示当前应用与上下文状态。桌面形态下可以拖到屏幕任意位置并被记住；拖动时它会收成一颗小圆跟着光标走，所以贴得到屏幕边缘。展开时朝有空间的一侧长，而不是永远从中间往两边撑。也可以改成吸附在刘海上。
 - 提供简体中文与英文。默认跟随系统语言，也可以在「设置 → 通用」里单独钉死一种。
 
+**快捷键**
+
+- 默认的 `⌃⌥Space` 仍然可用，也可以在「设置 → 权限」里修改。增强模式支持
+  `Shift`、`Globe/Fn`、单独修饰键，以及双击/三击同一个键。增强模式需要辅助功能权限，
+  才能在其他 App 活跃时观察键盘事件。
+
 **模型接法**
 
 - **云端接口：** 以 SSE 流式发送 `chat/completions`，图片走 `image_url` data URL，兼容 OpenAI、OpenRouter 等。
 - **Ollama：** 默认 `http://localhost:11434/v1`，直接读本机模型列表，并标出看起来支持读图的模型。
-- **Codex CLI：** 运行本机的 `codex exec --json --ephemeral --sandbox read-only`，不往 Wisp 的对话目录里写会话文件。
+- **Agent CLI：** 同一个设置分组里可以选 Codex、AGY 或 Claude Code。Codex 运行本机的 `codex exec --json --ephemeral --sandbox read-only`；AGY 和 Claude Code 走各自的 headless JSON，截图会写进一个临时工作目录交给它们读取。三者中只有 Claude Code 是逐字显示答案的，另外两个都是整段返回。都不往 Wisp 的对话目录里写会话文件。
 
 **启动与更新**
 
@@ -154,12 +160,15 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 
 菜单栏图标 → **设置 → 模型**：
 
-- **云端接口：** 填 Base URL、模型名和 API Key。Key 存在 macOS 钥匙串，不写进对话 JSON。
+- **云端接口：** 先选服务商 —— OpenRouter、Google Gemini、OpenAI、Anthropic、智谱 GLM，
+  或者「自定义」填任意 OpenAI 兼容地址 —— 再选模型、填这一家的 API Key。
+  选了服务商，Base URL 和模型列表会自动带出来。Key 会在输入框失焦、按回车、切换服务商或
+  关闭设置时保存，并按服务商分开放在 macOS 钥匙串，不写进对话 JSON，所以几家可以同时配好随时切。
 - **Ollama：** 启动 Ollama 后刷新模型列表。只有能读图的模型才看得懂截图。
-- **Codex CLI：** 选中检测到的 `codex` 可执行文件，可选地指定模型。用的是你已有的 Codex 登录。
+- **Agent CLI：** 在同一个分组里选择 Codex、AGY 或 Claude Code，再选检测到的可执行文件和模型。用的是你 Mac 上已有的 CLI 登录。AGY 模型列表每次通过 `agy models` 重新扫描，AGY 自己更新后不需要改 Wisp。
 
-三种接法都有**保存并测试连接**。云端和 Ollama 的测试会发一张很小的测试图；Codex 的测试只检查
-`codex --version` 能不能跑通。
+三种接法都有**保存并测试连接**。云端和 Ollama 的测试会发一张很小的测试图；Codex 与 AGY
+检查 `--version`，Claude Code 检查 `auth status`，因此未登录会得到单独提示。都不会额外消耗模型请求。
 
 ## 隐私
 
@@ -167,7 +176,8 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 
 - 对话文字与页面文字快照：`~/Library/Application Support/Wisp/conversations.json`。
 - API Key：存在 macOS 钥匙串，不在 Wisp 的应用支持目录里。
-- 截图：通常只作为当次请求的图片附件留在内存，不会写进对话 JSON。
+- 截图：不会写进对话 JSON。云端和 Ollama 只保留在内存；本地 CLI 可能写入权限为 `0700`
+  的当次临时目录，命令结束后删除。若应用崩溃或被强制终止，则交由 macOS 后续清理临时目录。
 - 可选的调试文件：打开调试采集后，会在应用支持目录下写 `debug/last-context.json` 与 `debug/last-screenshot.jpg`。
 
 **网络边界**
@@ -175,6 +185,8 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 - 云端接口会把你选定的上下文和当前截图发到你配置的 Base URL。对方的日志、留存策略和隐私条款不在 Wisp 的控制范围内。
 - Ollama 默认走 `localhost`。如果你把 Base URL 指到远端，请求就会发到那里。
 - Codex 接法由 Wisp 启动本地 codex 进程，为图片输入建一个临时目录，以 `--ephemeral` 和只读沙箱运行，命令结束后删除该目录。Codex 自己的账号、网络和服务端日志不在 Wisp 的控制范围内。
+- AGY 接法由 Wisp 启动本地 agy 进程，带 `--sandbox`，跑在自己的临时工作目录里，走 AGY 的 JSON headless 模式。有截图时，截图写进这个目录并在提问里点名路径，由 AGY 自己读取；请求结束就把目录删掉。AGY 自己的账号、网络、额度和服务端日志不在 Wisp 的控制范围内。
+- Claude Code 接法跑在自己的临时工作目录里，使用 `--restricted --tools Read --no-session-persistence`。文件工具只能看到这个工作目录里的截图，不会保存本地会话记录；请求结束后删除目录。Claude Code 自己的账号、网络、额度和服务端日志不在 Wisp 的控制范围内。
 - 打开更新检查时，Wisp 每次启动向 `api.github.com` 请求一次最新版本号。除了 IP 和 `Wisp/<版本>` 这个 UA 之外不带任何标识，不下载也不安装。关掉就完全不请求。
 - Wisp 没有账号体系、同步服务、统计 SDK、崩溃上报 SDK，也没有后台持续录制。
 
@@ -313,7 +325,8 @@ rm -rf Build
 xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Release \
   -arch arm64 -arch x86_64 \
   ONLY_ACTIVE_ARCH=NO \
-  CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=YES build
+  CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=YES \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build
 
 mkdir -p dist
 lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
@@ -342,6 +355,7 @@ Build/Debug/Wisp.app/Contents/MacOS/Wisp --render-island docs/screenshots/island
 ```bash
 plutil -p Build/Release/Wisp.app/Contents/Info.plist
 codesign --verify --deep --strict Build/Release/Wisp.app
+codesign -d --entitlements :- Build/Release/Wisp.app
 unzip -l dist/Wisp-macOS-universal.zip
 shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
 ```
@@ -352,11 +366,12 @@ shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
 
 - `Wisp/App/` — 应用入口、菜单栏生命周期、全局快捷键，以及诊断入口。
 - `Wisp/Capture/` — 屏幕采集、浏览器 AppleScript、页面取文与上下文编排。
-- `Wisp/LLM/` — OpenAI 兼容 HTTP、Ollama、Codex CLI、SSE 解析与提示词组装。
+- `Wisp/LLM/` — OpenAI 兼容 HTTP、Ollama、Agent CLI、SSE 解析与提示词组装。
 - `Wisp/Store/` — 本地对话 JSON 与 macOS 钥匙串访问。
 - `Wisp/UI/` — 浮动面板、常驻药丸、对话、上下文头部、对话列表与设置。
 - `Wisp/Support/` — 权限、屏幕几何、UserDefaults 设置、登录项与更新检查。
 - `Wisp/Resources/` — 字符串目录。
+- `WispTests/` — CLI 隔离、事件与登录解析、提示词截断、完成状态和临时目录清理测试。
 - `Wisp/Assets.xcassets/` — macOS 应用图标与图片资源。
 - `docs/screenshots/` — README 里那几张离线渲染的截图。
 - `project.yml` — XcodeGen 工程源、版本设置、依赖、本地化与签名配置。
@@ -381,7 +396,8 @@ shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
 - Universal 2 的两个切片已经生成并检查过，但当前发布尚未在 Intel Mac 上实机跑过。
 - 浏览器取文依赖受支持的 bundle id、自动化权限、浏览器 JavaScript 设置以及页面本身的安全边界。
 - Codex CLI 的回答是一次性返回的，没有逐字流式，而且每次请求都带着 Codex 自己的固定上下文开销。
-- 仓库目前没有自动化测试、CI 流程，也没有公开的公证与发布签名流水线。
+- AGY 一次性返回答案，没有逐字流式，而且每次请求都带上它自己的固定上下文开销——在 Wisp 的内容之前就已经约 30,400 token。AGY 的 headless 输入只接受文字，会拒绝 `image_url` 内容块，所以截图是以文件形式传入的，带截图的请求要多花一轮读取文件的工具调用，代价约 1,150 token，而不是把图内联进上下文。AGY 还会在约 71,400 token 处静默截断自己的输入，因此 Wisp 会先把提示压进一个更小的预算并标注省略了什么；远超默认 60,000 字上限的页面因此是「删节后送达且写明缺口」，而不是悄悄少一截。
+- CI 已覆盖单元测试、Universal 2 编译、签名验证和 Release 权限检查；仍没有公开的公证与发布签名流水线。
 - 因为发布包是 ad-hoc 签名，每次构建都是新的代码身份。macOS 把屏幕录制、自动化和钥匙串访问绑在这个身份上，所以升级之后可能需要重新授权。
 - 应用排除是按 bundle id 的。没有按网址或域名的排除，而后者恰恰是浏览器里最有用的那种。
 - 对话历史以未加密 JSON 存储，且不按时间淘汰。在默认上限下文件最大约 50 MB，并且每写一条消息都会整份重写。

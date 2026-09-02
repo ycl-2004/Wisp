@@ -26,6 +26,10 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+  configs:
+    Release:
+      # 自定义 ad-hoc 分发不能带调试器注入权限。
+      CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
 
 targets:
   Wisp:
@@ -58,3 +62,25 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Wisp.entitlements
         INFOPLIST_KEY_NSPrincipalClass: NSApplication
         COMBINE_HIDPI_IMAGES: YES
+
+  WispTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: WispTests
+    dependencies:
+      - target: Wisp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yichenlin.WispTests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+
+schemes:
+  Wisp:
+    build:
+      targets:
+        Wisp: all
+    test:
+      targets:
+        - WispTests
