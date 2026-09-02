@@ -10,8 +10,12 @@ final class PanelController: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
 
     static let width: CGFloat = 850
-    static let expandedHeight: CGFloat = 1143
-    static let collapsedHeight: CGFloat = 215
+    static let expandedHeight: CGFloat = 560
+    static let collapsedHeight: CGFloat = 106
+    private static let minimumCollapsedHeight: CGFloat = 100
+    private static let maximumCollapsedHeight: CGFloat = 160
+    private static let minimumExpandedHeight: CGFloat = 420
+    private static let maximumExpandedHeight: CGFloat = 680
 
     var isVisible: Bool { panel?.isVisible == true }
 
@@ -118,22 +122,33 @@ final class PanelController: NSObject, NSWindowDelegate {
         if let screen = panel.screen ?? ScreenGeometry.activeScreen {
             frame = ScreenGeometry.clamp(frame, on: screen)
         }
+        frameAnimationGeneration += 1
+        let generation = frameAnimationGeneration
+        isApplyingProgrammaticFrame = true
         if animated {
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.18
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 panel.animator().setFrame(frame, display: true)
+            } completionHandler: { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.frameAnimationGeneration == generation else { return }
+                    self.isApplyingProgrammaticFrame = false
+                }
             }
         } else {
             panel.setFrame(frame, display: true)
+            isApplyingProgrammaticFrame = false
         }
     }
 
-    /// 用户手动拉过的尺寸。收起和展开各记一份，切换时各回各的。
-    private var storedExpandedHeight: CGFloat = PanelController.expandedHeight
+    /// 程序动画期间不保存中间值；用户手动调整的紧凑／展开高度各记一份。
     private var storedCollapsedHeight: CGFloat = PanelController.collapsedHeight
+    private var storedExpandedHeight: CGFloat = PanelController.expandedHeight
     private var storedWidth: CGFloat = PanelController.width
     private var storedOrigin: NSPoint?
+    private var isApplyingProgrammaticFrame = false
+    private var frameAnimationGeneration = 0
 
     // MARK: - 构造
 
@@ -141,7 +156,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         if let panel { return panel }
 
         let panel = KeyablePanel(
-            contentRect: NSRect(x: 0, y: 0, width: Self.width, height: Self.expandedHeight),
+            contentRect: NSRect(x: 0, y: 0, width: Self.width, height: Self.collapsedHeight),
             styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: false
@@ -155,8 +170,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
         panel.animationBehavior = .utilityWindow
-        panel.minSize = NSSize(width: 380, height: 140)
-        panel.maxSize = NSSize(width: 2400, height: 2400)
+        panel.minSize = NSSize(width: 380, height: Self.minimumCollapsedHeight)
+        panel.maxSize = NSSize(width: 2400, height: Self.maximumExpandedHeight)
         panel.delegate = self
 
         let root = ChatView()
@@ -193,13 +208,16 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func saveFrame(_ panel: NSPanel) {
+        guard !isApplyingProgrammaticFrame else { return }
         AppSettings.shared.panelFrame = NSStringFromRect(panel.frame)
         storedWidth = panel.frame.width
         storedOrigin = panel.frame.origin
         if AssistantModel.shared.isCollapsed {
-            storedCollapsedHeight = panel.frame.height
+            storedCollapsedHeight = min(max(panel.frame.height, Self.minimumCollapsedHeight),
+                                        Self.maximumCollapsedHeight)
         } else {
-            storedExpandedHeight = panel.frame.height
+            storedExpandedHeight = min(max(panel.frame.height, Self.minimumExpandedHeight),
+                                       Self.maximumExpandedHeight)
         }
     }
 
@@ -210,6 +228,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         guard rect.width > 200, rect.height > 100 else { return }
         storedWidth = rect.width
         storedOrigin = rect.origin
+        if rect.height <= Self.maximumCollapsedHeight {
+            storedCollapsedHeight = min(max(rect.height, Self.minimumCollapsedHeight),
+                                        Self.maximumCollapsedHeight)
+        } else if rect.height >= Self.minimumExpandedHeight {
+            storedExpandedHeight = min(rect.height, Self.maximumExpandedHeight)
+        }
     }
 
     // MARK: - NSWindowDelegate

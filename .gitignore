@@ -3,6 +3,7 @@
 
 # Xcode user state and build products
 Build/
+dist/
 DerivedData/
 xcuserdata/
 *.xcuserstate

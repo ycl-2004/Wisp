@@ -5,7 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     var body: some View {
         TabView {
-            ModelSettingsView().tabItem { Label("模型", systemImage: "brain") }
+            ModelSettingsView().tabItem { Label("模型", systemImage: "cpu") }
             CaptureSettingsView().tabItem { Label("屏幕与权限", systemImage: "lock.shield") }
             DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }
         }
@@ -507,16 +507,16 @@ private struct CaptureSettingsView: View {
                         PanelController.shared.refreshIdleTimer()
                     }
                 ))
-                Stepper("等待 \(Int(settings.idleDismissSeconds)) 秒",
-                        value: Binding(
-                            get: { max(1, Int(settings.idleDismissSeconds)) },
-                            set: { seconds in
-                                idleSecondsDraft = seconds
-                                settings.idleDismissSeconds = Double(seconds)
-                                PanelController.shared.refreshIdleTimer()
-                            }
-                        ),
-                        in: 1...300)
+                CompactStepper("等待 \(Int(settings.idleDismissSeconds)) 秒",
+                               value: Binding(
+                                   get: { max(1, Int(settings.idleDismissSeconds)) },
+                                   set: { seconds in
+                                       idleSecondsDraft = seconds
+                                       settings.idleDismissSeconds = Double(seconds)
+                                       PanelController.shared.refreshIdleTimer()
+                                   }
+                               ),
+                               in: 1...300)
                     .disabled(settings.idleDismissSeconds <= 0)
                 Text("你去看别的窗口以后才开始倒计时。面板有焦点、鼠标停在上面、或者回答正在生成，都不会收起。收起只是把面板收回小药丸，对话不会丢。")
                     .font(.system(size: 10))
@@ -646,14 +646,14 @@ private struct DataSettingsView: View {
     var body: some View {
         Form {
             Section("上限") {
-                Stepper("最多保留 \(settings.maxConversations) 个对话",
-                        value: Binding(get: { settings.maxConversations },
-                                       set: { settings.maxConversations = $0 }),
-                        in: 1...50)
-                Stepper("每个对话最多 \(settings.maxUserTurns) 轮",
-                        value: Binding(get: { settings.maxUserTurns },
-                                       set: { settings.maxUserTurns = $0 }),
-                        in: 5...200)
+                CompactStepper("最多保留 \(settings.maxConversations) 个对话",
+                               value: Binding(get: { settings.maxConversations },
+                                              set: { settings.maxConversations = $0 }),
+                               in: 1...50)
+                CompactStepper("每个对话最多 \(settings.maxUserTurns) 轮",
+                               value: Binding(get: { settings.maxUserTurns },
+                                              set: { settings.maxUserTurns = $0 }),
+                               in: 5...200)
                 Text("到上限不会自动删旧的。要腾位置必须自己删。")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
@@ -704,5 +704,66 @@ private struct DataSettingsView: View {
         } message: {
             Text("所有对话和 API Key 都会被删除，无法撤销。")
         }
+    }
+}
+
+/// 原生 Stepper 的竖向双箭头在紧凑设置行里太拥挤；改成轻量横向减／加控件。
+private struct CompactStepper: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+
+    init(_ title: String, value: Binding<Int>, in range: ClosedRange<Int>) {
+        self.title = title
+        _value = value
+        self.range = range
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+            Spacer(minLength: 8)
+
+            HStack(spacing: 0) {
+                stepButton(systemName: "minus", label: "减少", enabled: value > range.lowerBound) {
+                    value = max(range.lowerBound, value - 1)
+                }
+
+                Rectangle()
+                    .fill(Color.primary.opacity(0.10))
+                    .frame(width: 0.5, height: 12)
+
+                stepButton(systemName: "plus", label: "增加", enabled: value < range.upperBound) {
+                    value = min(range.upperBound, value + 1)
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
+            )
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityValue("\(value)")
+    }
+
+    private func stepButton(systemName: String,
+                            label: String,
+                            enabled: Bool,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 8.5, weight: .semibold))
+                .frame(width: 23, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(enabled ? Color.secondary : Color.primary.opacity(0.24))
+        .disabled(!enabled)
+        .accessibilityLabel("\(label)\(title)")
+        .help("\(label)\(title)")
     }
 }
