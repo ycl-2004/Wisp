@@ -21,11 +21,17 @@ understand before pointing it at a page you would not paste into a chat box.
 | Conversation text and page-text snapshots | `~/Library/Application Support/Wisp/conversations.json` |
 | API key | macOS Keychain, service `com.yichenlin.Wisp` |
 | Settings, window positions, island position | `UserDefaults` for `com.yichenlin.Wisp` |
+| Temporary CLI screenshots | A per-request `Wisp-*` directory in the macOS temporary directory, permissions `0700`; removed when the command ends |
 | Optional debug capture | `~/Library/Application Support/Wisp/debug/`, only while that setting is on |
 
-Screenshots are held in memory for the current request and are never written
-into the conversation file. The only way a screenshot reaches your disk is the
-debug setting, which is off by default and overwrites a single fixed file.
+Screenshots are never written into the conversation file. Cloud and Ollama
+requests keep them in memory. Codex, AGY, and Claude Code write attached
+screenshots into a private temporary working directory because those CLIs take
+image files or file paths. Wisp attempts to delete that whole directory when
+the command succeeds, fails, times out, or is cancelled. A crash or forced
+termination can prevent that cleanup; macOS manages and eventually clears its
+temporary directory. The optional debug setting is separate, is off by default,
+and overwrites a single fixed screenshot file.
 
 `conversations.json` is plain, unencrypted JSON. It is protected by your user
 account's file permissions and nothing more. Page text captured from a
@@ -49,6 +55,16 @@ roughly 50 MB.
   directory for image input, runs it with `--ephemeral` and a read-only
   sandbox, and deletes that directory when the command ends. Codex's own
   account, network use, and server-side logging are outside Wisp's control.
+- **AGY CLI.** Wisp starts the local `agy` process in a private temporary
+  workspace with `--sandbox`. Attached screenshots are written there for AGY
+  to read, and Wisp deletes the directory when the command ends. AGY's own
+  account, network use, and server-side logging are outside Wisp's control.
+- **Claude Code CLI.** Wisp starts the local `claude` process in a private
+  temporary workspace with `--restricted`, exposes only the `Read` tool, and
+  disables local session history with `--no-session-persistence`. Attached
+  screenshots are the only files placed in that workspace, which Wisp deletes
+  when the command ends. Claude Code's account, network use, and server-side
+  logging are outside Wisp's control.
 - **Update check.** If Settings → General → "Check for a new version at launch"
   is on, Wisp asks `api.github.com` once per launch for the latest release tag.
   The request carries no identifier beyond what any HTTP request carries — your
@@ -88,6 +104,9 @@ If you do not want a specific page read, do not summon Wisp on it.
   supported browser. Granted per browser, the first time Wisp reads from it.
   Full page text additionally needs "Allow JavaScript from Apple Events"
   enabled in that browser, per profile.
+- **Accessibility** — only when the enhanced shortcut mode is selected, to
+  observe Shift, Globe/Fn, modifier-only, or double-/triple-tap key events while
+  another app is active. The standard Carbon shortcut does not need this access.
 - **Network client** — to reach your configured endpoint, a remote Ollama, and
   the optional update check.
 

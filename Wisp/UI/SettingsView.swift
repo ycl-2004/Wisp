@@ -322,7 +322,7 @@ struct ModelSettingsView: View {
 
     private var codexFields: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Field(label: "本地 CLI") {
+            Field(label: "本地 Cli") {
                 Picker("", selection: Binding(
                     get: { settings.cliProvider },
                     set: { provider in
@@ -395,7 +395,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
-                    InfoButton(message: String(localized: "使用已登录的 AGY，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 AGY 读取，用完即删。"))
+                    InfoButton(message: String(localized: "使用已登录的 Agy，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 Agy 读取，用完即删。"))
                 }
             }
 
@@ -403,15 +403,15 @@ struct ModelSettingsView: View {
                 label: "模型",
                 presets: agyModels.isEmpty ? AgyCLIProvider.fallbackModels : agyModels,
                 placeholder: "gemini-3.8-flash-high",
-                emptyOptionTitle: String(localized: "跟随 AGY 默认"),
+                emptyOptionTitle: String(localized: "跟随 Agy 默认"),
                 value: Binding(get: { settings.agyModel },
                                set: { settings.agyModel = $0; testResult = nil })
             )
             HStack(spacing: 8) {
                 Spacer()
-                Button(agyScanning ? "扫描中…" : "扫描最新 AGY 模型") { scanAgyModels() }
+                Button(agyScanning ? "扫描中…" : "扫描最新 Agy 模型") { scanAgyModels() }
                     .disabled(agyScanning)
-                InfoButton(message: String(localized: "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。"))
+                InfoButton(message: String(localized: "每次扫描都会直接执行 agy models，不缓存版本或模型列表；Agy 更新后重新扫描即可。"))
             }
 
             if AgyCLIProvider.resolvePath(settings.agyPath) == nil {
@@ -434,7 +434,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
-                    InfoButton(message: String(localized: "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 CLI 里只有它是逐字显示答案的。"))
+                    InfoButton(message: String(localized: "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 Cli 里只有它是逐字显示答案的。"))
                 }
             }
 
@@ -470,7 +470,7 @@ struct ModelSettingsView: View {
                 }
                 Spacer(minLength: 0)
                 InfoButton(message: String(localized: kind == .codexCLI
-                                            ? "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
+                                            ? "本地 Cli 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
                                             : "发送一张 64×64 测试图，验证连接和图片输入。"))
             }
             if let result = testResult {
@@ -767,10 +767,72 @@ private struct CaptureModeOption: View {
 
 // MARK: - 权限
 
+private struct AdvancedShortcutRecorderView: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @StateObject private var recorder = AdvancedShortcutRecorderModel()
+
+    private var tapCount: Int { settings.shortcutTrigger.tapCount ?? 1 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text("唤起助手：")
+                Spacer()
+                if let shortcut = settings.advancedShortcut, !recorder.isRecording {
+                    Text(shortcut.displayName)
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
+                Button {
+                    if recorder.isRecording {
+                        recorder.cancel()
+                    } else {
+                        recorder.begin(tapCount: tapCount) { shortcut in
+                            settings.advancedShortcut = shortcut
+                        }
+                    }
+                } label: {
+                    Text(buttonTitle)
+                }
+                .controlSize(.small)
+            }
+
+            Text(instruction)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+        }
+        .onChange(of: settings.shortcutTrigger) { _, _ in
+            recorder.cancel()
+        }
+        .onDisappear { recorder.cancel() }
+    }
+
+    private var buttonTitle: String {
+        if recorder.isRecording {
+            return "请按 \(tapCount) 次（\(recorder.progress)/\(tapCount)）"
+        }
+        return settings.advancedShortcut == nil ? "开始录制" : "重新录制"
+    }
+
+    private var instruction: String {
+        switch settings.shortcutTrigger {
+        case .enhancedSingle:
+            return "点击录制后按一次组合键，例如 Globe/Fn + Space 或 Shift + Space。"
+        case .doubleTap:
+            return "点击录制后快速按两次同一个键，例如 Control、Globe/Fn 或 Space。"
+        case .tripleTap:
+            return "点击录制后快速按三次同一个键。"
+        case .standard:
+            return ""
+        }
+    }
+}
+
 private struct CaptureSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @EnvironmentObject private var model: AssistantModel
     @State private var hasScreenRecording = Permissions.hasScreenRecording
+    @State private var hasAccessibility = Permissions.hasAccessibility
 
     struct ProfileEntry {
         var key: String
@@ -784,9 +846,40 @@ private struct CaptureSettingsView: View {
     var body: some View {
         Form {
             Section {
-                KeyboardShortcuts.Recorder("唤起助手：", name: .toggleAssistant)
+                Picker("触发方式", selection: Binding(
+                    get: { settings.shortcutTrigger },
+                    set: {
+                        settings.shortcutTrigger = $0
+                        AdvancedShortcutMonitor.shared.cancelRecording()
+                    }
+                )) {
+                    ForEach(ShortcutTriggerMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+
+                if settings.shortcutTrigger == .standard {
+                    KeyboardShortcuts.Recorder("唤起助手：", name: .toggleAssistant)
+                    Text(ShortcutTriggerMode.standard.detail)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                } else {
+                    AdvancedShortcutRecorderView()
+
+                    if !hasAccessibility {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text("增强快捷键需要辅助功能权限，才能在其他 App 中生效。")
+                                .font(.system(size: 10))
+                            Spacer()
+                            Button("去授权") { Permissions.openAccessibilitySettings() }
+                                .controlSize(.small)
+                        }
+                    }
+                }
             } header: {
-                SettingsSectionHeader("快捷键")
+                SettingsSectionHeader("快捷键", info: String(localized: "标准组合保持兼容；增强模式支持 Shift、Globe/Fn、单独修饰键和双击/三击。"))
             }
 
             Section {
@@ -955,6 +1048,7 @@ private struct CaptureSettingsView: View {
 
     private func refresh() {
         hasScreenRecording = Permissions.hasScreenRecording
+        hasAccessibility = Permissions.hasAccessibility
     }
 
     private func reloadProfiles() {

@@ -791,7 +791,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cloud endpoint"
+            "value": "Cloud Endpoint"
           }
         },
         "zh-Hans": {
@@ -1991,7 +1991,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Storage location"
+            "value": "Storage Location"
           }
         },
         "zh-Hans": {
@@ -2279,7 +2279,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Persistent island"
+            "value": "Persistent Island"
           }
         },
         "zh-Hans": {
@@ -2391,7 +2391,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keyboard shortcut"
+            "value": "Keyboard Shortcut"
           }
         },
         "zh-Hans": {
@@ -2578,18 +2578,18 @@
         }
       }
     },
-    "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。": {
+    "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex Cli。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Could not find the codex executable. Enter its full path in Settings, or install the Codex CLI first."
+            "value": "Could not find the codex executable. Enter its full path in Settings, or install the Codex Cli first."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。"
+            "value": "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex Cli。"
           }
         }
       }
@@ -3698,18 +3698,18 @@
         }
       }
     },
-    "现在连不上网。检查一下网络，或者改用 Ollama / Agent CLI 这种本地接法。": {
+    "现在连不上网。检查一下网络，或者改用 Ollama / Agent Cli 这种本地接法。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No network connection. Check your connection, or switch to a local provider like Ollama or Agent CLI."
+            "value": "No network connection. Check your connection, or switch to a local provider like Ollama or Agent Cli."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "现在连不上网。检查一下网络，或者改用 Ollama / Agent CLI 这种本地接法。"
+            "value": "现在连不上网。检查一下网络，或者改用 Ollama / Agent Cli 这种本地接法。"
           }
         }
       }
@@ -5730,50 +5730,50 @@
         }
       }
     },
-    "AGY 默认": {
+    "Agy 默认": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "AGY default"
+            "value": "Agy default"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "AGY 默认"
+            "value": "Agy 默认"
           }
         }
       }
     },
-    "复用已登录的 Codex 或 AGY，免配 Key": {
+    "复用已登录的 Codex、Antigravity 或 Claude Code": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reuse your signed-in Codex or AGY, no key needed"
+            "value": "Reuse your signed-in Codex, Antigravity, or Claude Code"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "复用已登录的 Codex 或 AGY，免配 Key"
+            "value": "复用已登录的 Codex、Antigravity 或 Claude Code"
           }
         }
       }
     },
-    "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。": {
+    "找不到 agy 可执行文件。请先安装并登录 Antigravity Cli，或在设置里填它的完整路径。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Could not find the agy executable. Install and sign in to the Antigravity CLI first, or enter its full path in Settings."
+            "value": "Could not find the agy executable. Install and sign in to the Antigravity Cli first, or enter its full path in Settings."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。"
+            "value": "找不到 agy 可执行文件。请先安装并登录 Antigravity Cli，或在设置里填它的完整路径。"
           }
         }
       }
@@ -5810,50 +5810,50 @@
         }
       }
     },
-    "跟随 AGY 默认": {
+    "跟随 Agy 默认": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Follow AGY's default"
+            "value": "Follow Agy's default"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "跟随 AGY 默认"
+            "value": "跟随 Agy 默认"
           }
         }
       }
     },
-    "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。": {
+    "每次扫描都会直接执行 agy models，不缓存版本或模型列表；Agy 更新后重新扫描即可。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Each scan runs agy models directly instead of caching the version or model list; scan again after AGY updates."
+            "value": "Each scan runs agy models directly instead of caching the version or model list; scan again after Agy updates."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。"
+            "value": "每次扫描都会直接执行 agy models，不缓存版本或模型列表；Agy 更新后重新扫描即可。"
           }
         }
       }
     },
-    "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。": {
+    "本地 Cli 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The local CLI test only checks whether the selected command starts; it does not spend an extra model request."
+            "value": "The local Cli test only checks whether the selected command starts; it does not spend an extra model request."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
+            "value": "本地 Cli 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
           }
         }
       }
@@ -5890,18 +5890,18 @@
         }
       }
     },
-    "使用已登录的 AGY，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 AGY 读取，用完即删。": {
+    "使用已登录的 Agy，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 Agy 读取，用完即删。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uses your signed-in AGY; no separate API Key is needed. Screenshots are written to a temporary directory for AGY to read, and removed as soon as the request ends."
+            "value": "Uses your signed-in Agy; no separate API Key is needed. Screenshots are written to a temporary directory for Agy to read, and removed as soon as the request ends."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用已登录的 AGY，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 AGY 读取，用完即删。"
+            "value": "使用已登录的 Agy，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 Agy 读取，用完即删。"
           }
         }
       }
@@ -5938,18 +5938,18 @@
         }
       }
     },
-    "扫描最新 AGY 模型": {
+    "扫描最新 Agy 模型": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan for the latest AGY models"
+            "value": "Scan for the latest Agy models"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "扫描最新 AGY 模型"
+            "value": "扫描最新 Agy 模型"
           }
         }
       }
@@ -5970,50 +5970,50 @@
         }
       }
     },
-    "本地 CLI": {
+    "本地 Cli": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Local CLI"
+            "value": "Local Cli"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本地 CLI"
+            "value": "本地 Cli"
           }
         }
       }
     },
-    "重新扫描 AGY 模型": {
+    "重新扫描 Agy 模型": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rescan AGY models"
+            "value": "Rescan Agy models"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新扫描 AGY 模型"
+            "value": "重新扫描 Agy 模型"
           }
         }
       }
     },
-    "AGY 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。": {
+    "Agy 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "AGY returned an empty answer with no reason given. The most likely causes are this turn's context reaching AGY's input limit, or too many requests in quick succession. Try lowering the page-text limit and asking again."
+            "value": "Agy returned an empty answer with no reason given. The most likely causes are this turn's context reaching Agy's input limit, or too many requests in quick succession. Try lowering the page-text limit and asking again."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "AGY 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"
+            "value": "Agy 返回了空回答，没有说明原因。多半是这一轮上下文顶到了 Agy 的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"
           }
         }
       }
@@ -6082,18 +6082,18 @@
         }
       }
     },
-    "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 CLI 里只有它是逐字显示答案的。": {
+    "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 Cli 里只有它是逐字显示答案的。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uses your signed-in Claude Code; no separate API Key is needed. Screenshots are written to a temporary directory for it to read, and removed as soon as the request ends. It is the only one of the three local CLIs that shows the answer as it is written."
+            "value": "Uses your signed-in Claude Code; no separate API Key is needed. Screenshots are written to a temporary directory for it to read, and removed as soon as the request ends. It is the only one of the three local Clis that shows the answer as it is written."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 CLI 里只有它是逐字显示答案的。"
+            "value": "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 Cli 里只有它是逐字显示答案的。"
           }
         }
       }
@@ -6206,6 +6206,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "偏写作与长文组织"
+          }
+        }
+      }
+    },
+    "（回答未完成：生成过程已中断。）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Response incomplete: generation was interrupted.)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（回答未完成：生成过程已中断。）"
           }
         }
       }

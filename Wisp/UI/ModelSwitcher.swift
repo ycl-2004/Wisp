@@ -34,7 +34,7 @@ struct ModelSwitcher: View {
             }
 
             if currentKind == .codexCLI {
-                Section("本地 CLI") {
+                Section("本地 Cli") {
                     ForEach(CLIProvider.allCases) { provider in
                         Button {
                             settings.cliProvider = provider
@@ -66,7 +66,7 @@ struct ModelSwitcher: View {
                 Button("重新扫描本机模型") { state.refreshOllama() }
             }
             if currentKind == .codexCLI, settings.cliProvider == .agy {
-                Button("重新扫描 AGY 模型") { state.refreshAgy() }
+                Button("重新扫描 Agy 模型") { state.refreshAgy() }
             }
             SettingsLink { Text("更多设置…") }
         } label: {
@@ -165,7 +165,7 @@ struct ModelSwitcher: View {
             if currentKind == .codexCLI {
                 switch settings.cliProvider {
                 case .codex:      return String(localized: "Codex 默认")
-                case .agy:        return String(localized: "AGY 默认")
+                case .agy:        return String(localized: "Agy 默认")
                 case .claudeCode: return String(localized: "Claude Code 默认")
                 }
             }

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-release-check:
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run unit tests
+        run: >-
+          xcodebuild test
+          -project Wisp.xcodeproj
+          -scheme Wisp
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Build Release
+        run: >-
+          xcodebuild build
+          -project Wisp.xcodeproj
+          -scheme Wisp
+          -configuration Release
+          -arch arm64
+          -arch x86_64
+          ONLY_ACTIVE_ARCH=NO
+          CODE_SIGN_IDENTITY=-
+          CODE_SIGNING_REQUIRED=YES
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
+
+      - name: Verify Release architecture, signature, and entitlements
+        run: |
+          lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
+          codesign --verify --deep --strict Build/Release/Wisp.app
+          codesign -d --entitlements :- Build/Release/Wisp.app > /tmp/wisp-entitlements.plist
+          if /usr/libexec/PlistBuddy -c 'Print :com.apple.security.get-task-allow' /tmp/wisp-entitlements.plist 2>/dev/null; then
+            echo 'Release unexpectedly contains com.apple.security.get-task-allow' >&2
+            exit 1
+          fi

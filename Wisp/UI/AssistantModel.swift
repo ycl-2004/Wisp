@@ -390,7 +390,8 @@ final class AssistantModel: ObservableObject {
                 if accumulated.isEmpty {
                     self.store.removeMessage(assistantMessage.id, from: conversationID)
                 } else {
-                    self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
+                    let incomplete = accumulated + "\n\n" + String(localized: "（回答未完成：生成过程已中断。）")
+                    self.store.updateStreaming(text: incomplete, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
                 if let providerError = error as? ProviderError {

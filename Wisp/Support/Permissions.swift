@@ -7,6 +7,11 @@ enum Permissions {
         CGPreflightScreenCaptureAccess()
     }
 
+    /// Whether macOS allows Wisp to observe raw keyboard events outside its own window.
+    static var hasAccessibility: Bool {
+        AXIsProcessTrusted()
+    }
+
     /// 请求录屏权限（首次会弹窗；已拒绝则无效果，需去系统设置）。
     @discardableResult
     static func requestScreenRecording() -> Bool {

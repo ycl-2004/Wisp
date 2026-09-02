@@ -47,13 +47,13 @@ enum ProviderError: LocalizedError {
         case .cancelled:
             return String(localized: "已取消。")
         case .codexNotFound:
-            return String(localized: "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex CLI。")
+            return String(localized: "找不到 codex 可执行文件。请在设置里填它的完整路径，或先装好 Codex Cli。")
         case .codexFailed(let detail, let status):
             return String(localized: "codex 执行失败（退出码 \(status)）：\(detail)")
         case .codexTimedOut(let seconds):
             return String(localized: "codex 超过 \(seconds) 秒没有返回，已经把它停掉了。可以换个更小的模型，或者先在终端直接跑一次 codex 确认它是通的。")
         case .agyNotFound:
-            return String(localized: "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。")
+            return String(localized: "找不到 agy 可执行文件。请先安装并登录 Antigravity Cli，或在设置里填它的完整路径。")
         case .agyFailed(let detail, let status):
             return String(localized: "agy 执行失败（退出码 \(status)）：\(detail)")
         case .agyTimedOut(let seconds):
@@ -69,7 +69,7 @@ enum ProviderError: LocalizedError {
         case .ollamaNotRunning:
             return String(localized: "Ollama 没在运行。在设置里点「启动 Ollama」，或在终端跑 `ollama serve`。")
         case .offline:
-            return String(localized: "现在连不上网。检查一下网络，或者改用 Ollama / Agent CLI 这种本地接法。")
+            return String(localized: "现在连不上网。检查一下网络，或者改用 Ollama / Agent Cli 这种本地接法。")
         case .timedOut(let seconds):
             return String(localized: "等了 \(seconds) 秒还没有任何响应，已经中断。可能是网络不稳，或者这个接口太慢。")
         }
@@ -199,6 +199,31 @@ enum CLICommand {
             DispatchQueue.global(qos: .utility).async {
                 continuation.resume(returning: handle.readDataToEndOfFile())
             }
+        }
+    }
+}
+
+/// CLI 图片输入的短生命周期工作目录。目录权限固定为 0700，命令结束后由
+/// provider 调用 `remove`；如果应用被强制终止，系统临时目录仍会负责后续回收。
+enum CLITemporaryDirectory {
+    static func create(prefix: String) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(prefix)-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: false,
+            attributes: [.posixPermissions: 0o700]
+        )
+        return directory
+    }
+
+    @discardableResult
+    static func remove(_ directory: URL) -> Bool {
+        do {
+            try FileManager.default.removeItem(at: directory)
+            return !FileManager.default.fileExists(atPath: directory.path)
+        } catch {
+            return false
         }
     }
 }

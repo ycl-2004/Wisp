@@ -123,9 +123,7 @@ struct AgyCLIProvider: ChatProvider {
                     // 工作目录既是 AGY 的 workspace，也是这一轮截图的落脚点。
                     // 不指定的话 AGY 会把 GUI 进程的当前目录当成 workspace，
                     // 而那是用户的文件系统根目录。
-                    let directory = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("Wisp-agy-\(UUID().uuidString)", isDirectory: true)
-                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    let directory = try CLITemporaryDirectory.create(prefix: "Wisp-agy")
                     workDirectory = directory
 
                     var imagePaths: [String] = []
@@ -153,7 +151,7 @@ struct AgyCLIProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError.network(error.localizedDescription))
                 }
                 // 无论走哪条路都要清掉临时目录，里面有这一轮的屏幕截图。
-                if let workDirectory { try? FileManager.default.removeItem(at: workDirectory) }
+                if let workDirectory { CLITemporaryDirectory.remove(workDirectory) }
             }
 
             let watchdog = Task.detached {
@@ -382,7 +380,7 @@ struct AgyCLIProvider: ChatProvider {
         // 或连着发大请求之后出现。照直交上去，用户看到的是一片空白，既不知道
         // 出了什么事，也没有该重试还是该改设置的线索。
         guard !response.isEmpty else {
-            return .failure(String(localized: "AGY 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"))
+            return .failure(String(localized: "Agy 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"))
         }
         return .success(response)
     }

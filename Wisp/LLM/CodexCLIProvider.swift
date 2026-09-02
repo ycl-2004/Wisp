@@ -110,9 +110,7 @@ struct CodexCLIProvider: ChatProvider {
                     }
 
                     let (prompt, imageData) = Self.flatten(messages)
-                    let directory = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("Wisp-codex-\(UUID().uuidString)", isDirectory: true)
-                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    let directory = try CLITemporaryDirectory.create(prefix: "Wisp-codex")
                     workDirectory = directory
 
                     var arguments = [
@@ -212,7 +210,7 @@ struct CodexCLIProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError.network(error.localizedDescription))
                 }
                 // 无论走哪条路都要清掉临时目录，里面有这一轮的屏幕截图。
-                if let workDirectory { try? FileManager.default.removeItem(at: workDirectory) }
+                if let workDirectory { CLITemporaryDirectory.remove(workDirectory) }
             }
 
             let watchdog = Task.detached {

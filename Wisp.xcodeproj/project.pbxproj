@@ -33,12 +33,14 @@
 		7DCEEF8AC2612C67CD85E109 /* ChatInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921FC48F6E412CFE0F79A064 /* ChatInput.swift */; };
 		82626971596C37002D276D84 /* THIRD-PARTY-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = C9F5C744F223290FE83398A0 /* THIRD-PARTY-NOTICES.txt */; };
 		8553C64098C136A75A112B1D /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4219DA62267C232EC8178C3 /* AppSettings.swift */; };
+		8F4C1B2D4C6E4A3BB8A1C7D9 /* AdvancedShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2D0E4F6B88453A9F2B1C8D /* AdvancedShortcut.swift */; };
 		8583C047D922BAAD1805E184 /* IslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C6386D864008ED3EFC7AF19 /* IslandView.swift */; };
 		87AC3E73ADEAC04BF8961EBF /* ModelSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB3B03DE39F1B2913316699 /* ModelSwitcher.swift */; };
 		9B7DDA176AEBEDA8802E0CA4 /* ClaudeCodeCLIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DED64B0C68FB3CC6C745E18E /* ClaudeCodeCLIProvider.swift */; };
 		9CAC809156C87B9CBD77F706 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = C7518826BC8C22D3248863C6 /* KeyboardShortcuts */; };
 		A0E1A4A14000320BBF0C347C /* ProviderKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E6751EDF8BD3C3D1057823 /* ProviderKind.swift */; };
 		A7ACC144004D961ADE6461BA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD848A36FF696A67A9B866CF /* SettingsView.swift */; };
+		AC4AD3B1BD8DDD7307DE059D /* ClaudeCodeCLIProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04C405D7EF4536131CB4C88 /* ClaudeCodeCLIProviderTests.swift */; };
 		B31E746175621480603B27A5 /* CodexCLIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */; };
 		B39C52C5798DD6CDC70C0004 /* PromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF252A9CF890F2FF6AA03A30 /* PromptBuilder.swift */; };
 		B9526A014D8AC4B802FDC1D1 /* ContextCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41B113B5C159C60EFB6D81EE /* ContextCapture.swift */; };
@@ -55,6 +57,16 @@
 		FF82F88F62AF5E7B496F7260 /* ContextHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F749591135B3236A301EBD9 /* ContextHeaderView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		11438854A25FC4FEE50CA29C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B79780F0B29692CEE165AFF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9FED08DA26E69D96AED0CA8F;
+			remoteInfo = Wisp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		099181E9B8BFE6F3475C5D36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0FD38FF45C779D119B8505DB /* ModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelCatalog.swift; sourceTree = "<group>"; };
@@ -65,6 +77,7 @@
 		289DAC5302AC210D15D11185 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
 		2FEF314AEBA5E6E234FD7AA8 /* AssistantModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantModel.swift; sourceTree = "<group>"; };
 		305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexCLIProvider.swift; sourceTree = "<group>"; };
+		325B4025CEE91B187FF7D362 /* WispTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WispTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		38E6751EDF8BD3C3D1057823 /* ProviderKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderKind.swift; sourceTree = "<group>"; };
 		41B113B5C159C60EFB6D81EE /* ContextCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextCapture.swift; sourceTree = "<group>"; };
 		44DC7221B21E809C29A387DA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -100,7 +113,9 @@
 		DED64B0C68FB3CC6C745E18E /* ClaudeCodeCLIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeCLIProvider.swift; sourceTree = "<group>"; };
 		DF252A9CF890F2FF6AA03A30 /* PromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptBuilder.swift; sourceTree = "<group>"; };
 		E0ABF5B7E426F91A8A63F404 /* OpenAICompatibleProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAICompatibleProvider.swift; sourceTree = "<group>"; };
+		F04C405D7EF4536131CB4C88 /* ClaudeCodeCLIProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeCLIProviderTests.swift; sourceTree = "<group>"; };
 		F4219DA62267C232EC8178C3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		7A2D0E4F6B88453A9F2B1C8D /* AdvancedShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedShortcut.swift; sourceTree = "<group>"; };
 		FAAD2D8800C4677B4B95BA21 /* ScreenGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenGeometry.swift; sourceTree = "<group>"; };
 		FECA24573B4CA6A51FD2C1F8 /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -172,6 +187,7 @@
 			children = (
 				119251661D7B6514A28CE759 /* AppLifecycle.swift */,
 				F4219DA62267C232EC8178C3 /* AppSettings.swift */,
+				7A2D0E4F6B88453A9F2B1C8D /* AdvancedShortcut.swift */,
 				D6923A8484BA459627208827 /* Permissions.swift */,
 				FAAD2D8800C4677B4B95BA21 /* ScreenGeometry.swift */,
 			);
@@ -188,10 +204,19 @@
 			path = Store;
 			sourceTree = "<group>";
 		};
+		ABC0E6A7E8DDC852703C1393 /* WispTests */ = {
+			isa = PBXGroup;
+			children = (
+				F04C405D7EF4536131CB4C88 /* ClaudeCodeCLIProviderTests.swift */,
+			);
+			path = WispTests;
+			sourceTree = "<group>";
+		};
 		B7756A2DAF10E6E2D9C5CA77 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				9419236D77396D53BBCDB867 /* Wisp.app */,
+				325B4025CEE91B187FF7D362 /* WispTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -200,6 +225,7 @@
 			isa = PBXGroup;
 			children = (
 				DB40982ED6D212CF23B3970B /* Wisp */,
+				ABC0E6A7E8DDC852703C1393 /* WispTests */,
 				C9F5C744F223290FE83398A0 /* THIRD-PARTY-NOTICES.txt */,
 				B7756A2DAF10E6E2D9C5CA77 /* Products */,
 			);
@@ -265,6 +291,24 @@
 			productReference = 9419236D77396D53BBCDB867 /* Wisp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B5F8519D0E8D4DCDA0099DF4 /* WispTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65DC892F837408CEDD76D095 /* Build configuration list for PBXNativeTarget "WispTests" */;
+			buildPhases = (
+				68A9681893182E3069B33399 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E370462E3CE522F438F2A7E8 /* PBXTargetDependency */,
+			);
+			name = WispTests;
+			packageProductDependencies = (
+			);
+			productName = WispTests;
+			productReference = 325B4025CEE91B187FF7D362 /* WispTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -275,6 +319,10 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9FED08DA26E69D96AED0CA8F = {
+						DevelopmentTeam = BQYHJCCRMP;
+						ProvisioningStyle = Manual;
+					};
+					B5F8519D0E8D4DCDA0099DF4 = {
 						DevelopmentTeam = BQYHJCCRMP;
 						ProvisioningStyle = Manual;
 					};
@@ -299,6 +347,7 @@
 			projectRoot = "";
 			targets = (
 				9FED08DA26E69D96AED0CA8F /* Wisp */,
+				B5F8519D0E8D4DCDA0099DF4 /* WispTests */,
 			);
 		};
 /* End PBXProject section */
@@ -317,6 +366,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		68A9681893182E3069B33399 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC4AD3B1BD8DDD7307DE059D /* ClaudeCodeCLIProviderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9D93DB780FFF4DC6180B4608 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -325,6 +382,7 @@
 				4A902C4BDE836B8337E29D51 /* AppDelegate.swift in Sources */,
 				15FAE49703C41F910824FBB3 /* AppLifecycle.swift in Sources */,
 				8553C64098C136A75A112B1D /* AppSettings.swift in Sources */,
+				8F4C1B2D4C6E4A3BB8A1C7D9 /* AdvancedShortcut.swift in Sources */,
 				0C5B168409E54C375ADF9E76 /* AssistantModel.swift in Sources */,
 				BB3124E118643C50875AA0BC /* BrowserTextExtractor.swift in Sources */,
 				7DCEEF8AC2612C67CD85E109 /* ChatInput.swift in Sources */,
@@ -368,6 +426,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		E370462E3CE522F438F2A7E8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9FED08DA26E69D96AED0CA8F /* Wisp */;
+			targetProxy = 11438854A25FC4FEE50CA29C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		3498F71907768D50CCE6902E /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -403,6 +469,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 4;
@@ -435,6 +502,24 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
+		};
+		7FCA432365544BB1B03D9352 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yichenlin.WispTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wisp.app/Contents/MacOS/Wisp";
+			};
+			name = Debug;
 		};
 		804ABEB7077DA0CAF48FBF97 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -544,9 +629,36 @@
 			};
 			name = Debug;
 		};
+		B4A686A906F32DB24F661F73 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yichenlin.WispTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wisp.app/Contents/MacOS/Wisp";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		65DC892F837408CEDD76D095 /* Build configuration list for PBXNativeTarget "WispTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7FCA432365544BB1B03D9352 /* Debug */,
+				B4A686A906F32DB24F661F73 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		AF08605E8F35CEAC70BF62BC /* Build configuration list for PBXProject "Wisp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

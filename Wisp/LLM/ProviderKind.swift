@@ -10,9 +10,9 @@ enum CLIProvider: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .codex:      return "Codex CLI"
-        case .agy:        return "AGY CLI"
-        case .claudeCode: return "Claude Code CLI"
+        case .codex:      return "Codex Cli"
+        case .agy:        return "Antigravity Cli"
+        case .claudeCode: return "Claude Code Cli"
         }
     }
 }
@@ -29,7 +29,7 @@ enum ProviderKind: String, CaseIterable, Identifiable {
         switch self {
         case .openAICompatible: return String(localized: "云端接口")
         case .ollama:           return String(localized: "Ollama 本地")
-        case .codexCLI:         return "Agent CLI"
+        case .codexCLI:         return "Agent Cli"
         }
     }
 
@@ -37,7 +37,7 @@ enum ProviderKind: String, CaseIterable, Identifiable {
         switch self {
         case .openAICompatible: return String(localized: "任何 OpenAI 兼容接口，自带 Key")
         case .ollama:           return String(localized: "本机模型，不联网，不花钱")
-        case .codexCLI:         return String(localized: "复用已登录的 Codex 或 AGY，免配 Key")
+        case .codexCLI:         return String(localized: "复用已登录的 Codex、Antigravity 或 Claude Code")
         }
     }
 

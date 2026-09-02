@@ -98,6 +98,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         KeyboardShortcuts.onKeyUp(for: .toggleAssistant) {
+            guard AppSettings.shared.shortcutTrigger == .standard else { return }
+            Task { @MainActor in
+                PanelController.shared.toggle()
+            }
+        }
+
+        AdvancedShortcutMonitor.shared.configure {
             Task { @MainActor in
                 PanelController.shared.toggle()
             }

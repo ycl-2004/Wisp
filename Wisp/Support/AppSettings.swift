@@ -70,6 +70,8 @@ final class AppSettings: ObservableObject {
         static let maxConversations = "maxConversations"
         static let maxUserTurns = "maxUserTurns"
         static let sendScreenshot = "sendScreenshot"
+        static let shortcutTrigger = "shortcutTrigger"
+        static let advancedShortcut = "advancedShortcut"
         static let lastActiveConversationID = "lastActiveConversationID"
         static let panelFrame = "panelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
@@ -107,6 +109,7 @@ final class AppSettings: ObservableObject {
             K.maxConversations: 10,
             K.maxUserTurns: 30,
             K.sendScreenshot: true,
+            K.shortcutTrigger: ShortcutTriggerMode.standard.rawValue,
             K.debugDumpEnabled: false,
             K.showIsland: true,
             K.islandPosition: "bottom",
@@ -257,6 +260,28 @@ final class AppSettings: ObservableObject {
     var sendScreenshot: Bool {
         get { d.bool(forKey: K.sendScreenshot) }
         set { d.set(newValue, forKey: K.sendScreenshot); objectWillChange.send() }
+    }
+
+    var shortcutTrigger: ShortcutTriggerMode {
+        get {
+            ShortcutTriggerMode(rawValue: d.string(forKey: K.shortcutTrigger) ?? "") ?? .standard
+        }
+        set { d.set(newValue.rawValue, forKey: K.shortcutTrigger); objectWillChange.send() }
+    }
+
+    var advancedShortcut: AdvancedShortcut? {
+        get {
+            guard let data = d.data(forKey: K.advancedShortcut) else { return nil }
+            return try? JSONDecoder().decode(AdvancedShortcut.self, from: data)
+        }
+        set {
+            if let newValue, let data = try? JSONEncoder().encode(newValue) {
+                d.set(data, forKey: K.advancedShortcut)
+            } else {
+                d.removeObject(forKey: K.advancedShortcut)
+            }
+            objectWillChange.send()
+        }
     }
 
     var debugDumpEnabled: Bool {

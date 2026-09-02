@@ -81,9 +81,7 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     // workspace（和 --add-dir）里的文件，落在别处的截图会被
                     // 直接拒掉——它不会报错，而是照常作答并说「读取权限被拒绝」，
                     // 于是这一轮就成了纯文本问答，用户还看不出截图没送到。
-                    let directory = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("Wisp-claude-\(UUID().uuidString)", isDirectory: true)
-                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    let directory = try CLITemporaryDirectory.create(prefix: "Wisp-claude")
                     workDirectory = directory
 
                     var imagePaths: [String] = []
@@ -100,19 +98,7 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     let process = Process()
                     process.executableURL = URL(fileURLWithPath: binary)
                     process.currentDirectoryURL = directory
-                    var arguments = [
-                        "-p", prompt,
-                        // stream-json 在 --print 下必须配 --verbose，否则直接报错退出。
-                        "--output-format", "stream-json",
-                        "--include-partial-messages",
-                        "--verbose",
-                        // 只放行读文件。截图要靠 Read 读进来，其余工具一律不给。
-                        "--allowedTools", "Read",
-                    ]
-                    if !config.model.trimmingCharacters(in: .whitespaces).isEmpty {
-                        arguments.append(contentsOf: ["--model", config.model])
-                    }
-                    process.arguments = arguments
+                    process.arguments = Self.commandArguments(prompt: prompt, model: config.model)
 
                     let stdout = Pipe(), stderr = Pipe()
                     process.standardOutput = stdout
@@ -163,6 +149,20 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                             }
                         }
                     }
+                    // NDJSON 通常以换行收尾，但不要把“最后一行没有换行”误判成
+                    // 缺失 result。那会把一条完整回答错误标成失败。
+                    if let line = String(data: buffer, encoding: .utf8),
+                       !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        switch Self.event(in: line) {
+                        case .text(let delta):
+                            streamed += delta
+                            continuation.yield(delta)
+                        case .finished(let result):
+                            outcome = result
+                        case .none:
+                            break
+                        }
+                    }
 
                     process.waitUntilExit()
                     stderrHandle.readabilityHandler = nil
@@ -174,10 +174,14 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                             : ProviderError.cancelled
                     }
 
-                    // 收尾那条 result 事件才是结论。前面流出去的可能只是半截。
-                    if let outcome, outcome.isError {
+                    // 收尾那条 result 事件和 0 退出码缺一不可。前面流出去的可能
+                    // 只是半截，不能因为有 text_delta 就把崩溃误记成成功。
+                    guard Self.isSuccessfulCompletion(outcome: outcome,
+                                                      status: process.terminationStatus) else {
+                        let outcomeDetail = outcome?.text ?? ""
+                        let detail = outcomeDetail.isEmpty ? stderrBuffer.text : outcomeDetail
                         throw ProviderError.claudeCodeFailed(
-                            Self.condense(outcome.text.isEmpty ? stderrBuffer.text : outcome.text),
+                            Self.condense(detail),
                             status: process.terminationStatus)
                     }
                     if streamed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -198,7 +202,7 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError.network(error.localizedDescription))
                 }
                 // 无论走哪条路都要清掉临时目录，里面有这一轮的屏幕截图。
-                if let workDirectory { try? FileManager.default.removeItem(at: workDirectory) }
+                if let workDirectory { CLITemporaryDirectory.remove(workDirectory) }
             }
 
             let watchdog = Task.detached {
@@ -226,24 +230,65 @@ struct ClaudeCodeCLIProvider: ChatProvider {
             throw ProviderError.claudeCodeNotFound
         }
         if result.timedOut { throw ProviderError.claudeCodeTimedOut(15) }
-        guard result.status == 0 else {
+        switch Self.authenticationState(status: result.status, stdout: result.stdout) {
+        case .signedOut:
+            throw ProviderError.claudeCodeSignedOut
+        case .failed:
             throw ProviderError.claudeCodeFailed(Self.condense(result.stderr), status: result.status)
-        }
-        guard let data = result.stdout.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let loggedIn = object["loggedIn"] as? Bool else {
-            // 输出解析不了就不当成没登录，只要命令跑通就放行——
-            // 将来 `auth status` 换格式，不该把能用的配置判死。
+        case .signedIn:
             return
         }
-        guard loggedIn else { throw ProviderError.claudeCodeSignedOut }
     }
 
     // MARK: - 事件解析
 
+    /// `--allowedTools` 只免去确认，并不会移除其它工具。真正的边界由
+    /// `--restricted`（文件仅限工作目录、忽略用户/项目配置）和
+    /// `--tools Read`（只暴露 Read）共同建立。会话也不落到 Claude Code 的历史里。
+    static func commandArguments(prompt: String, model: String) -> [String] {
+        var arguments = [
+            "-p", prompt,
+            // stream-json 在 --print 下必须配 --verbose，否则直接报错退出。
+            "--output-format", "stream-json",
+            "--include-partial-messages",
+            "--verbose",
+            "--restricted",
+            "--tools", "Read",
+            "--allowedTools", "Read",
+            "--no-session-persistence",
+        ]
+        if !model.trimmingCharacters(in: .whitespaces).isEmpty {
+            arguments.append(contentsOf: ["--model", model])
+        }
+        return arguments
+    }
+
+    enum AuthenticationState: Equatable {
+        case signedIn
+        case signedOut
+        case failed
+    }
+
+    /// 官方约定未登录时退出码为 1，因此必须先于通用非零错误处理。
+    /// 退出码为 0 但 JSON 暂时换格式时仍放行，避免 CLI 升级造成误报。
+    static func authenticationState(status: Int32, stdout: String) -> AuthenticationState {
+        if status == 1 { return .signedOut }
+        guard status == 0 else { return .failed }
+        guard let data = stdout.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let loggedIn = object["loggedIn"] as? Bool else {
+            return .signedIn
+        }
+        return loggedIn ? .signedIn : .signedOut
+    }
+
     struct Outcome {
         let isError: Bool
         let text: String
+    }
+
+    static func isSuccessfulCompletion(outcome: Outcome?, status: Int32) -> Bool {
+        status == 0 && outcome?.isError == false
     }
 
     enum Event {
