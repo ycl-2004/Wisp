@@ -39,6 +39,7 @@
 		A0E1A4A14000320BBF0C347C /* ProviderKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E6751EDF8BD3C3D1057823 /* ProviderKind.swift */; };
 		A7ACC144004D961ADE6461BA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD848A36FF696A67A9B866CF /* SettingsView.swift */; };
 		B31E746175621480603B27A5 /* CodexCLIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */; };
+		B4F5C4B091D045C48E6A7C31 /* AgyCLIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F5C4B091D045C48E6A7C30 /* AgyCLIProvider.swift */; };
 		B39C52C5798DD6CDC70C0004 /* PromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF252A9CF890F2FF6AA03A30 /* PromptBuilder.swift */; };
 		B9526A014D8AC4B802FDC1D1 /* ContextCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41B113B5C159C60EFB6D81EE /* ContextCapture.swift */; };
 		BB3124E118643C50875AA0BC /* BrowserTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D441EE599D76138A965327 /* BrowserTextExtractor.swift */; };
@@ -63,6 +64,7 @@
 		289DAC5302AC210D15D11185 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
 		2FEF314AEBA5E6E234FD7AA8 /* AssistantModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantModel.swift; sourceTree = "<group>"; };
 		305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexCLIProvider.swift; sourceTree = "<group>"; };
+		B4F5C4B091D045C48E6A7C30 /* AgyCLIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgyCLIProvider.swift; sourceTree = "<group>"; };
 		38E6751EDF8BD3C3D1057823 /* ProviderKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderKind.swift; sourceTree = "<group>"; };
 		41B113B5C159C60EFB6D81EE /* ContextCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextCapture.swift; sourceTree = "<group>"; };
 		44DC7221B21E809C29A387DA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 				7072DCC5DC79AC7662B4D26E /* ChatProvider.swift */,
 				A604783198612F2968B1896A /* CloudProvider.swift */,
 				305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */,
+				B4F5C4B091D045C48E6A7C30 /* AgyCLIProvider.swift */,
 				0FD38FF45C779D119B8505DB /* ModelCatalog.swift */,
 				BC136157986B3A2685C9826B /* OllamaSupport.swift */,
 				E0ABF5B7E426F91A8A63F404 /* OpenAICompatibleProvider.swift */,
@@ -326,6 +329,7 @@
 				FB7B27C6542489196AE83284 /* ChromeProfileInspector.swift in Sources */,
 				04B889D70CB50B944444082E /* CloudProvider.swift in Sources */,
 				B31E746175621480603B27A5 /* CodexCLIProvider.swift in Sources */,
+				B4F5C4B091D045C48E6A7C31 /* AgyCLIProvider.swift in Sources */,
 				B9526A014D8AC4B802FDC1D1 /* ContextCapture.swift in Sources */,
 				FF82F88F62AF5E7B496F7260 /* ContextHeaderView.swift in Sources */,
 				0703DEB9FBBE978FA71F0BB1 /* ContextPacket.swift in Sources */,

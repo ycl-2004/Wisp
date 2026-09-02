@@ -3698,18 +3698,18 @@
         }
       }
     },
-    "现在连不上网。检查一下网络，或者改用 Ollama / Codex CLI 这种本地接法。": {
+    "现在连不上网。检查一下网络，或者改用 Ollama / Agent CLI 这种本地接法。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No network connection. Check your connection, or switch to a local provider like Ollama or the Codex CLI."
+            "value": "No network connection. Check your connection, or switch to a local provider like Ollama or Agent CLI."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "现在连不上网。检查一下网络，或者改用 Ollama / Codex CLI 这种本地接法。"
+            "value": "现在连不上网。检查一下网络，或者改用 Ollama / Agent CLI 这种本地接法。"
           }
         }
       }
@@ -5728,6 +5728,60 @@
             "value": "被限流（429）。已经碰到这家服务商的速率上限，等一会儿再试，或换一个模型。免费额度一般按每分钟和每天分开计。"
           }
         }
+      }
+    },
+    "AGY 默认": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "AGY default" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "AGY 默认" } }
+      }
+    },
+    "复用已登录的 Codex 或 AGY，免配 Key": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Reuse your signed-in Codex or AGY, no key needed" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "复用已登录的 Codex 或 AGY，免配 Key" } }
+      }
+    },
+    "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Could not find the agy executable. Install and sign in to the Antigravity CLI first, or enter its full path in Settings." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。" } }
+      }
+    },
+    "agy 执行失败（退出码 %d）：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "agy failed (exit code %1$d): %2$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "agy 执行失败（退出码 %1$d）：%2$@" } }
+      }
+    },
+    "agy 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 agy 确认它是通的。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "agy did not respond within %lld seconds and was stopped. Try a smaller model, or run agy directly in Terminal first to confirm it works." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "agy 超过 %lld 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 agy 确认它是通的。" } }
+      }
+    },
+    "使用已登录的 AGY，不需要单独填写 API Key；有截图时会通过临时交互终端传入。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Uses your signed-in AGY; no separate API Key is needed. Screenshots are passed through a temporary interactive terminal." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "使用已登录的 AGY，不需要单独填写 API Key；有截图时会通过临时交互终端传入。" } }
+      }
+    },
+    "跟随 AGY 默认": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Follow AGY's default" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "跟随 AGY 默认" } }
+      }
+    },
+    "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Each scan runs agy models directly instead of caching the version or model list; scan again after AGY updates." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。" } }
+      }
+    },
+    "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The local CLI test only checks whether the selected command starts; it does not spend an extra model request." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。" } }
       }
     }
   }

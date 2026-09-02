@@ -370,7 +370,7 @@ final class AssistantModel: ObservableObject {
             var counter = 0
             do {
                 let config = try ProviderConfig.current()
-                let provider = ProviderConfig.provider(for: config.kind)
+                let provider = ProviderConfig.provider(for: config)
                 for try await chunk in provider.stream(messages: payload, config: config) {
                     if Task.isCancelled { break }
                     accumulated += chunk

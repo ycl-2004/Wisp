@@ -58,6 +58,9 @@ final class AppSettings: ObservableObject {
         static let ollamaModel = "ollamaModel"
         static let codexPath = "codexPath"
         static let codexModel = "codexModel"
+        static let cliProvider = "cliProvider"
+        static let agyPath = "agyPath"
+        static let agyModel = "agyModel"
         static let model = "model"
         static let excludedBundleIDs = "excludedBundleIDs"
         static let pageTextLimit = "pageTextLimit"
@@ -86,6 +89,9 @@ final class AppSettings: ObservableObject {
             K.ollamaModel: "",
             K.codexPath: "",
             K.codexModel: "",
+            K.cliProvider: CLIProvider.codex.rawValue,
+            K.agyPath: "",
+            K.agyModel: "",
             K.model: CloudProvider.openRouter.defaultModel,
             K.excludedBundleIDs: [
                 "com.1password.1password",
@@ -129,6 +135,21 @@ final class AppSettings: ObservableObject {
     var codexModel: String {
         get { d.string(forKey: K.codexModel) ?? "" }
         set { d.set(newValue, forKey: K.codexModel); objectWillChange.send() }
+    }
+
+    var cliProvider: CLIProvider {
+        get { CLIProvider(rawValue: d.string(forKey: K.cliProvider) ?? "") ?? .codex }
+        set { d.set(newValue.rawValue, forKey: K.cliProvider); objectWillChange.send() }
+    }
+
+    var agyPath: String {
+        get { d.string(forKey: K.agyPath) ?? "" }
+        set { d.set(newValue, forKey: K.agyPath); objectWillChange.send() }
+    }
+
+    var agyModel: String {
+        get { d.string(forKey: K.agyModel) ?? "" }
+        set { d.set(newValue, forKey: K.agyModel); objectWillChange.send() }
     }
 
     var baseURL: String {

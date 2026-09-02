@@ -78,6 +78,8 @@ struct ModelSettingsView: View {
     @State private var testResult: (ok: Bool, message: String)?
     @State private var ollamaStatus: OllamaSupport.Status?
     @State private var probing = false
+    @State private var agyModels: [ModelCatalog.Preset] = []
+    @State private var agyScanning = false
 
     private var kind: ProviderKind {
         ProviderKind(rawValue: settings.providerKind) ?? .openAICompatible
@@ -103,10 +105,16 @@ struct ModelSettingsView: View {
                 keyLoaded = true
             }
             if kind == .ollama { probeOllama() }
-            if kind == .codexCLI, settings.codexPath.isEmpty,
-               let detected = CodexCLIProvider.detectedPath {
-                settings.codexPath = detected
+            if kind == .codexCLI {
+                ensureCLIPath()
+                if settings.cliProvider == .agy { scanAgyModels() }
             }
+        }
+        .onChange(of: settings.cliProvider) { _, provider in
+            guard kind == .codexCLI else { return }
+            ensureCLIPath()
+            testResult = nil
+            if provider == .agy { scanAgyModels() }
         }
     }
 
@@ -131,10 +139,7 @@ struct ModelSettingsView: View {
                     settings.providerKind = option.rawValue
                     testResult = nil
                     if option == .ollama { probeOllama() }
-                    if option == .codexCLI, settings.codexPath.isEmpty,
-                       let detected = CodexCLIProvider.detectedPath {
-                        settings.codexPath = detected
-                    }
+                    if option == .codexCLI { ensureCLIPath() }
                 }
             }
         }
@@ -305,6 +310,33 @@ struct ModelSettingsView: View {
 
     private var codexFields: some View {
         VStack(alignment: .leading, spacing: 10) {
+            Field(label: "本地 CLI") {
+                Picker("", selection: Binding(
+                    get: { settings.cliProvider },
+                    set: { provider in
+                        settings.cliProvider = provider
+                        ensureCLIPath()
+                        if provider == .agy { scanAgyModels() }
+                        testResult = nil
+                    }
+                )) {
+                    ForEach(CLIProvider.allCases) { provider in
+                        Text(provider.title).tag(provider)
+                    }
+                }
+                .labelsHidden()
+            }
+
+            if settings.cliProvider == .agy {
+                agyFields
+            } else {
+                codexCLIFields
+            }
+        }
+    }
+
+    private var codexCLIFields: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Field(label: "可执行文件") {
                 HStack(spacing: 6) {
                     TextField(CodexCLIProvider.detectedPath ?? "/usr/local/bin/codex",
@@ -338,6 +370,45 @@ struct ModelSettingsView: View {
         }
     }
 
+    private var agyFields: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Field(label: "可执行文件") {
+                HStack(spacing: 6) {
+                    TextField(AgyCLIProvider.detectedPath ?? "/usr/local/bin/agy",
+                              text: Binding(get: { settings.agyPath },
+                                            set: { settings.agyPath = $0; testResult = nil }))
+                    Button("自动查找") {
+                        if let detected = AgyCLIProvider.detectedPath {
+                            settings.agyPath = detected
+                            testResult = nil
+                        }
+                    }
+                    InfoButton(message: String(localized: "使用已登录的 AGY，不需要单独填写 API Key；有截图时会通过临时交互终端传入。"))
+                }
+            }
+
+            ModelPickerRow(
+                label: "模型",
+                presets: agyModels.isEmpty ? AgyCLIProvider.fallbackModels : agyModels,
+                placeholder: "gemini-3.8-flash-high",
+                emptyOptionTitle: String(localized: "跟随 AGY 默认"),
+                value: Binding(get: { settings.agyModel },
+                               set: { settings.agyModel = $0; testResult = nil })
+            )
+            HStack(spacing: 8) {
+                Spacer()
+                Button(agyScanning ? "扫描中…" : "扫描最新 AGY 模型") { scanAgyModels() }
+                    .disabled(agyScanning)
+                InfoButton(message: String(localized: "每次扫描都会直接执行 agy models，不缓存版本或模型列表；AGY 更新后重新扫描即可。"))
+            }
+
+            if AgyCLIProvider.resolvePath(settings.agyPath) == nil {
+                Label("找不到 agy，请填完整路径。", systemImage: "xmark.circle")
+                    .font(.system(size: 11)).foregroundStyle(.red)
+            }
+        }
+    }
+
     // MARK: 测试
 
     private var testRow: some View {
@@ -354,7 +425,7 @@ struct ModelSettingsView: View {
                 }
                 Spacer(minLength: 0)
                 InfoButton(message: String(localized: kind == .codexCLI
-                                            ? "Codex 测试只检查能否启动。"
+                                            ? "本地 CLI 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
                                             : "发送一张 64×64 测试图，验证连接和图片输入。"))
             }
             if let result = testResult {
@@ -400,14 +471,20 @@ struct ModelSettingsView: View {
             config = ProviderConfig(kind: .ollama, baseURL: settings.ollamaBaseURL,
                                     apiKey: "ollama", model: settings.ollamaModel)
         case .codexCLI:
-            config = ProviderConfig(kind: .codexCLI, model: settings.codexModel,
-                                    codexPath: settings.codexPath)
+            switch settings.cliProvider {
+            case .codex:
+                config = ProviderConfig(kind: .codexCLI, model: settings.codexModel,
+                                        cliProvider: .codex, cliPath: settings.codexPath)
+            case .agy:
+                config = ProviderConfig(kind: .codexCLI, model: settings.agyModel,
+                                        cliProvider: .agy, cliPath: settings.agyPath)
+            }
         }
         Task {
             do {
-                try await ProviderConfig.provider(for: kind).validate(config: config)
+                try await ProviderConfig.provider(for: config).validate(config: config)
                 testResult = (true, kind == .codexCLI
-                              ? String(localized: "codex 可以运行，配置已保存。")
+                              ? String(localized: "\(settings.cliProvider.title) 可以运行，配置已保存。")
                               : String(localized: "连接正常，这个模型接受图片输入。配置已保存。"))
             } catch let error as ProviderError {
                 testResult = (false, error.errorDescription ?? String(localized: "失败"))
@@ -415,6 +492,29 @@ struct ModelSettingsView: View {
                 testResult = (false, error.localizedDescription)
             }
             testing = false
+        }
+    }
+
+    private func ensureCLIPath() {
+        switch settings.cliProvider {
+        case .codex:
+            if settings.codexPath.isEmpty, let detected = CodexCLIProvider.detectedPath {
+                settings.codexPath = detected
+            }
+        case .agy:
+            // Keep this empty by default so each request can re-scan candidates
+            // and pick the newest installed AGY version. A typed path is explicit.
+            break
+        }
+    }
+
+    private func scanAgyModels() {
+        guard !agyScanning else { return }
+        agyScanning = true
+        Task {
+            let models = await AgyCLIProvider.scanModels(configuredPath: settings.agyPath)
+            if !models.isEmpty { agyModels = models }
+            agyScanning = false
         }
     }
 }

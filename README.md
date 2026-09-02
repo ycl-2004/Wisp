@@ -37,7 +37,7 @@ the frontmost app is a supported browser, read the URL, title, selected text,
 and page body. Ask a question without copying context between apps.
 
 It is a local-first desktop shell around the model provider you choose:
-OpenAI-compatible HTTP, Ollama, or the Codex CLI. Conversation text and
+OpenAI-compatible HTTP, Ollama, or Agent CLI (Codex and AGY). Conversation text and
 page-text snapshots are stored on your Mac; screenshots remain in memory for
 the current request unless you explicitly enable debug capture. The interface
 ships in English and Simplified Chinese and follows your system language.
@@ -82,7 +82,7 @@ open "$HOME/Applications/Wisp.app"
   Events` setting for full-page browser text.
 - Network access and your own API key for cloud endpoints.
 - A running Ollama service for the Ollama provider.
-- A locally installed and authenticated Codex CLI for the Codex provider.
+- A locally installed and authenticated Codex CLI or AGY CLI for the Agent CLI provider.
 
 ## Why Wisp
 
@@ -94,7 +94,7 @@ open "$HOME/Applications/Wisp.app"
 - **Capture is on demand.** The always-available island tracks the current app
   but does not continuously record the screen or run browser scripts.
 - **The model connection is yours.** Use a cloud-compatible endpoint, a local
-  Ollama model, or your existing Codex CLI login.
+  Ollama model, or your existing Agent CLI login through Codex or AGY.
 - **Conversation retention is explicit.** Conversation and turn limits are
   configurable, and deletion is initiated by the user rather than hidden
   automatic cleanup.
@@ -138,9 +138,10 @@ open "$HOME/Applications/Wisp.app"
   endpoints.
 - **Ollama:** defaults to `http://localhost:11434/v1`, reads the model list
   from Ollama, and marks models that appear to support vision.
-- **Codex CLI:** runs the local
-  `codex exec --json --ephemeral --sandbox read-only` command without
-  writing session files into Wisp's conversation directory.
+- **Agent CLI:** the settings section contains both Codex and AGY. Codex runs
+  `codex exec --json --ephemeral --sandbox read-only`; AGY runs its headless
+  JSON CLI for text and a temporary PTY for screenshots. Neither writes session
+  files into Wisp's conversation directory.
 
 **Startup and updates**
 
@@ -211,12 +212,14 @@ Open the menu-bar icon → **Settings → Model**:
   several providers stay configured side by side and switching never loses one.
 - **Ollama:** start Ollama and refresh the model list. Only a vision-capable
   model can interpret a screenshot.
-- **Codex CLI:** select a detected `codex` executable and optionally choose a
-  model. Wisp uses your existing Codex login.
+- **Agent CLI:** choose Codex or AGY inside the same section, select the
+  detected executable and optionally choose a model. Wisp uses the CLI login
+  already on your Mac. AGY models are refreshed by running `agy models`, so
+  an AGY update does not require a Wisp update.
 
 All three providers have **Save and test connection**. Cloud and Ollama tests
-send a very small test image; the Codex test only checks whether
-`codex --version` runs successfully.
+send a very small test image; the selected local CLI test checks its
+`--version` command without spending a model request.
 
 ## Screenshots
 
@@ -270,6 +273,11 @@ specific localization.
   input, uses `--ephemeral` and a read-only sandbox, and removes the
   temporary directory when the command ends. Codex's own account, network,
   and service-side logging are outside Wisp's control.
+- Wisp starts AGY locally. Text requests use AGY's JSON headless mode; when a
+  screenshot is attached, Wisp temporarily places it on the macOS clipboard,
+  pastes it into an AGY TUI session, then restores the clipboard if it was not
+  changed by the user. AGY's account, network, quota, and service-side logging
+  remain outside Wisp's control.
 - If the update check is enabled, Wisp asks `api.github.com` once per launch
   for the latest release tag. The request carries no identifier beyond your IP
   address and a `Wisp/<version>` user agent, downloads nothing, and installs
@@ -483,7 +491,7 @@ not currently contain an automated test target or CI workflow.
   diagnostic entry points.
 - `Wisp/Capture/` — screen capture, browser AppleScript, page text, and
   context orchestration.
-- `Wisp/LLM/` — OpenAI-compatible HTTP, Ollama, Codex CLI, SSE parsing, and
+- `Wisp/LLM/` — OpenAI-compatible HTTP, Ollama, Agent CLI, SSE parsing, and
   prompt assembly.
 - `Wisp/Store/` — local conversation JSON and macOS Keychain access.
 - `Wisp/UI/` — floating panel, persistent island, chat, context header,
@@ -527,6 +535,9 @@ resolution, and public documentation are tracked.
 - Codex CLI responses are returned as one completed response rather than
   token-by-token streaming, and each request carries Codex's own fixed context
   cost.
+- AGY screenshot requests use a terminal bridge because AGY's headless
+  `stream-json` input currently accepts text only; the bridge returns one
+  completed response and requires a working local TTY session.
 - The repository currently has no automated tests, CI workflow, or public
   notarization and release-signing pipeline.
 - Because releases are ad-hoc signed, every build has a new code identity.

@@ -178,7 +178,9 @@ struct ChatView: View {
         case .ollama:
             return settings.ollamaModel.isEmpty ? String(localized: "Ollama（未选模型）") : "Ollama · \(settings.ollamaModel)"
         case .codexCLI:
-            return settings.codexModel.isEmpty ? "Codex CLI" : "Codex CLI · \(settings.codexModel)"
+            let cli = settings.cliProvider.title
+            let model = settings.cliProvider == .codex ? settings.codexModel : settings.agyModel
+            return model.isEmpty ? cli : "\(cli) · \(model)"
         }
     }
 

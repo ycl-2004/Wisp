@@ -105,7 +105,7 @@ struct CodexCLIProvider: ChatProvider {
             let work = Task.detached {
                 var workDirectory: URL?
                 do {
-                    guard let binary = Self.resolvePath(config.codexPath) else {
+                    guard let binary = Self.resolvePath(config.cliPath) else {
                         throw ProviderError.codexNotFound
                     }
 
@@ -233,7 +233,7 @@ struct CodexCLIProvider: ChatProvider {
     }
 
     func validate(config: ProviderConfig) async throws {
-        guard let binary = Self.resolvePath(config.codexPath) else { throw ProviderError.codexNotFound }
+        guard let binary = Self.resolvePath(config.cliPath) else { throw ProviderError.codexNotFound }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: binary)
         process.arguments = ["--version"]

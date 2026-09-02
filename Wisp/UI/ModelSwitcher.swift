@@ -33,6 +33,20 @@ struct ModelSwitcher: View {
                 }
             }
 
+            if currentKind == .codexCLI {
+                Section("本地 CLI") {
+                    ForEach(CLIProvider.allCases) { provider in
+                        Button {
+                            settings.cliProvider = provider
+                            if provider == .agy { state.refreshAgy() }
+                        } label: {
+                            Label(provider.title,
+                                  systemImage: provider == settings.cliProvider ? "checkmark" : "terminal")
+                        }
+                    }
+                }
+            }
+
             if !models.isEmpty {
                 Section("模型") {
                     ForEach(models, id: \.slug) { preset in
@@ -50,6 +64,9 @@ struct ModelSwitcher: View {
 
             if currentKind == .ollama {
                 Button("重新扫描本机模型") { state.refreshOllama() }
+            }
+            if currentKind == .codexCLI, settings.cliProvider == .agy {
+                Button("重新扫描 AGY 模型") { state.refreshAgy() }
             }
             SettingsLink { Text("更多设置…") }
         } label: {
@@ -74,7 +91,10 @@ struct ModelSwitcher: View {
         .fixedSize()
         .onHover { hovering = $0 }
         .help("切换接法和模型：\(fullLabel)")
-        .onAppear { if currentKind == .ollama { state.refreshOllamaIfStale() } }
+        .onAppear {
+            if currentKind == .ollama { state.refreshOllamaIfStale() }
+            if currentKind == .codexCLI, settings.cliProvider == .agy { state.refreshAgyIfStale() }
+        }
     }
 
     private var currentKind: ProviderKind { ProviderKind.current }
@@ -83,7 +103,7 @@ struct ModelSwitcher: View {
         switch currentKind {
         case .openAICompatible: return settings.model
         case .ollama:           return settings.ollamaModel
-        case .codexCLI:         return settings.codexModel
+        case .codexCLI:         return settings.cliProvider == .agy ? settings.agyModel : settings.codexModel
         }
     }
 
@@ -91,7 +111,9 @@ struct ModelSwitcher: View {
         switch currentKind {
         case .openAICompatible: settings.model = slug
         case .ollama:           settings.ollamaModel = slug
-        case .codexCLI:         settings.codexModel = slug
+        case .codexCLI:
+            if settings.cliProvider == .agy { settings.agyModel = slug }
+            else { settings.codexModel = slug }
         }
     }
 
@@ -120,6 +142,9 @@ struct ModelSwitcher: View {
         case .ollama:
             return state.ollamaModels.map { .init(slug: $0, title: $0, note: "") }
         case .codexCLI:
+            if settings.cliProvider == .agy {
+                return state.agyModels.isEmpty ? AgyCLIProvider.fallbackModels : state.agyModels
+            }
             return ModelCatalog.codexPresets()
         }
     }
@@ -128,7 +153,10 @@ struct ModelSwitcher: View {
     private var shortLabel: String {
         let model = currentModel
         if model.isEmpty {
-            return currentKind == .codexCLI ? String(localized: "Codex 默认") : currentKind.title
+            if currentKind == .codexCLI {
+                return settings.cliProvider == .agy ? String(localized: "AGY 默认") : String(localized: "Codex 默认")
+            }
+            return currentKind.title
         }
         if let preset = models.first(where: { $0.slug == model }), preset.title != model {
             return preset.title
@@ -142,6 +170,7 @@ struct ModelSwitcher: View {
     private var fullLabel: String {
         var parts = [currentKind.title]
         if currentKind == .openAICompatible { parts.append(settings.cloudProvider.title) }
+        if currentKind == .codexCLI { parts.append(settings.cliProvider.title) }
         if !currentModel.isEmpty { parts.append(currentModel) }
         return parts.joined(separator: " · ")
     }
@@ -153,7 +182,9 @@ final class ModelMenuState: ObservableObject {
     static let shared = ModelMenuState()
 
     @Published private(set) var ollamaModels: [String] = []
+    @Published private(set) var agyModels: [ModelCatalog.Preset] = []
     private var lastProbe: Date?
+    private var lastAgyScan: Date?
 
     private init() {}
 
@@ -171,6 +202,20 @@ final class ModelMenuState: ObservableObject {
             } else {
                 ollamaModels = []
             }
+        }
+    }
+
+    func refreshAgyIfStale() {
+        if let lastAgyScan, Date().timeIntervalSince(lastAgyScan) < 60 { return }
+        refreshAgy()
+    }
+
+    func refreshAgy() {
+        lastAgyScan = Date()
+        let configuredPath = AppSettings.shared.agyPath
+        Task {
+            let models = await AgyCLIProvider.scanModels(configuredPath: configuredPath)
+            if !models.isEmpty { agyModels = models }
         }
     }
 }

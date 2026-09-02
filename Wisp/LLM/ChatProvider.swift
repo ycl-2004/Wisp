@@ -12,6 +12,9 @@ enum ProviderError: LocalizedError {
     case codexNotFound
     case codexFailed(String, status: Int32)
     case codexTimedOut(Int)
+    case agyNotFound
+    case agyFailed(String, status: Int32)
+    case agyTimedOut(Int)
     case ollamaNotRunning
     case offline
     case timedOut(Int)
@@ -45,10 +48,16 @@ enum ProviderError: LocalizedError {
             return String(localized: "codex 执行失败（退出码 \(status)）：\(detail)")
         case .codexTimedOut(let seconds):
             return String(localized: "codex 超过 \(seconds) 秒没有返回，已经把它停掉了。可以换个更小的模型，或者先在终端直接跑一次 codex 确认它是通的。")
+        case .agyNotFound:
+            return String(localized: "找不到 agy 可执行文件。请先安装并登录 Antigravity CLI，或在设置里填它的完整路径。")
+        case .agyFailed(let detail, let status):
+            return String(localized: "agy 执行失败（退出码 \(status)）：\(detail)")
+        case .agyTimedOut(let seconds):
+            return String(localized: "agy 超过 \(seconds) 秒没有返回，已经把它停掉了。可以换个更小的模型，或先在终端直接跑一次 agy 确认它是通的。")
         case .ollamaNotRunning:
             return String(localized: "Ollama 没在运行。在设置里点「启动 Ollama」，或在终端跑 `ollama serve`。")
         case .offline:
-            return String(localized: "现在连不上网。检查一下网络，或者改用 Ollama / Codex CLI 这种本地接法。")
+            return String(localized: "现在连不上网。检查一下网络，或者改用 Ollama / Agent CLI 这种本地接法。")
         case .timedOut(let seconds):
             return String(localized: "等了 \(seconds) 秒还没有任何响应，已经中断。可能是网络不稳，或者这个接口太慢。")
         }
@@ -60,7 +69,8 @@ struct ProviderConfig: Sendable {
     var baseURL: String = ""
     var apiKey: String = ""
     var model: String = ""
-    var codexPath: String = ""
+    var cliProvider: CLIProvider = .codex
+    var cliPath: String = ""
 
     static func current() throws -> ProviderConfig {
         let settings = AppSettings.shared
@@ -79,14 +89,26 @@ struct ProviderConfig: Sendable {
                                   apiKey: "ollama",
                                   model: settings.ollamaModel)
         case .codexCLI:
-            return ProviderConfig(kind: .codexCLI,
-                                  model: settings.codexModel,
-                                  codexPath: settings.codexPath)
+            switch settings.cliProvider {
+            case .codex:
+                return ProviderConfig(kind: .codexCLI, model: settings.codexModel,
+                                      cliProvider: .codex, cliPath: settings.codexPath)
+            case .agy:
+                return ProviderConfig(kind: .codexCLI, model: settings.agyModel,
+                                      cliProvider: .agy, cliPath: settings.agyPath)
+            }
         }
     }
 
     static func provider(for kind: ProviderKind) -> ChatProvider {
-        kind == .codexCLI ? CodexCLIProvider() : OpenAICompatibleProvider()
+        guard kind == .codexCLI else { return OpenAICompatibleProvider() }
+        return provider(for: ProviderConfig(kind: .codexCLI,
+                                            cliProvider: AppSettings.shared.cliProvider))
+    }
+
+    static func provider(for config: ProviderConfig) -> ChatProvider {
+        guard config.kind == .codexCLI else { return OpenAICompatibleProvider() }
+        return config.cliProvider == .agy ? AgyCLIProvider() : CodexCLIProvider()
     }
 }
 

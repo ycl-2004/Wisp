@@ -4,6 +4,12 @@
 
 ### Added
 
+- **AGY CLI support inside the Agent CLI section.** Settings and the model
+  switcher can choose between the existing Codex CLI and the locally installed
+  AGY CLI. Text uses AGY's JSON headless mode; screenshots use a temporary
+  clipboard-backed TTY bridge. The executable is discovered at runtime and the
+  model menu refreshes from `agy models`, so AGY updates are picked up without
+  hardcoded version checks.
 - **A provider picker for the cloud endpoint, with six built-in vendors.** Settings → Model now leads with 服务商 instead of a bare Base URL field: pick OpenRouter, Google Gemini, OpenAI, Anthropic or 智谱 GLM and the Base URL, the model list and the key-console link all follow, with 自定义 keeping the old behaviour of typing any OpenAI-compatible address by hand. Each vendor carries three to five vetted models plus 自定义; the entry bar was OpenAI-compatible `chat/completions` **and** SSE streaming **and** `image_url` data-URL vision, since every Wisp request ships a screenshot. Groq is deliberately absent — its only vision model is still a preview — as is DashScope's mainland endpoint, whose Base URL now embeds a workspace ID and cannot be a fixed preset.
 - **API keys are stored per provider.** The Keychain entry moved from one shared `api-key` to `api-key.<provider>`, so keys no longer overwrite one another when switching vendors; the key field, 清除 Key and 保存并测试连接 all act on the selected vendor only. Keys are written as they are typed rather than only when 保存并测试连接 is pressed, so filling one in and switching vendor — or closing the window — no longer discards it; an empty field never overwrites a stored key, since clearing one is what 清除 Key is for. An existing 0.2.x key is migrated at launch to whichever vendor its stored Base URL points at, and the old entry is removed. Each vendor also remembers the model last chosen for it, so switching back does not re-send the previous vendor's model name to the new endpoint.
 - The island's model menu gained a **服务商** section mirroring the settings page, marking vendors that have no key yet, so changing vendor no longer means opening Settings.
