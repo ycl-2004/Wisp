@@ -37,7 +37,7 @@ the frontmost app is a supported browser, read the URL, title, selected text,
 and page body. Ask a question without copying context between apps.
 
 It is a local-first desktop shell around the model provider you choose:
-OpenAI-compatible HTTP, Ollama, or Agent CLI (Codex, AGY, and Claude Code).
+OpenAI-compatible HTTP, Ollama, or Agent CLI (Codex, Antigravity, and Claude Code).
 Conversation text and page-text snapshots are stored on your Mac; local CLIs
 may place the current screenshot in a private, per-request temporary directory
 that Wisp removes when the command ends. The interface ships in English and
@@ -83,7 +83,7 @@ open "$HOME/Applications/Wisp.app"
   Events` setting for full-page browser text.
 - Network access and your own API key for cloud endpoints.
 - A running Ollama service for the Ollama provider.
-- A locally installed and authenticated Codex CLI, AGY CLI or Claude Code for the Agent CLI provider.
+- A locally installed and authenticated Codex CLI, Antigravity CLI or Claude Code for the Agent CLI provider.
 
 ## Why Wisp
 
@@ -95,7 +95,7 @@ open "$HOME/Applications/Wisp.app"
 - **Capture is on demand.** The always-available island tracks the current app
   but does not continuously record the screen or run browser scripts.
 - **The model connection is yours.** Use a cloud-compatible endpoint, a local
-  Ollama model, or your existing Agent CLI login through Codex, AGY, or Claude
+  Ollama model, or your existing Agent CLI login through Codex, Antigravity, or Claude
   Code.
 - **Conversation retention is explicit.** Conversation and turn limits are
   configurable, and deletion is initiated by the user rather than hidden
@@ -147,8 +147,8 @@ open "$HOME/Applications/Wisp.app"
   endpoints.
 - **Ollama:** defaults to `http://localhost:11434/v1`, reads the model list
   from Ollama, and marks models that appear to support vision.
-- **Agent CLI:** the settings section contains Codex, AGY and Claude Code.
-  Codex runs `codex exec --json --ephemeral --sandbox read-only`; AGY and Claude
+- **Agent CLI:** the settings section contains Codex, Antigravity and Claude Code.
+  Codex runs `codex exec --json --ephemeral --sandbox read-only`; Antigravity and Claude
   Code run their headless JSON CLIs, with screenshots written into a temporary
   workspace for them to read. Claude Code streams the answer as it is written —
   the other two return one finished block. None of them writes session files
@@ -224,13 +224,13 @@ Open the menu-bar icon → **Settings → Model**:
   configured side by side and switching never loses one.
 - **Ollama:** start Ollama and refresh the model list. Only a vision-capable
   model can interpret a screenshot.
-- **Agent CLI:** choose Codex, AGY, or Claude Code inside the same section,
+- **Agent CLI:** choose Codex, Antigravity, or Claude Code inside the same section,
   select the detected executable and optionally choose a model. Wisp uses the
-  CLI login already on your Mac. AGY models are refreshed by running
-  `agy models`, so an AGY update does not require a Wisp update.
+  CLI login already on your Mac. Antigravity models are refreshed by running
+  `agy models`, so an Antigravity update does not require a Wisp update.
 
 All three provider groups have **Save and test connection**. Cloud and Ollama
-tests send a very small test image. Codex and AGY tests check `--version`;
+tests send a very small test image. Codex and Antigravity tests check `--version`;
 Claude Code uses `auth status` so a missing login gets its own message. None of
 the local CLI checks spends a model request.
 
@@ -288,10 +288,10 @@ specific localization.
   input, uses `--ephemeral` and a read-only sandbox, and removes the
   temporary directory when the command ends. Codex's own account, network,
   and service-side logging are outside Wisp's control.
-- Wisp starts AGY locally, in its own temporary working directory, with
-  `--sandbox` and AGY's JSON headless mode. An attached screenshot is written
-  into that directory and named in the prompt so AGY reads it from disk; the
-  directory is removed when the request ends. AGY's account, network, quota,
+- Wisp starts Antigravity locally, in its own temporary working directory, with
+  `--sandbox` and Antigravity's JSON headless mode. An attached screenshot is written
+  into that directory and named in the prompt so Antigravity reads it from disk; the
+  directory is removed when the request ends. Antigravity's account, network, quota,
   and service-side logging remain outside Wisp's control.
 - Wisp starts Claude Code in its own temporary working directory with
   `--restricted --tools Read --no-session-persistence`. Only the screenshot
@@ -561,15 +561,15 @@ resolution, and public documentation are tracked.
 - Codex CLI responses are returned as one completed response rather than
   token-by-token streaming, and each request carries Codex's own fixed context
   cost.
-- AGY returns one completed response rather than token-by-token streaming, and
-  each request carries AGY's own fixed context cost — about 30,400 tokens before
-  any of Wisp's content. Screenshots are passed as files because AGY's headless
+- Antigravity returns one completed response rather than token-by-token streaming, and
+  each request carries Antigravity's own fixed context cost — about 30,400 tokens before
+  any of Wisp's content. Screenshots are passed as files because Antigravity's headless
   input accepts text only — it rejects an `image_url` content block — so a
   screenshot request spends one extra tool turn on reading the file, which costs
-  about 1,150 tokens rather than inlining the image. AGY also truncates its own
+  about 1,150 tokens rather than inlining the image. Antigravity also truncates its own
   input at roughly 71,400 tokens without saying so, so Wisp fits the prompt to a
   smaller budget first and marks what it left out; a page far larger than the
-  default 60,000-character limit therefore reaches AGY abridged, with the gap
+  default 60,000-character limit therefore reaches Antigravity abridged, with the gap
   declared, rather than silently incomplete.
 - CI covers unit tests, Universal 2 compilation, signature verification, and
   the Release entitlement check. There is still no public notarization and
