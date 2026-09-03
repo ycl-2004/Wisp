@@ -1,15 +1,43 @@
 import AppKit
+import KeyboardShortcuts
 import SwiftUI
 
 /// 底部药丸。窗口固定不动，只有胶囊本身改变尺寸，所以内容永远有足够的宽度可画。
 struct IslandView: View {
     @EnvironmentObject var model: IslandModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject private var settings = AppSettings.shared
 
     let notchWidth: CGFloat
     let hasNotch: Bool
     let position: ScreenGeometry.IslandPosition
 
     @State private var phase: CGFloat = 0
+
+    /// KeyboardShortcuts 把标准组合直接存进 UserDefaults，不经过 AppSettings，
+    /// 所以标准模式改键后要靠这条通知来重算。名字是库内部约定：万一将来对不上，
+    /// 最坏情况只是药丸上的提示等到下次重建才更新，不影响唤起本身。
+    private static let shortcutDidChange = Notification.Name("KeyboardShortcuts_shortcutByNameDidChange")
+
+    @State private var shortcutRevision = 0
+
+    /// 另外三种模式的键都存在 AppSettings 里，`settings` 是 @ObservedObject，
+    /// 改动会自己触发重算，这里不需要额外的缓存或监听。
+    private var shortcutLabel: String {
+        switch settings.shortcutTrigger {
+        case .standard:
+            if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleAssistant) {
+                return "\(shortcut)"
+            }
+            return "⌃⌥Space"
+        case .enhancedSingle:
+            return settings.advancedShortcut?.symbolicName(tapCount: 1) ?? "⌃⌥Space"
+        case .doubleTap:
+            return settings.advancedShortcut?.symbolicName(tapCount: 2) ?? "⌃⌃"
+        case .tripleTap:
+            return settings.advancedShortcut?.symbolicName(tapCount: 3) ?? "⌃⌃⌃"
+        }
+    }
 
     private var state: IslandLayout.State {
         IslandLayout.state(hovered: model.isHovered,
@@ -26,6 +54,10 @@ struct IslandView: View {
             }
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.84), value: state)
+        // 只是把 body 顶一下，让 shortcutLabel 重新读一次 UserDefaults。
+        .onReceive(NotificationCenter.default.publisher(for: Self.shortcutDidChange)) { _ in
+            shortcutRevision &+= 1
+        }
     }
 
     // MARK: - 底部
@@ -44,6 +76,23 @@ struct IslandView: View {
             .contentShape(Capsule())
             .onHover { hovering in model.setHovered(hovering) }
             .onTapGesture { PanelController.shared.show() }
+            .accessibilityElement()
+            .accessibilityLabel(Text("唤起助手"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { PanelController.shared.show() }
+            .contextMenu {
+                Button("唤起助手") { PanelController.shared.show() }
+                Button("新建对话") { AssistantModel.shared.newConversation() }
+                Button("重新读取屏幕") { AssistantModel.shared.refreshContext() }
+                Divider()
+                Button(settings.sendScreenshot ? "关闭截图附带" : "开启截图附带") {
+                    AssistantModel.shared.toggleScreenshot()
+                }
+                Divider()
+                SettingsLink { Text("设置…") }
+                // 退出不放在这里：右键菜单贴着药丸，误点一下就整个退出，
+                // 而重新打开要回到状态栏菜单。菜单栏那份仍然有「退出」。
+            }
             // 起手距离 4pt：点击照常打开面板，真的拖了才移动窗口。
             .gesture(
                 DragGesture(minimumDistance: 4)
@@ -61,34 +110,48 @@ struct IslandView: View {
             Capsule().fill(.regularMaterial)
 
             if model.isGenerating {
+                Capsule().fill(Color.accentColor.opacity(0.10))
+
                 Capsule()
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.42, green: 0.85, blue: 0.60).opacity(0.55),
-                                Color(red: 0.55, green: 0.70, blue: 0.98).opacity(0.45),
-                                Color(red: 0.98, green: 0.62, blue: 0.68).opacity(0.55),
-                                Color(red: 0.42, green: 0.85, blue: 0.60).opacity(0.55),
+                                .clear,
+                                Color.accentColor.opacity(0.10),
+                                Color.cyan.opacity(0.26),
+                                Color.white.opacity(0.22),
+                                Color.accentColor.opacity(0.12),
+                                .clear,
                             ],
                             startPoint: .leading, endPoint: .trailing
                         )
                     )
-                    .scaleEffect(x: 2.2, y: 1.6)
+                    .scaleEffect(x: 0.48, y: 1.15)
                     .offset(x: phase)
-                    .blur(radius: 18)
+                    .blur(radius: 12)
                     .clipShape(Capsule())
                     .transition(.opacity)
+
+                Capsule()
+                    .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 0.75)
             }
 
-            Capsule().strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
+            Capsule().strokeBorder(DS.specularRim, lineWidth: 0.75)
         }
         .compositingGroup()
         .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
-        .onChange(of: model.isGenerating) { _, generating in
-            guard generating else { return }
-            phase = -110
-            withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: true)) { phase = 110 }
+        .onAppear { updateGeneratingAnimation() }
+        .onChange(of: model.isGenerating) { _, _ in updateGeneratingAnimation() }
+        .onChange(of: reduceMotion) { _, _ in updateGeneratingAnimation() }
+    }
+
+    private func updateGeneratingAnimation() {
+        guard model.isGenerating, !reduceMotion else {
+            withAnimation(.none) { phase = 0 }
+            return
         }
+        phase = -150
+        withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: true)) { phase = 150 }
     }
 
     @ViewBuilder
@@ -126,11 +189,12 @@ struct IslandView: View {
                 .lineLimit(1)
                 .fixedSize()
             Spacer(minLength: 4)
-            Text("⌃⌥Space")
+            Text(shortcutLabel)
                 .font(.system(size: 10, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .fixedSize()
+                .truncationMode(.tail)
+                .layoutPriority(0)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(Capsule().fill(Color.primary.opacity(0.07)))
@@ -155,6 +219,7 @@ struct IslandView: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(Text("停止生成"))
             .help("停止生成")
         }
         .padding(.leading, 18)
@@ -196,6 +261,10 @@ struct IslandView: View {
             .contentShape(Rectangle())
             .onHover { hovering in model.setHovered(hovering) }
             .onTapGesture { PanelController.shared.show() }
+            .accessibilityElement()
+            .accessibilityLabel(Text("唤起助手"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { PanelController.shared.show() }
             Spacer(minLength: 0)
         }
         .frame(width: IslandLayout.notchWindowSize(notchWidth: notchWidth, hasNotch: hasNotch).width,
@@ -242,10 +311,14 @@ struct IslandView: View {
                         .background(Capsule().fill(Color.white.opacity(0.14)))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text("停止生成"))
             } else {
-                Text("⌃⌥Space")
+                Text(shortcutLabel)
                     .font(.system(size: 9.5, design: .rounded))
                     .foregroundStyle(.white.opacity(0.5))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(0)
                     .padding(.horizontal, 5).padding(.vertical, 1.5)
                     .background(Capsule().fill(Color.white.opacity(0.10)))
             }

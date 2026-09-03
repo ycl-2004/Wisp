@@ -123,4 +123,36 @@ final class AdvancedShortcutTests: XCTestCase {
         XCTAssertEqual(ShortcutTriggerMode.doubleTap.tapCount, 2)
         XCTAssertEqual(ShortcutTriggerMode.tripleTap.tapCount, 3)
     }
+
+    func testFunctionKeyNamesUseCarbonKeyMapInsteadOfNumericOffsets() {
+        let cases: [(Int, String)] = [
+            (kVK_F1, "F1"), (kVK_F2, "F2"), (kVK_F5, "F5"),
+            (kVK_F12, "F12"), (kVK_F13, "F13"), (kVK_F20, "F20"),
+        ]
+
+        for (keyCode, expected) in cases {
+            XCTAssertEqual(ShortcutKeyInfo.name(for: UInt16(keyCode), kind: .key), expected)
+        }
+    }
+}
+
+final class MarkdownBlockTests: XCTestCase {
+    func testParsesStandardTableSeparator() {
+        let blocks = MarkdownBlock.parse("| Name | Value |\n| --- | :---: |\n| Wisp | 1 |")
+
+        guard case .table(let headers, let rows) = blocks.first else {
+            return XCTFail("Expected a Markdown table")
+        }
+        XCTAssertEqual(headers, ["Name", "Value"])
+        XCTAssertEqual(rows, [["Wisp", "1"]])
+    }
+
+    func testDoesNotTreatSingleDashesAsTableSeparator() {
+        let blocks = MarkdownBlock.parse("A | B\n- | -")
+
+        XCTAssertFalse(blocks.contains { block in
+            if case .table = block { return true }
+            return false
+        })
+    }
 }

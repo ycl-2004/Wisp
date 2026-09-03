@@ -246,11 +246,12 @@ final class AssistantModel: ObservableObject {
     private var contextIsStale = false
 
     /// 距离上次采集过了多久，用于头部显示新鲜度。
-    var contextAge: String {
+    var contextAge: String { contextAge(relativeTo: Date()) }
+
+    func contextAge(relativeTo now: Date) -> String {
         guard let packet else { return "" }
-        let seconds = Int(Date().timeIntervalSince(packet.capturedAt))
-        if seconds < 3 { return String(localized: "刚读取") }
-        if seconds < 60 { return String(localized: "\(seconds) 秒前") }
+        let seconds = max(0, Int(now.timeIntervalSince(packet.capturedAt)))
+        if seconds < 60 { return String(localized: "刚读取") }
         return String(localized: "\(seconds / 60) 分钟前")
     }
 
@@ -258,11 +259,17 @@ final class AssistantModel: ObservableObject {
 
     var activeConversation: Conversation? { store.active }
 
-    var canSend: Bool {
+    /// 除「输入框里有东西」以外的发送前置条件。空状态里那几个建议自带问题文本，
+    /// 不该被空输入框挡住，所以单独拆出来一份。
+    var canStartQuestion: Bool {
         guard !isStreaming else { return false }
-        guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         guard let conversation = store.active else { return store.canCreateNew }
         return !store.isAtTurnLimit(conversation)
+    }
+
+    var canSend: Bool {
+        guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        return canStartQuestion
     }
 
     var turnLimitMessage: String? {

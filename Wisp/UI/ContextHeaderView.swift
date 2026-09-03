@@ -20,7 +20,9 @@ struct ContextHeaderView: View {
         .padding(.top, 7)
         .padding(.bottom, 5)
         .background(alignment: .bottom) {
-            Rectangle().fill(DS.hairline).frame(height: 0.5)
+            if !model.isCollapsed {
+                Rectangle().fill(DS.hairline).frame(height: 0.5)
+            }
         }
     }
 
@@ -41,6 +43,7 @@ struct ContextHeaderView: View {
                   : "对话记录（\(store.conversations.count)/\(store.maxConversations)），可切换和删除")
 
             appIcon
+                .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
 
             Text(model.packet?.appName ?? String(localized: "读取中…"))
                 .font(DS.title)
@@ -48,17 +51,26 @@ struct ContextHeaderView: View {
                 .fixedSize()
 
             if let subtitle {
-                Text(subtitle)
-                    .font(DS.meta)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                HStack(spacing: 4) {
+                    Text(verbatim: "·").font(DS.meta).foregroundStyle(.tertiary)
+                    Text(subtitle)
+                        .font(DS.meta)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
 
             Spacer(minLength: 2)
 
             if model.isCapturing {
                 ProgressView().controlSize(.small).scaleEffect(0.7).frame(width: 16)
+            } else if model.packet != nil {
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    Text(model.contextAge(relativeTo: context.date))
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.tertiary)
+                }
             }
 
             Button { model.refreshContext() } label: { Image(systemName: "arrow.clockwise") }
@@ -83,9 +95,8 @@ struct ContextHeaderView: View {
 
     private var appIcon: some View {
         Group {
-            if let bundleID = model.packet?.bundleID,
-               let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable()
+            if let icon = AppIconCache.icon(forBundleID: model.packet?.bundleID) {
+                Image(nsImage: icon).resizable()
             } else {
                 Image(systemName: "macwindow").resizable().scaledToFit().foregroundStyle(.tertiary)
             }
@@ -139,8 +150,14 @@ struct ContextHeaderView: View {
 
             Text(counters)
                 .font(DS.meta)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .monospacedDigit()
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1.5)
+                .background(
+                    RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
+                        .fill(Color.primary.opacity(0.04))
+                )
                 .help("本对话 \(store.active?.userTurnCount ?? 0)/\(store.maxUserTurns) 轮 · 共 \(store.conversations.count)/\(store.maxConversations) 个对话")
         }
         .frame(height: DS.metaHeight)

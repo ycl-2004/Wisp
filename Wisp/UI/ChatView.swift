@@ -19,9 +19,10 @@ struct ChatView: View {
             content
         }
         .clipShape(RoundedRectangle(cornerRadius: DS.windowCorner, style: .continuous))
+        // specularRim 本身就是上亮下暗，再叠一层纯黑描边只会让边框发闷。
         .overlay(
             RoundedRectangle(cornerRadius: DS.windowCorner, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.14), lineWidth: 0.5)
+                .strokeBorder(DS.specularRim, lineWidth: 0.75)
         )
         .onHover { inside in
             PanelController.shared.setPointerInside(inside)
@@ -65,11 +66,13 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     if let conversation = store.active, !conversation.messages.isEmpty {
-                        ForEach(conversation.messages) { message in
-                            MessageRow(message: message).id(message.id)
+                        let messages = conversation.messages
+                        ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                            let isLast = (index == messages.count - 1)
+                            MessageRow(message: message, isLast: isLast).id(message.id)
                         }
                     } else {
-                        emptyState
+                        ChatEmptyStateView()
                     }
 
                     // 上次读盘出过问题就摆在最显眼的地方，不静默吞掉。
@@ -108,24 +111,10 @@ struct ChatView: View {
         .mask(
             LinearGradient(stops: [
                 .init(color: .black, location: 0),
-                .init(color: .black, location: 0.94),
+                .init(color: .black, location: 0.95),
                 .init(color: .black.opacity(0), location: 1),
             ], startPoint: .top, endPoint: .bottom)
         )
-    }
-
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text("问点关于当前屏幕的事").font(.system(size: 13, weight: .medium))
-            Text("头部那两行就是这次会发送的内容。浏览器里会连整页正文一起发，不只是看得见的那一屏。")
-                .font(DS.meta)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("当前用 \(providerLabel)")
-                .font(DS.meta)
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 12)
     }
 
     // MARK: - 输入
@@ -165,7 +154,9 @@ struct ChatView: View {
         .padding(.horizontal, DS.gutter)
         .padding(.vertical, 9)
         .background(alignment: .top) {
-            Rectangle().fill(DS.hairline).frame(height: 0.5)
+            if !model.isCollapsed {
+                Rectangle().fill(DS.hairline).frame(height: 0.5)
+            }
         }
     }
 
@@ -195,7 +186,7 @@ struct ChatView: View {
             Button { model.stopStreaming() } label: {
                 Image(systemName: "stop.fill").font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 26, height: 26)
+                    .frame(width: 27, height: 27)
                     .background(Circle().fill(Color.secondary))
             }
             .buttonStyle(.plain)
@@ -205,8 +196,10 @@ struct ChatView: View {
             Button { model.send() } label: {
                 Image(systemName: "arrow.up").font(.system(size: 11, weight: .bold))
                     .foregroundStyle(model.canSend ? Color.white : Color.secondary)
-                    .frame(width: 26, height: 26)
-                    .background(Circle().fill(model.canSend ? Color.accentColor : Color.primary.opacity(0.10)))
+                    .frame(width: 27, height: 27)
+                    .background(
+                        Circle().fill(model.canSend ? Color.accentColor : Color.primary.opacity(0.10))
+                    )
             }
             .buttonStyle(.plain)
             .disabled(!model.canSend)
@@ -217,17 +210,201 @@ struct ChatView: View {
     }
 }
 
+// MARK: - 空状态（智能上下文与建议问题）
+
+/// 也被 IslandRenderer 拿去离线出图，所以不是 private。
+struct ChatEmptyStateView: View {
+    @EnvironmentObject var model: AssistantModel
+
+    private var appName: String {
+        model.packet?.appName ?? String(localized: "当前应用")
+    }
+
+    private var isBrowser: Bool {
+        guard let bundleID = model.packet?.bundleID?.lowercased() else { return false }
+        return bundleID.contains("chrome") || bundleID.contains("safari") ||
+               bundleID.contains("arc") || bundleID.contains("edge") ||
+               bundleID.contains("firefox") || bundleID.contains("brave")
+    }
+
+    private var isDevTool: Bool {
+        guard let bundleID = model.packet?.bundleID?.lowercased() else { return false }
+        return bundleID.contains("xcode") || bundleID.contains("vscode") ||
+               bundleID.contains("terminal") || bundleID.contains("iterm") ||
+               bundleID.contains("warp") || bundleID.contains("cursor")
+    }
+
+    private var suggestions: [Suggestion] {
+        if isBrowser {
+            return [
+                Suggestion(icon: "list.bullet.rectangle", title: "提炼本页核心结论",
+                           prompt: String(localized: "请提炼当前网页的核心要点和关键结论，分条列出。")),
+                Suggestion(icon: "tablecells", title: "提取关键数据",
+                           prompt: String(localized: "请从当前页面中提取关键事实、数据或步骤清单。")),
+                Suggestion(icon: "character.bubble", title: "翻译并梳理逻辑",
+                           prompt: String(localized: "请简述并翻译当前页面的主要脉络，用清晰中文说明。")),
+            ]
+        } else if isDevTool {
+            return [
+                Suggestion(icon: "curlybraces", title: "解释当前代码或报错",
+                           prompt: String(localized: "请分析当前窗口中的代码或报错信息，指出其核心原因。")),
+                Suggestion(icon: "ladybug", title: "找出潜在问题",
+                           prompt: String(localized: "请检查当前代码是否存在潜在缺陷或边缘情况，并给出修复方案。")),
+                Suggestion(icon: "wand.and.stars", title: "重构优化建议",
+                           prompt: String(localized: "针对当前窗口里的实现，提供更简洁、高性能的重构建议。")),
+            ]
+        } else {
+            return [
+                Suggestion(icon: "list.bullet.rectangle", title: "梳理当前屏幕内容",
+                           prompt: String(localized: "请梳理当前窗口呈现的核心内容，帮我快速把握重点。")),
+                Suggestion(icon: "checklist", title: "总结要点与待办",
+                           prompt: String(localized: "从当前屏幕中提取重要信息，整理成清晰的要点与待办事项。")),
+            ]
+        }
+    }
+
+    private var canUseSuggestions: Bool {
+        model.canStartQuestion && model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.12))
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("问点关于「\(appName)」的事")
+                        .font(.system(size: 13, weight: .medium))
+                    Text("Wisp 会在发送时读取当前窗口的截图与正文上下文，直接提问即可。")
+                        .font(DS.meta)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // 快捷问题建议胶囊
+            VStack(alignment: .leading, spacing: 6) {
+                Text("建议提问：")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.tertiary)
+
+                HStack(spacing: 6) {
+                    ForEach(suggestions) { item in
+                        SuggestionChip(icon: item.icon, title: item.title) {
+                            model.input = item.prompt
+                            model.send()
+                        }
+                        // 不覆盖用户已经写好的草稿；不可用时明确压暗，而不是点了才发现内容丢了。
+                        .disabled(!canUseSuggestions)
+                    }
+                }
+            }
+            .padding(.top, 4)
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 4)
+    }
+}
+
+private struct Suggestion: Identifiable {
+    let icon: String
+    let title: LocalizedStringKey
+    let prompt: String
+    var id: String { prompt }
+}
+
+/// 空状态里的建议胶囊。hover 时描边和底色一起跟上，让它看起来确实可以点；
+/// 发不出去的时候整体压暗，而不是点了没反应。
+private struct SuggestionChip: View {
+    let icon: String
+    let title: LocalizedStringKey
+    let action: () -> Void
+
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(hovering ? Color.accentColor : Color.secondary)
+                Text(title)
+                    .font(DS.meta)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Color.primary.opacity(0.85))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
+                    .fill(hovering ? DS.accentFaint : DS.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
+                    .strokeBorder(hovering ? Color.accentColor.opacity(0.30) : DS.hairline,
+                                  lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(PressFeedbackButtonStyle())
+        .opacity(isEnabled ? 1 : 0.45)
+        .onHover { hovering = isEnabled && $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
 // MARK: - 单条消息
 
 private struct MessageRow: View {
     let message: Message
+    var isLast: Bool = false
     @EnvironmentObject var model: AssistantModel
     @State private var showsContext = false
     @State private var copied = false
     @State private var hovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        Group {
+            if message.role == .user {
+                userCard
+            } else {
+                assistantCard
+            }
+        }
+        .onHover { hovering = $0 }
+    }
+
+    // 用户消息：精美轻量卡片
+    private var userCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            header
+            Text(message.text)
+                .font(DS.body)
+                .lineSpacing(3)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(9)
+        .background(
+            RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                .fill(Color.accentColor.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                .strokeBorder(Color.accentColor.opacity(0.16), lineWidth: 0.5)
+        )
+    }
+
+    // 助手消息：通栏 Markdown
+    private var assistantCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
             header
 
             if showsContext, let context = message.context {
@@ -236,34 +413,36 @@ private struct MessageRow: View {
                         .font(.system(size: 10, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(7)
+                        .padding(8)
                 }
                 .frame(maxHeight: 180)
-                .background(RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous).fill(DS.faint))
+                .background(
+                    RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                        .fill(DS.faint)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                        .strokeBorder(DS.hairline, lineWidth: 0.5)
+                )
             }
 
             if message.text.isEmpty && message.role == .assistant {
-                HStack(spacing: 5) {
-                    ProgressView().controlSize(.small).scaleEffect(0.7)
-                    Text("思考中…").font(DS.meta).foregroundStyle(.secondary)
+                HStack(spacing: 7) {
+                    PulsingDots()
+                    Text("正在思考…")
+                        .font(DS.meta)
+                        .foregroundStyle(.secondary)
                 }
-            } else if message.role == .assistant {
-                MarkdownText(raw: message.text)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
             } else {
-                Text(message.text)
-                    .font(DS.body)
+                MarkdownText(raw: message.text, showsCaret: isLast && model.isStreaming)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .onHover { hovering = $0 }
     }
 
-    /// 用一条竖线和一个小标签区分角色，不用整块底色，长时间看不累。
     private var header: some View {
         HStack(spacing: 5) {
             RoundedRectangle(cornerRadius: 1)
@@ -283,29 +462,37 @@ private struct MessageRow: View {
 
             Spacer(minLength: 0)
 
-            if hovering {
-                if message.context != nil {
-                    Button {
-                        withAnimation(.easeOut(duration: 0.14)) { showsContext.toggle() }
-                    } label: {
-                        Text(showsContext ? "隐藏上下文" : "上下文").font(.system(size: 9.5))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.tertiary)
+            if message.context != nil {
+                Button {
+                    withAnimation(.easeOut(duration: 0.14)) { showsContext.toggle() }
+                } label: {
+                    Text(showsContext ? "隐藏上下文" : "上下文").font(.system(size: 9.5))
                 }
+                .buttonStyle(PressFeedbackButtonStyle())
+                .foregroundStyle(.tertiary)
+                .opacity(hovering || showsContext ? 1 : 0.52)
+                .help(showsContext ? "隐藏上下文" : "上下文")
             }
 
-            // 始终保留复制按钮的布局位置，避免鼠标移入时按钮出现／消失导致
-            // MessageRow 重新排版、父级 hover 瞬间变成 false。
             if message.role == .assistant, !message.text.isEmpty {
                 Button {
                     model.copyToPasteboard(message.text)
                     copied = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { copied = false }
                 } label: {
-                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 9.5))
-                        .frame(width: 18, height: 16)
+                    HStack(spacing: 2) {
+                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 9))
+                        if copied {
+                            Text("已复制").font(.system(size: 9))
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(copied ? Color.accentColor.opacity(0.12) : Color.clear)
+                    )
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(copied ? Color.accentColor : Color.secondary.opacity(0.7))

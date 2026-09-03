@@ -82,6 +82,80 @@ enum IslandRenderer {
         FileHandle.standardOutput.write(Data("已写入 \(path)\n".utf8))
     }
 
+    /// 渲染聊天面板的空状态，用来检查文案、建议胶囊和整体排版。
+    ///
+    /// 这里只画内容层：ChatView 的底子是 VisualEffectView，而 ImageRenderer
+    /// 画不了 NSViewRepresentable，整块会变成一张黄底红杠的占位图。
+    static func renderChat(to path: String) {
+        var packet = ContextPacket(appName: "Google Chrome", bundleID: "com.google.Chrome")
+        packet.url = "https://github.com/features/actions"
+        packet.pageTitle = "GitHub Actions"
+        packet.pageText = "Automate your workflow from idea to production"
+        packet.pageTextTotalChars = 46
+        packet.screenshotJPEG = ScreenCapturer.tinyTestJPEG()
+        AssistantModel.shared.packet = packet
+        AssistantModel.shared.setCollapsedSilently(false)
+
+        let view = VStack(alignment: .leading, spacing: 14) {
+            ChatEmptyStateView()
+                .environmentObject(AssistantModel.shared)
+                .environmentObject(ConversationStore.shared)
+        }
+        .padding(.horizontal, DS.gutter)
+        .frame(width: 620, alignment: .leading)
+        .background(Color(nsColor: .windowBackgroundColor))
+
+        write(view, to: path)
+    }
+
+    /// 渲染 Markdown 代码块与表格样本
+    static func renderMarkdownSample(to path: String) {
+        let sample = """
+### 代码优化示例
+
+以下是为您提取的代码片段：
+
+```swift
+func greet(user: String) -> String {
+    return "Hello, \\(user)! Welcome to Wisp."
+}
+```
+
+### 性能参数比对
+
+| 模型 | 响应延迟 | 上下文窗口 |
+| --- | --- | --- |
+| GLM-5.3-Flash | 240ms | 128k |
+| Claude 3.5 Sonnet | 450ms | 200k |
+| GPT-4o-Mini | 310ms | 128k |
+
+> 提示：以上数据为局域网实测均值。
+"""
+
+        let view = VStack(alignment: .leading, spacing: 10) {
+            MarkdownText(raw: sample, flat: true)
+        }
+        .padding(16)
+        .frame(width: 580)
+        .background(Color(nsColor: .windowBackgroundColor))
+
+        write(view, to: path)
+    }
+
+    private static func write(_ view: some View, to path: String) {
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.nsImage,
+              let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else {
+            FileHandle.standardError.write(Data("渲染失败\n".utf8))
+            return
+        }
+        try? png.write(to: URL(fileURLWithPath: path))
+        FileHandle.standardOutput.write(Data("已写入 \(path)\n".utf8))
+    }
+
     static func render(to path: String) {
         let model = IslandModel.shared
         let cases: [(String, Bool, Bool)] = [

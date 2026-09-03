@@ -1767,7 +1767,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Summon assistant"
+            "value": "Open Assistant"
           }
         },
         "zh-Hans": {
@@ -1783,7 +1783,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Summon assistant:"
+            "value": "Open Assistant:"
           }
         },
         "zh-Hans": {
@@ -6542,6 +6542,534 @@
           "stringUnit": {
             "state": "translated",
             "value": "（回答未完成：生成过程已中断。）"
+          }
+        }
+      }
+    },
+    "当前应用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the current app"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前应用"
+          }
+        }
+      }
+    },
+    "问点关于「%@」的事": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask about “%@”"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问点关于「%@」的事"
+          }
+        }
+      }
+    },
+    "Wisp 会在发送时读取当前窗口的截图与正文上下文，直接提问即可。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wisp reads the current window’s screenshot and text when you send. Just ask."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wisp 会在发送时读取当前窗口的截图与正文上下文，直接提问即可。"
+          }
+        }
+      }
+    },
+    "建议提问：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try asking"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议提问："
+          }
+        }
+      }
+    },
+    "提炼本页核心结论": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key takeaways"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提炼本页核心结论"
+          }
+        }
+      }
+    },
+    "提取关键数据": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pull out the data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提取关键数据"
+          }
+        }
+      }
+    },
+    "翻译并梳理逻辑": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate and outline"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译并梳理逻辑"
+          }
+        }
+      }
+    },
+    "解释当前代码或报错": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explain this code or error"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解释当前代码或报错"
+          }
+        }
+      }
+    },
+    "找出潜在问题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find potential problems"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找出潜在问题"
+          }
+        }
+      }
+    },
+    "重构优化建议": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggest a refactor"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重构优化建议"
+          }
+        }
+      }
+    },
+    "梳理当前屏幕内容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summarize this screen"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "梳理当前屏幕内容"
+          }
+        }
+      }
+    },
+    "总结要点与待办": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takeaways and to-dos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "总结要点与待办"
+          }
+        }
+      }
+    },
+    "请提炼当前网页的核心要点和关键结论，分条列出。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summarize the key points and conclusions of this page as a bulleted list."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请提炼当前网页的核心要点和关键结论，分条列出。"
+          }
+        }
+      }
+    },
+    "请从当前页面中提取关键事实、数据或步骤清单。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extract the key facts, figures, or step-by-step instructions from this page."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请从当前页面中提取关键事实、数据或步骤清单。"
+          }
+        }
+      }
+    },
+    "请简述并翻译当前页面的主要脉络，用清晰中文说明。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outline and translate the main thread of this page in clear English."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请简述并翻译当前页面的主要脉络，用清晰中文说明。"
+          }
+        }
+      }
+    },
+    "请分析当前窗口中的代码或报错信息，指出其核心原因。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyze the code or error in this window and explain the root cause."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请分析当前窗口中的代码或报错信息，指出其核心原因。"
+          }
+        }
+      }
+    },
+    "请检查当前代码是否存在潜在缺陷或边缘情况，并给出修复方案。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check this code for defects and edge cases, and propose fixes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查当前代码是否存在潜在缺陷或边缘情况，并给出修复方案。"
+          }
+        }
+      }
+    },
+    "针对当前窗口里的实现，提供更简洁、高性能的重构建议。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggest a simpler, faster refactor of the implementation in this window."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "针对当前窗口里的实现，提供更简洁、高性能的重构建议。"
+          }
+        }
+      }
+    },
+    "正在思考…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在思考…"
+          }
+        }
+      }
+    },
+    "正在思考": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在思考"
+          }
+        }
+      }
+    },
+    "已复制": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        }
+      }
+    },
+    "复制": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制"
+          }
+        }
+      }
+    },
+    "复制代码块": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy code block"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制代码块"
+          }
+        }
+      }
+    },
+    "搜索对话标题或内容…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search titles and messages…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索对话标题或内容…"
+          }
+        }
+      }
+    },
+    "还没有历史对话。直接在下方提问就会自动建立。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No conversations yet. Ask something below and one gets created."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有历史对话。直接在下方提问就会自动建立。"
+          }
+        }
+      }
+    },
+    "未找到匹配「%@」的对话": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No conversations match “%@”"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到匹配「%@」的对话"
+          }
+        }
+      }
+    },
+    "刚刚": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刚刚"
+          }
+        }
+      }
+    },
+    "%lld 轮": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld turns"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 轮"
+          }
+        }
+      }
+    },
+    "重新读取屏幕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-read screen"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新读取屏幕"
+          }
+        }
+      }
+    },
+    "开启截图附带": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attach screenshots"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启截图附带"
+          }
+        }
+      }
+    },
+    "关闭截图附带": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop attaching screenshots"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭截图附带"
+          }
+        }
+      }
+    },
+    "请梳理当前窗口呈现的核心内容，帮我快速把握重点。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summarize what this window is showing so I can get the gist quickly."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请梳理当前窗口呈现的核心内容，帮我快速把握重点。"
+          }
+        }
+      }
+    },
+    "从当前屏幕中提取重要信息，整理成清晰的要点与待办事项。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pull the important information off this screen into clear takeaways and to-dos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从当前屏幕中提取重要信息，整理成清晰的要点与待办事项。"
           }
         }
       }

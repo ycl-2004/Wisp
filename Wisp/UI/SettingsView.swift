@@ -596,13 +596,13 @@ private struct ProviderCard: View {
             .padding(10)
             .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
                     .fill(selected ? Color.accentColor.opacity(0.10)
                                    : Color.primary.opacity(hovering ? 0.06 : 0.03))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(selected ? Color.accentColor.opacity(0.55) : Color.primary.opacity(0.10),
+                RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                    .strokeBorder(selected ? Color.accentColor.opacity(0.55) : DS.hairline,
                                   lineWidth: selected ? 1.2 : 0.5)
             )
         }

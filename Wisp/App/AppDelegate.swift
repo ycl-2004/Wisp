@@ -54,6 +54,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        if let index = CommandLine.arguments.firstIndex(of: "--render-chat") {
+            let path = CommandLine.arguments.count > index + 1
+                ? CommandLine.arguments[index + 1]
+                : NSHomeDirectory() + "/Desktop/chat.png"
+            MainActor.assumeIsolated { IslandRenderer.renderChat(to: path) }
+            NSApp.terminate(nil)
+            return
+        }
+
+        if let index = CommandLine.arguments.firstIndex(of: "--render-markdown") {
+            let path = CommandLine.arguments.count > index + 1
+                ? CommandLine.arguments[index + 1]
+                : NSHomeDirectory() + "/Desktop/markdown.png"
+            MainActor.assumeIsolated { IslandRenderer.renderMarkdownSample(to: path) }
+            NSApp.terminate(nil)
+            return
+        }
+
         // 让另一个进程能远程唤起浮窗，方便在没有快捷键的情况下测试。
         // DistributedNotificationCenter 不校验发送方，所以这条通道只在 Debug 存在。
         if CommandLine.arguments.contains("--show") {
@@ -109,6 +127,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 PanelController.shared.toggle()
             }
         }
+
+        // SwiftUI 的 Menu 每次打开都重建菜单项，所以每次都要重新贴一遍快捷键提示。
+        NotificationCenter.default.addObserver(
+            forName: NSMenu.didBeginTrackingNotification,
+            object: nil,
+            queue: .main
+        ) { notif in
+            guard let menu = notif.object as? NSMenu else { return }
+            MainActor.assumeIsolated { Self.annotateSummonItem(menu) }
+        }
+    }
+
+    /// 在「唤起助手」那一项右侧补上当前的快捷键。
+    ///
+    /// 只有标准组合能交给 `keyEquivalent`：它一个格子只放得下一个字符，
+    /// 表达不了「连按两次 Control」，硬塞进去既会把 F13 显示成 F，
+    /// 也会给菜单登记一个用户没设过的按键。所以另外三种模式改走 attributedTitle，
+    /// 纯粹当说明文字画上去，不参与按键匹配。
+    @MainActor
+    private static func annotateSummonItem(_ menu: NSMenu) {
+        let title = String(localized: "唤起助手")
+        guard let item = menu.items.first(where: { $0.title.hasPrefix(title) }) else { return }
+
+        let settings = AppSettings.shared
+        guard settings.shortcutTrigger != .standard else {
+            item.attributedTitle = nil
+            item.title = title
+            if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleAssistant) {
+                item.setShortcut(shortcut)
+            } else {
+                item.keyEquivalent = " "
+                item.keyEquivalentModifierMask = [.control, .option]
+            }
+            return
+        }
+
+        item.keyEquivalent = ""
+        item.keyEquivalentModifierMask = []
+
+        let tapCount = settings.shortcutTrigger.tapCount ?? 1
+        let hint = settings.advancedShortcut?.symbolicName(tapCount: tapCount)
+            ?? String(localized: "未设置")
+
+        let attributed = NSMutableAttributedString(string: title)
+        attributed.append(NSAttributedString(
+            string: "   " + hint,
+            attributes: [
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
+            ]
+        ))
+        item.attributedTitle = attributed
     }
 
     func applicationWillTerminate(_ notification: Notification) {

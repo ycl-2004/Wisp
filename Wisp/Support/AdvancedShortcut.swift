@@ -73,6 +73,17 @@ struct AdvancedShortcut: Codable, Equatable {
         let prefix = ShortcutKeyInfo.symbolicRepresentation(for: eventModifiers)
         return prefix + ShortcutKeyInfo.name(for: keyCode, kind: kind)
     }
+
+    /// 纯符号写法，给药丸和菜单这类窄条用。
+    /// 连击的修饰键直接重复（⌃⌃）；带字符的组合重复三遍会长到挤掉旁边的文字，
+    /// 所以改用 ⌘K ×3。
+    @MainActor
+    func symbolicName(tapCount: Int = 1) -> String {
+        let base = ShortcutKeyInfo.symbolicRepresentation(for: eventModifiers)
+            + ShortcutKeyInfo.symbolicKey(for: keyCode, kind: kind)
+        guard tapCount > 1 else { return base }
+        return base.count <= 1 ? String(repeating: base, count: tapCount) : "\(base) ×\(tapCount)"
+    }
 }
 
 enum ShortcutKeyInfo {
@@ -90,6 +101,21 @@ enum ShortcutKeyInfo {
         case kVK_Function: return .function
         default: return nil
         }
+    }
+
+    static func symbolicKey(for keyCode: UInt16, kind: AdvancedShortcut.KeyKind) -> String {
+        if kind == .modifier, let modifier = modifierFlag(for: keyCode) {
+            switch modifier {
+            case .capsLock: return "⇪"
+            case .shift: return "⇧"
+            case .control: return "⌃"
+            case .option: return "⌥"
+            case .command: return "⌘"
+            case .function: return "🌐"
+            default: break
+            }
+        }
+        return name(for: keyCode, kind: kind)
     }
 
     static func name(for keyCode: UInt16, kind: AdvancedShortcut.KeyKind) -> String {
@@ -152,7 +178,27 @@ enum ShortcutKeyInfo {
         case kVK_RightArrow: return "→"
         case kVK_UpArrow: return "↑"
         case kVK_DownArrow: return "↓"
-        case kVK_F1...kVK_F20: return "F\(Int(keyCode) - kVK_F1 + 1)"
+        // Carbon 的功能键键码不是连续排列，不能用范围和偏移量推算。
+        case kVK_F1: return "F1"
+        case kVK_F2: return "F2"
+        case kVK_F3: return "F3"
+        case kVK_F4: return "F4"
+        case kVK_F5: return "F5"
+        case kVK_F6: return "F6"
+        case kVK_F7: return "F7"
+        case kVK_F8: return "F8"
+        case kVK_F9: return "F9"
+        case kVK_F10: return "F10"
+        case kVK_F11: return "F11"
+        case kVK_F12: return "F12"
+        case kVK_F13: return "F13"
+        case kVK_F14: return "F14"
+        case kVK_F15: return "F15"
+        case kVK_F16: return "F16"
+        case kVK_F17: return "F17"
+        case kVK_F18: return "F18"
+        case kVK_F19: return "F19"
+        case kVK_F20: return "F20"
         default: return "Key \(keyCode)"
         }
     }

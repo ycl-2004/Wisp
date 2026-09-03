@@ -24,25 +24,10 @@ struct WispApp: App {
 private struct MenuContent: View {
     @ObservedObject private var store = ConversationStore.shared
     @ObservedObject private var updateNotice = UpdateNotice.shared
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
-        if settings.shortcutTrigger == .standard {
-            Button("唤起助手") {
-                PanelController.shared.toggle()
-            }
-            .globalKeyboardShortcut(.toggleAssistant)
-        } else {
-            Button {
-                PanelController.shared.toggle()
-            } label: {
-                HStack(spacing: 12) {
-                    Text("唤起助手")
-                    Spacer(minLength: 20)
-                    Text(advancedShortcutLabel)
-                        .foregroundStyle(.secondary)
-                }
-            }
+        Button(String(localized: "唤起助手")) {
+            PanelController.shared.toggle()
         }
 
         if let version = updateNotice.availableVersion {
@@ -69,21 +54,4 @@ private struct MenuContent: View {
         .keyboardShortcut("q", modifiers: .command)
     }
 
-    private var advancedShortcutLabel: String {
-        guard let shortcut = settings.advancedShortcut else {
-            return String(localized: "未设置")
-        }
-
-        let name = shortcut.displayName
-        switch settings.shortcutTrigger {
-        case .enhancedSingle:
-            return name
-        case .doubleTap:
-            return String(localized: "双击 \(name)")
-        case .tripleTap:
-            return String(localized: "三击 \(name)")
-        case .standard:
-            return ""
-        }
-    }
 }
