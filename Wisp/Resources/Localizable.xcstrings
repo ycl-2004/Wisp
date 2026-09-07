@@ -7090,50 +7090,50 @@
         }
       }
     },
-    "屏幕共享时隐藏": {
+    "尝试在屏幕共享时隐藏": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide during screen sharing"
+            "value": "Try to hide during screen sharing"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "屏幕共享时隐藏"
+            "value": "尝试在屏幕共享时隐藏"
           }
         }
       }
     },
-    "屏幕共享和录屏时隐藏 Wisp": {
+    "尝试在共享和录屏中隐藏 Wisp": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide Wisp from screen sharing and recording"
+            "value": "Try to hide Wisp from sharing and recording"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "屏幕共享和录屏时隐藏 Wisp"
+            "value": "尝试在共享和录屏中隐藏 Wisp"
           }
         }
       }
     },
-    "Zoom、Google Meet、腾讯会议、飞书、Teams、QuickTime、系统录屏和 OBS 都读不到 Wisp 的窗口，你自己的屏幕上照常显示。": {
+    "在兼容的共享和录屏方式中隐藏窗口，本机照常使用。效果取决于系统和录屏方式，请先检查接收端画面；开启不代表已经隐藏。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zoom, Google Meet, Teams, QuickTime, the built-in screen recorder and OBS cannot read Wisp's windows. Your own display still shows them normally."
+            "value": "Requests window hiding in compatible capture paths while keeping Wisp usable locally. Results depend on macOS and the recorder. Check the receiving side first; enabled does not mean verified hidden."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zoom、Google Meet、腾讯会议、飞书、Teams、QuickTime、系统录屏和 OBS 都读不到 Wisp 的窗口，你自己的屏幕上照常显示。"
+            "value": "在兼容的共享和录屏方式中隐藏窗口，本机照常使用。效果取决于系统和录屏方式，请先检查接收端画面；开启不代表已经隐藏。"
           }
         }
       }
@@ -7154,18 +7154,18 @@
         }
       }
     },
-    "要录 Wisp 的演示视频时关掉它。菜单栏那颗图标由系统绘制，隐身模式盖不住；用手机对着屏幕拍摄也不受影响。": {
+    "录制 Wisp 演示时请关闭。菜单栏图标、系统弹窗和窗口列表不保证隐藏；摄像机拍屏与硬件采集不受影响。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn this off to record a demo of Wisp. The menu bar icon is drawn by the system and stays visible; a phone camera pointed at the screen is unaffected either way."
+            "value": "Turn this off to record Wisp demos. Menu bar icons, system dialogs, and window lists are not guaranteed hidden. Cameras and hardware capture are unaffected."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "要录 Wisp 的演示视频时关掉它。菜单栏那颗图标由系统绘制，隐身模式盖不住；用手机对着屏幕拍摄也不受影响。"
+            "value": "录制 Wisp 演示时请关闭。菜单栏图标、系统弹窗和窗口列表不保证隐藏；摄像机拍屏与硬件采集不受影响。"
           }
         }
       }

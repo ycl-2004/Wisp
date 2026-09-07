@@ -115,6 +115,9 @@ open "$HOME/Applications/Wisp.app"
   not assume that a page was fully read.
 - Fall back explicitly to URL and screenshot context when JavaScript is
   disabled or the current app is not supported.
+- Virtual-page extraction clears its temporary `window.__wispCollector` state
+  after the read; Wisp reads Chromium preferences to check the Apple-Events
+  setting but does not write Wisp data into the browser profile.
 
 **Floating panel and island**
 
@@ -131,22 +134,24 @@ open "$HOME/Applications/Wisp.app"
   edge instead of always from the middle. It can also snap to the Mac's camera
   notch.
 
-**Hidden from screen sharing**
+**Screen-sharing visibility (best effort)**
 
-- On by default: Wisp's windows are marked as unreadable by other processes
-  (`NSWindow.sharingType = .none`), so Zoom, Google Meet, Teams, QuickTime, the
-  built-in screen recorder (`⌘⇧5`) and OBS all capture the screen without them.
-  Your own display still shows everything normally. The enforcement happens in
-  the WindowServer, so it covers every capture tool at once rather than needing
-  per-app handling, and Wisp does not appear in the window picker either.
-- Toggle it from the menu bar item, or in Settings → Permissions → Screen
-  sharing. Turn it off to record a demo of Wisp itself.
-- The menu bar icon is not covered. macOS draws third-party menu bar items
-  itself, and the `NSStatusBarWindow` the app owns is an empty 35×0 stub whose
-  sharing type has no effect, so the icon stays in the recording. Hide it with a
-  menu bar manager if that matters; the shortcut and the island still reach Wisp.
-- It cannot hide anything from a camera pointed at the screen or from a
-  hardware capture device on the display output.
+- Enabled by default, this setting requests window hiding through
+  `NSWindow.sharingType = .none`, while leaving Wisp usable on your own screen.
+  Apple treats this as a legacy mechanism and explicitly says not to rely on it
+  to prevent capture. Results depend on macOS and the recorder's capture path;
+  the switch being on is not proof that the receiving side cannot see Wisp.
+- Toggle **Try to hide during screen sharing** in the menu bar, or use
+  Settings → Permissions → Screen sharing. Turn it off to record Wisp demos.
+- Local tests on macOS 26.6.1 hid synthetic windows using Wisp's production
+  hiding code from ScreenCaptureKit display screenshots and video frames.
+  Those same windows remained in ScreenCaptureKit's window list. This is not
+  a compatibility claim for Chrome, Zoom, Meet, Teams, OBS, or a proctoring
+  platform. See the [test scope, results, and reproduction steps](docs/screen-privacy-validation.md).
+- Menu bar icons and system-owned dialogs are not guaranteed hidden. This
+  setting does not conceal application identity, focus changes, clipboard
+  events, or third-party activity records. Cameras and hardware capture are
+  unaffected. Verify the actual receiving-side view before relying on it.
 
 **Shortcuts**
 

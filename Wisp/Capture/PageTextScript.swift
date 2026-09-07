@@ -224,6 +224,19 @@ enum PageTextScript {
         """#
     }
 
+    /// 清理采集器在当前页面留下的临时状态。
+    ///
+    /// 常规滚动采集会由 `finishJS` 清理；普通页面正文模式不会进入滚动流程，
+    /// 因此也必须在 Swift 侧显式调用这一段，避免把页面文字继续留在网页内存里。
+    static var cleanupJS: String {
+        #"""
+        (function () {
+          try { window.__wispCollector = null; } catch (e) {}
+          return "ok";
+        })()
+        """#
+    }
+
     /// 把任意字符串安全嵌入 AppleScript 的双引号字面量。
     static func appleScriptLiteral(_ s: String) -> String {
         var escaped = ""

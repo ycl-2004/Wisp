@@ -4,23 +4,30 @@
 
 ### Added
 
-- **Hidden from screen sharing and recording, on by default.** Wisp's panel and
-  island now set `NSWindow.sharingType = .none`, which tells
-  the WindowServer that no other process may read their contents. Zoom, Google
-  Meet, Teams, QuickTime, `⌘⇧5` and OBS all reach the screen through
-  ScreenCaptureKit or `CGWindowList`, so one flag removes Wisp from every one of
-  them at once instead of needing per-app handling, and it keeps Wisp out of the
-  window picker those tools show. The flag is applied when each window is
-  created rather than a run loop later, because the intervening frame is long
-  enough to be recorded. Settings, sheets and menus are created by the system,
-  so a `NSWindow.didUpdateNotification` observer corrects anything the app did
-  not construct itself. Toggle it from the menu bar item or Settings →
-  Permissions → Screen sharing; turning it off is what you want when recording
-  a demo of Wisp. The menu bar icon is the one part this does not cover: macOS
-  draws third-party menu bar items itself and the app-owned `NSStatusBarWindow`
-  is an empty 35×0 stub, so setting its sharing type changes nothing. Nor can any
-  of this affect a camera pointed at the screen or a hardware capture device on
-  the display output.
+- **Best-effort screen-sharing visibility control, enabled by default.** Wisp
+  requests hiding its windows with the legacy `NSWindow.sharingType = .none`
+  flag. Toggle it in the menu bar or Settings → Permissions → Screen sharing;
+  turn it off for Wisp demos. Capture compatibility must be verified for each
+  environment. Menu bar icons, system dialogs, and window lists are not
+  guaranteed hidden. See [validation and reproduction steps](docs/screen-privacy-validation.md).
+- **A local capture probe and browser preview page.** The native probe links
+  the production `ScreenPrivacy.swift` against isolated test settings, creates
+  synthetic windows, and compares display screenshots and video frames from a
+  separate recorder process. It does not launch model providers or use Wisp's
+  stored settings. The browser page previews an explicitly selected screen
+  locally without uploading or saving it.
+
+### Fixed
+
+- Apply the hiding preference when the SwiftUI settings view attaches to its
+  window, in addition to the existing app-window update observer. This removes
+  reliance on a later update notification for that attachment path; it does
+  not guarantee that every system-created surface is protected.
+- Corrected the settings text, both READMEs, privacy policy, and source comments
+  that claimed universal recorder compatibility and invisible window listings.
+  The UI now distinguishes a hiding request from a verified capture result.
+- Clear the temporary `window.__wispCollector` after ordinary page-text reads so
+  browser pages do not retain the collected body in a Wisp-specific global.
 
 ## 0.3.0 — 2026-09-02
 

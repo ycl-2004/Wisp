@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>最小屏幕共享请求对照</title>
+<h1>最小屏幕共享请求对照</h1>
+<p>只在本页预览，不上传或保存。请在选择器中选择整个屏幕。</p>
+<button id="begin">开始最小请求</button>
+<button id="end">停止</button>
+<pre id="result">尚未开始</pre>
+<video id="video" autoplay muted playsinline style="width: 80vw; max-height: 65vh"></video>
+<script>
+  let active;
+  const result = document.querySelector('#result');
+  const video = document.querySelector('#video');
+  function end() {
+    active?.getTracks().forEach(track => track.stop());
+    active = undefined;
+    video.srcObject = null;
+  }
+  document.querySelector('#begin').onclick = async event => {
+    if (active) return;
+    result.textContent = JSON.stringify({trustedClick: event.isTrusted,
+      transientActivation: navigator.userActivation?.isActive,
+      documentFocused: document.hasFocus(), visibility: document.visibilityState});
+    try {
+      // Deliberately no optional constraints or pre-request focus/DOM changes.
+      active = await navigator.mediaDevices.getDisplayMedia({video: true});
+      result.textContent += '\n' + JSON.stringify(active.getVideoTracks()[0].getSettings());
+      video.srcObject = active;
+      active.getVideoTracks()[0].onended = end;
+    } catch (error) { result.textContent += '\n' + error.name + ': ' + error.message; }
+  };
+  document.querySelector('#end').onclick = end;
+  window.addEventListener('pagehide', end);
+</script>
+</html>

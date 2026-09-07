@@ -1,0 +1,143 @@
+{
+  "date": "2026-09-07",
+  "scope": "Synthetic windows using production ScreenPrivacy.swift; separate recorder process; no application exclusions",
+  "runs": [
+    {
+      "fixtureUsesProductionScreenPrivacy": true,
+      "mode": "visible",
+      "os": "Version 26.6.1 (Build 25G76)",
+      "results": [
+        {
+          "listedByScreenCaptureKit": true,
+          "screenshotMagentaFraction": 0.83985714285714286,
+          "streamFrames": 21,
+          "streamFramesWithMarker": 21,
+          "systemScreenshotExitStatus": 0,
+          "systemScreenshotMagentaFraction": 0.84017857142857144,
+          "window": "panel"
+        },
+        {
+          "listedByScreenCaptureKit": true,
+          "screenshotMagentaFraction": 0.83010714285714282,
+          "streamFrames": 21,
+          "streamFramesWithMarker": 21,
+          "systemScreenshotExitStatus": 0,
+          "systemScreenshotMagentaFraction": 0.84017857142857144,
+          "window": "island"
+        },
+        {
+          "listedByScreenCaptureKit": true,
+          "screenshotMagentaFraction": 0.79028571428571426,
+          "streamFrames": 21,
+          "streamFramesWithMarker": 21,
+          "systemScreenshotExitStatus": 0,
+          "systemScreenshotMagentaFraction": 0.79149999999999998,
+          "window": "settings"
+        }
+      ]
+    },
+    {
+      "fixtureUsesProductionScreenPrivacy": true,
+      "mode": "hidden",
+      "os": "Version 26.6.1 (Build 25G76)",
+      "results": [
+        {
+          "listedByScreenCaptureKit": true,
+          "screenshotMagentaFraction": 0,
+          "streamFrames": 21,
+          "streamFramesWithMarker": 0,
+          "systemScreenshotExitStatus": 0,
+          "systemScreenshotMagentaFraction": 0,
+          "window": "panel"
+        },
+        {
+          "listedByScreenCaptureKit": true,
+          "screenshotMagentaFraction": 0,
+          "streamFrames": 21,
+          "streamFramesWithMarker": 0,
+          "systemScreenshotExitStatus": 0,
+          "systemScreenshotMagentaFraction": 0,
+          "window": "island"
+        },
+        {
+          "listedByScreenCaptureKit": true,
+          "screenshotMagentaFraction": 0,
+          "streamFrames": 21,
+          "streamFramesWithMarker": 0,
+          "systemScreenshotExitStatus": 0,
+          "systemScreenshotMagentaFraction": 0,
+          "window": "settings"
+        }
+      ]
+    }
+  ],
+  "actualInstalledApp": {
+    "bundle": "/Applications/Wisp.app",
+    "bundleIdentifier": "com.yichenlin.Wisp",
+    "version": "0.3.0 (5)",
+    "os": "Version 26.6.1 (Build 25G76)",
+    "window": {
+      "owner": "Wisp",
+      "onScreen": true,
+      "windowId": 35804,
+      "boundsPoints": {"x": 495, "y": 876, "width": 730, "height": 106},
+      "sharingStateWhenHidden": 0,
+      "listedByScreenCaptureKit": true
+    },
+    "browserGetDisplayMedia": {
+      "url": "http://127.0.0.1:8765/browser.html",
+      "displaySurface": "monitor",
+      "frameSize": {"width": 3024, "height": 1964},
+      "hiddenState": {
+        "screenshotCrop": "/private/tmp/wisp-actual-screencapture.png",
+        "streamFrames": 10,
+        "streamCrop": "/private/tmp/wisp-actual-stream.png",
+        "observed": "underlying page and Chrome sharing banner; no Wisp panel pixels"
+      },
+      "visibleStateA_B": {
+        "sharingState": 1,
+        "observed": "Wisp panel header/content appears in the same crop when hiding is disabled"
+      }
+    },
+    "additionalHiddenWindows": [
+      {
+        "kind": "settings",
+        "windowId": 35856,
+        "boundsPoints": {"x": 48, "y": 99, "width": 620, "height": 608},
+        "sharingState": 0,
+        "screenshotFrames": 1,
+        "streamFrames": 10,
+        "observed": "both crops showed underlying Terminal/desktop content; no Wisp settings pixels"
+      },
+      {
+        "kind": "island",
+        "windowId": 35870,
+        "boundsPoints": {"x": 0, "y": 826, "width": 372, "height": 76},
+        "sharingState": 0,
+        "screenshotFrames": 1,
+        "streamFrames": 10,
+        "observed": "both crops showed underlying desktop content; no island pixels"
+      }
+    ],
+    "chromeProfileAudit": {
+      "searchedRoot": "/Users/yichenlin/Library/Application Support/Google/Chrome",
+      "excludedLargeCachePaths": true,
+      "keywords": ["com.yichenlin.Wisp", "hideFromScreenCapture", "wisp-screen-privacy", "WispCaptureProbe"],
+      "matchingFiles": 0,
+      "scope": "read-only marker search; no ordinary browsing history or page content was emitted"
+    },
+    "browserPageResidue": {
+      "temporaryObject": "window.__wispCollector",
+      "cleanupPath": "PageTextScript.cleanupJS",
+      "nonScrollingPathCleared": true,
+      "regressionTest": "BrowserPrivacyTests.testPageCollectorCleanupScriptRemovesTemporaryPageState"
+    },
+    "systemWindowCapture": {
+      "command": "screencapture -l 35804 -x",
+      "exitStatus": 1,
+      "fileCreated": false,
+      "observed": "could not create image from window"
+    },
+    "notes": "This verifies one real Wisp panel on one display and the local browser test page. It is not a CodeSignal integrity verdict and does not cover every Wisp surface or recorder implementation."
+  }
+}

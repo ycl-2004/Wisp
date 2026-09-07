@@ -1,6 +1,6 @@
 # Wisp Privacy Policy
 
-Last updated: 2026-09-01. Applies to Wisp for macOS.
+Last updated: 2026-09-07. Applies to Wisp for macOS.
 
 ## The short version
 
@@ -82,6 +82,13 @@ sync service, no account.
 - In a supported browser: the current tab's URL, title, selected text, and full
   page body, via Apple Events and an injected extraction script.
 
+For virtual-scrolling pages, the extraction script may temporarily keep a
+`window.__wispCollector` object in the active page while it gathers text. Wisp
+clears that object when extraction finishes or when the page does not need a
+scroll pass. Wisp reads Chromium profile preferences only to check the
+Apple-Events setting; it does not write Wisp data into the browser profile,
+history, or cache.
+
 Capture happens when you press the shortcut, when you press Refresh, and when
 you switch apps while the panel is open. It does not happen while the panel is
 closed.
@@ -98,18 +105,19 @@ If you do not want a specific page read, do not summon Wisp on it.
 
 ## Keeping Wisp out of your screen shares
 
-Settings → Permissions → Screen sharing controls whether Wisp's own windows can
-be read by other processes. It is on by default, and while it is on the panel
-and the island are excluded from Zoom, Google Meet, Teams, QuickTime, the
-built-in screen recorder and OBS, and do not appear in the window picker those
-tools show. macOS enforces this in the WindowServer, so it applies to any
-capture tool rather than a list Wisp maintains.
+Settings → Permissions → Screen sharing requests hiding Wisp's windows using
+the legacy `NSWindow.sharingType = .none` flag. It is on by default and leaves
+Wisp usable locally, but is not a security boundary or a guarantee against
+capture. Apple explicitly advises against relying on this value to prevent
+capture. Check the receiving-side view with your actual macOS and recorder
+versions before displaying sensitive content.
 
-The menu bar icon is not covered, because macOS draws third-party menu bar items
-itself rather than from a window the app controls. And this protects the window
-contents, not the room: a phone camera pointed at your screen, or a hardware
-capture device on the display output, still sees everything. Turn the setting
-off when you want to record a demo of Wisp itself.
+The setting does not guarantee hiding menu bar icons or system-owned dialogs.
+Window enumeration may still expose Wisp even when a capture omits its pixels.
+It does not alter browser focus events, clipboard events, or other applications'
+activity records, and does not affect cameras or hardware capture devices.
+Turn it off when recording Wisp demos. See [validation scope and results](docs/screen-privacy-validation.md)
+for the tested configurations and remaining gaps.
 
 ## Permissions Wisp asks for
 

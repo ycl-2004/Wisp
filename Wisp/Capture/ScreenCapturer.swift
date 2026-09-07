@@ -75,6 +75,7 @@ enum ScreenCapturer {
             title = target.title
             sourceSize = target.frame.size
         } else if let display = content.displays.first {
+            // 只过滤 Wisp 自己的截图，不会影响浏览器或其他录屏进程的捕获流。
             let excluded = content.windows.filter { excludingWindowIDs.contains($0.windowID) }
             filter = SCContentFilter(display: display, excludingWindows: excluded)
             title = nil

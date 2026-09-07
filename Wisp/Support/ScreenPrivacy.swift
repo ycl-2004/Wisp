@@ -1,15 +1,15 @@
 import AppKit
+import SwiftUI
 
-/// 屏幕共享隐身。
+/// 向兼容的捕获路径请求隐藏 Wisp 的窗口，不是全局的防录屏保证。
 ///
-/// macOS 允许一个窗口声明「别的进程读不到我」（`NSWindow.sharingType = .none`）。
-/// 这个标记由 WindowServer 执行：窗口照常合成到你自己的屏幕上，但任何走
-/// ScreenCaptureKit / CGWindowList 抓画面的进程都拿不到它 —— Zoom、Google Meet、
-/// 腾讯会议、飞书、Teams、QuickTime、系统录屏（⌘⇧5）、OBS 全都走这两条路，
-/// 所以一处设置就全都挡住了，不需要逐个 App 适配。
+/// `.none` 在部分环境中仍有效，但 Apple 将其列为旧机制，并明确要求不要依赖
+/// 它阻止捕获。窗口仍可能被枚举；不同系统、浏览器和录屏路径必须分别实测。
+/// https://developer.apple.com/documentation/appkit/nswindow/sharingtype-swift.enum/none
 ///
-/// 挡不住三样：菜单栏那颗图标（系统代为绘制，见 `applyToAllWindows`）、
-/// 用手机对着屏幕拍，以及在显示器输出端接硬件采集卡。
+/// 只作用于本进程窗口，不覆盖系统菜单栏图标、其他进程的授权弹窗、硬件采集
+/// 或摄像机拍屏，也不改变焦点、剪贴板和其他应用的行为记录。实测见
+/// docs/screen-privacy-validation.md。
 @MainActor
 enum ScreenPrivacy {
 
@@ -28,9 +28,9 @@ enum ScreenPrivacy {
     static func start() {
         applyToAllWindows()
 
-        // 设置窗口、菜单、sheet、系统弹出的授权提示都不是我们 new 出来的，
-        // 拿不到创建时机，所以挂一个全局观察者：窗口每轮 runloop 刷新时顺手校正一次。
-        // 回调只做一次属性比较，命中才写，开销可以忽略。
+        // 兜底处理本进程中晚创建的窗口。刷新通知不能保证在第一帧之前触发，
+        // 所以自己创建的面板在构造时应用，SwiftUI 设置窗口在视图挂载时应用。
+        // 这个进程内观察者无法修改由其他进程承载的系统授权弹窗。
         guard observer == nil else { return }
         observer = NotificationCenter.default.addObserver(
             forName: NSWindow.didUpdateNotification, object: nil, queue: .main
@@ -49,15 +49,31 @@ enum ScreenPrivacy {
 
     // MARK: - 应用
 
-    /// 窗口创建时立刻调用，别等观察者那一轮 —— 中间那一帧足够被录进去。
+    /// 自有窗口在首次显示前调用；设置成功本身不代表接收端已隐藏内容。
     static func apply(to window: NSWindow) {
         let type = desiredSharingType
         if window.sharingType != type { window.sharingType = type }
     }
 
-    /// 兜底扫一遍。菜单栏那颗图标不在这里面：它由系统代为绘制，
-    /// 应用侧的 `NSStatusBarWindow` 只是个 35×0 的空壳，改它的 sharingType 无效。
+    /// 只扫描本进程窗口，不保证覆盖系统绘制的菜单栏图标或授权弹窗。
     static func applyToAllWindows() {
         for window in NSApp.windows { apply(to: window) }
+    }
+}
+
+/// SwiftUI 创建设置窗口时即应用偏好，不等 didUpdateNotification。
+struct ScreenPrivacyWindow: NSViewRepresentable {
+    func makeNSView(context: Context) -> WindowView { WindowView() }
+
+    func updateNSView(_ view: WindowView, context: Context) {
+        if let window = view.window { ScreenPrivacy.apply(to: window) }
+    }
+
+    final class WindowView: NSView {
+        // Source: https://developer.apple.com/documentation/appkit/nsview/viewdidmovetowindow()
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let window { ScreenPrivacy.apply(to: window) }
+        }
     }
 }

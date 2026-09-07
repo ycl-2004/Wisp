@@ -98,14 +98,25 @@ enum BrowserTextExtractor {
             if let href = page.href, !href.isEmpty, result.url == nil { result.url = href }
             result.initialScrollTop = page.scrollTop ?? 0
 
-            guard mode == .scrollCollect, result.pageText != nil else { return }
+            guard mode == .scrollCollect, result.pageText != nil else {
+                clearPageCollector(bundleID: bundleID, family: family)
+                return
+            }
             if needsScrollCollection(page: page, url: result.url) {
                 scrollCollect(bundleID: bundleID, family: family, appName: appName,
                               pid: pid, into: &result)
+            } else {
+                clearPageCollector(bundleID: bundleID, family: family)
             }
         case .failure(let error):
             result.notes.append(note(for: error, appName: appName, bundleID: bundleID, stage: .javascript))
         }
+    }
+
+    /// `beginJS` 为判断虚拟滚动会先创建采集器；不需要继续滚动时立即移除它。
+    private static func clearPageCollector(bundleID: String, family: Family) {
+        _ = runAppleScript(jsScript(bundleID: bundleID, family: family,
+                                     source: PageTextScript.cleanupJS), timeout: 6)
     }
 
     // MARK: - 滚动采集

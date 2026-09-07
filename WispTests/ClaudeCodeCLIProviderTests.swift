@@ -156,3 +156,9 @@ final class MarkdownBlockTests: XCTestCase {
         })
     }
 }
+
+final class BrowserPrivacyTests: XCTestCase {
+    func testPageCollectorCleanupScriptRemovesTemporaryPageState() {
+        XCTAssertTrue(PageTextScript.cleanupJS.contains("window.__wispCollector = null"))
+    }
+}

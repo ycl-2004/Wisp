@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wisp 本地屏幕共享测试</title>
+<style>
+  body { font: 16px system-ui; margin: 32px; background: #f5f5f7; color: #202024; }
+  main { max-width: 1000px; margin: auto; }
+  button { font: inherit; padding: 10px 18px; margin: 0 10px 12px 0; }
+  video { display: block; width: 100%; max-height: 60vh; background: #202024; }
+  pre { white-space: pre-wrap; padding: 16px; background: white; }
+</style>
+<main>
+  <h1>Wisp 本地屏幕共享测试</h1>
+  <p>选择“整个屏幕”。打开 Wisp，检查此预览是否出现面板、药丸、设置或菜单。关闭隐藏开关后再比较一次。</p>
+  <p>画面只在当前页面预览，不上传、不保存；停止按钮或关闭页面会结束共享。这不是 CodeSignal 测试，结果不能代表监考审核。</p>
+  <button id="start">开始整屏共享测试</button><button id="stop" disabled>停止共享</button>
+  <video id="preview" autoplay muted playsinline></video>
+  <pre id="status">尚未开始</pre>
+</main>
+<script>
+  const start = document.querySelector('#start');
+  const stop = document.querySelector('#stop');
+  const video = document.querySelector('#preview');
+  const status = document.querySelector('#status');
+  let stream;
+  function log(text) { status.textContent += '\n' + new Date().toISOString() + ' ' + text; }
+  function end() {
+    if (!stream) return;
+    stream.getTracks().forEach(track => track.stop());
+    stream = undefined;
+    video.srcObject = null;
+    start.disabled = false;
+    stop.disabled = true;
+    log('共享已停止');
+  }
+  start.onclick = async event => {
+    start.disabled = true;
+    status.textContent = navigator.userAgent;
+    log(JSON.stringify({
+      trustedClick: event.isTrusted,
+      transientActivation: navigator.userActivation?.isActive,
+      documentFocused: document.hasFocus(),
+      visibility: document.visibilityState,
+      secureContext: window.isSecureContext
+    }));
+    try {
+      // Source: https://www.w3.org/TR/screen-capture/#dom-mediadevices-getdisplaymedia
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'monitor', frameRate: 10 }, audio: false
+      });
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      log(JSON.stringify(settings));
+      if (settings.displaySurface !== 'monitor') {
+        log('无效测试：未选择整个屏幕。请重新选择。');
+        end();
+        return;
+      }
+      video.srcObject = stream;
+      track.onended = end;
+      stop.disabled = false;
+      log('整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。');
+    } catch (error) {
+      log(error.name + ': ' + error.message);
+      if (error.name === 'InvalidStateError') {
+        log('Chrome 未创建共享流。可将本页置于前台手动重试；若上方激活与焦点均为 true，不能仅凭此错误判断原因。此次无法判断隐藏效果。');
+      }
+      end();
+      start.disabled = false;
+    }
+  };
+  stop.onclick = end;
+  window.addEventListener('blur', () => { if (stream) log('window blur'); });
+  window.addEventListener('focus', () => { if (stream) log('window focus'); });
+  document.addEventListener('visibilitychange', () => { if (stream) log('visibility: ' + document.visibilityState); });
+  window.addEventListener('pagehide', end);
+</script>
+</html>
