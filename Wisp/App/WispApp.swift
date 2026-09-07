@@ -6,8 +6,13 @@ import SwiftUI
 struct WispApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    // 必须是 @AppStorage：App 里的 @ObservedObject 不驱动 Scene 更新，用它包出来的
+    // Binding 会让 MenuBarExtra 一直读到插入前的旧值，图标根本不出现。
+    @AppStorage(AppSettings.showsMenuBarIconKey) private var showsMenuBarIcon = true
+
     var body: some Scene {
-        MenuBarExtra {
+        // 图标关掉后菜单栏上不留任何痕迹；入口退回全局快捷键和面板头部的齿轮。
+        MenuBarExtra(isInserted: $showsMenuBarIcon) {
             MenuContent()
         } label: {
             Image(systemName: "rectangle.and.text.magnifyingglass")

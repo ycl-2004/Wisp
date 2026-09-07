@@ -964,6 +964,17 @@ private struct CaptureSettingsView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Toggle("在菜单栏显示图标", isOn: Binding(
+                    get: { settings.showsMenuBarIcon },
+                    set: { settings.showsMenuBarIcon = $0 }
+                ))
+                Text(settings.showsMenuBarIcon
+                     ? "菜单栏图标由系统绘制，隐藏开关对它无效，录屏和共享里一定看得见。关掉它，菜单栏上就不留痕迹。"
+                     : "菜单栏没有 Wisp 图标。用全局快捷键唤起面板，面板右上角的齿轮可以回到这里。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } header: {
                 SettingsSectionHeader("屏幕共享", info: String(localized: "录制 Wisp 演示时请关闭。菜单栏图标、系统弹窗和窗口列表不保证隐藏；摄像机拍屏与硬件采集不受影响。"))
             }

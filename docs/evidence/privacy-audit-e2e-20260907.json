@@ -1,0 +1,65 @@
+{
+  "audit": "end-to-end privacy audit",
+  "date": "2026-09-07",
+  "environment": {
+    "os": "macOS 26.6.1",
+    "xcode": "26.6",
+    "architecture": "Apple Silicon",
+    "signing": "CODE_SIGNING_ALLOWED=NO"
+  },
+  "tests": {
+    "command": "xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Debug -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test",
+    "executed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "new_suite": "PrivacyTransportTests",
+    "new_tests": 5,
+    "result_bundle": "/private/tmp/wisp-privacy-e2e-20260907.xcresult",
+    "uses_synthetic_data_only": true,
+    "invoked_model_cli": false
+  },
+  "builds": [
+    { "configuration": "Debug", "flags": "CODE_SIGNING_ALLOWED=NO", "exit": 0 },
+    { "configuration": "Release", "flags": "CODE_SIGNING_ALLOWED=NO", "exit": 0 },
+    { "configuration": "Debug", "flags": "SWIFT_ACTIVE_COMPILATION_CONDITIONS=\"DEBUG WISP_DIAGNOSTICS\"", "exit": 0 }
+  ],
+  "diagnostic_entry_points": {
+    "method": "strings on the built binary or Debug dylib; Xcode 26 places Debug code in Wisp.debug.dylib",
+    "matrix": [
+      { "build": "Debug (standard)", "artifact": "Build/Debug/Wisp.app/Contents/MacOS/Wisp.debug.dylib", "--dump-context": "absent", "com.yichenlin.Wisp.show": "absent" },
+      { "build": "Release", "artifact": "Build/Release/Wisp.app/Contents/MacOS/Wisp", "--dump-context": "absent", "com.yichenlin.Wisp.show": "absent" },
+      { "build": "Debug + WISP_DIAGNOSTICS", "artifact": "scratch/diagbuild/Debug/Wisp.app/Contents/MacOS/Wisp.debug.dylib", "--dump-context": "present", "com.yichenlin.Wisp.show": "present" }
+    ],
+    "note": "The flagged build is the positive control: it proves the string check can detect these entry points and that the gated code still compiles."
+  },
+  "network_egress": {
+    "call_sites": [
+      "Wisp/LLM/OpenAICompatibleProvider.swift (chat/completions, validate)",
+      "Wisp/LLM/OllamaSupport.swift (local model probe)",
+      "Wisp/Support/AppLifecycle.swift (GitHub release tag)"
+    ],
+    "urlsession_shared_remaining": 0,
+    "all_sites_use_ephemeral_config": true,
+    "all_sites_refuse_redirects": true,
+    "other_transports_found": "none (no WKWebView, Network.framework, or raw sockets in Wisp/)"
+  },
+  "logging": {
+    "os_log_or_nslog_or_print_call_sites": 0
+  },
+  "local_process_surface": {
+    "argv_prompt": ["Claude Code (-p)", "AGY (-p)"],
+    "stdin_prompt": ["Codex (exec ... -)"],
+    "other_subprocesses": ["/usr/bin/osascript (browser AppleScript)", "ollama serve"]
+  },
+  "storage": {
+    "support_directory_observed_mode": "0700",
+    "support_directory_path": "~/Library/Application Support/Wisp",
+    "conversation_file_encrypted": false,
+    "conversation_write_aborts_without_private_directory": true
+  },
+  "update_check": {
+    "registered_default": false,
+    "explicit_preference_on_this_machine": "absent",
+    "preservation_mechanism": "UserDefaults.register(defaults:) only fills unset keys; not exercised on a machine with an explicit value"
+  }
+}

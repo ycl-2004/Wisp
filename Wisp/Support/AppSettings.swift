@@ -76,6 +76,7 @@ final class AppSettings: ObservableObject {
         static let panelFrame = "panelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
         static let showIsland = "showIsland"
+        static let showsMenuBarIcon = "showsMenuBarIcon"
         static let hideFromScreenCapture = "hideFromScreenCapture"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
@@ -113,10 +114,11 @@ final class AppSettings: ObservableObject {
             K.shortcutTrigger: ShortcutTriggerMode.standard.rawValue,
             K.debugDumpEnabled: false,
             K.showIsland: true,
+            K.showsMenuBarIcon: true,
             K.hideFromScreenCapture: true,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
-            K.checkForUpdates: true,
+            K.checkForUpdates: false,
             K.appLanguage: "system",
         ])
     }
@@ -296,6 +298,17 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.showIsland); objectWillChange.send() }
     }
 
+    /// `@AppStorage` 要直接绑这个键，所以键名必须能从 App 层拿到。
+    static let showsMenuBarIconKey = K.showsMenuBarIcon
+
+    /// 菜单栏图标由系统绘制，`sharingType` 对它无效，所以录屏里一定看得见。
+    /// 关掉它是唯一能让菜单栏不留痕的办法；关掉后靠全局快捷键唤起面板，
+    /// 面板头部会多出一个进设置的入口。
+    var showsMenuBarIcon: Bool {
+        get { d.bool(forKey: K.showsMenuBarIcon) }
+        set { d.set(newValue, forKey: K.showsMenuBarIcon); objectWillChange.send() }
+    }
+
     /// 把 Wisp 自己的窗口标成其他进程读不到，屏幕共享和录屏里就看不见它。
     var hideFromScreenCapture: Bool {
         get { d.bool(forKey: K.hideFromScreenCapture) }
@@ -381,8 +394,17 @@ final class AppSettings: ObservableObject {
     static var supportDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let dir = base.appendingPathComponent("Wisp", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? ensurePrivateDirectory(dir)
         return dir
+    }
+
+    /// Restricts other local accounts; this does not isolate same-user processes.
+    static func ensurePrivateDirectory(_ dir: URL) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true,
+                               attributes: [.posixPermissions: 0o700])
+        // Apply to existing installations as well as new directories.
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
     }
 
     /// 清空全部本地数据（对话 JSON、调试文件、UserDefaults）。Keychain 由调用方另行清除。

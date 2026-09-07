@@ -17,13 +17,6 @@ enum ScrollDriver {
     /// 有没有辅助功能权限。没有就发不出可信事件，只能退回 JS 滚动。
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
-    /// 弹一次系统的授权提示（已拒绝过则不会再弹，需去系统设置）。
-    @discardableResult
-    static func requestTrust() -> Bool {
-        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        return AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
-    }
-
     /// 取该进程最大的那个在屏窗口。用来算注入事件的坐标。
     static func frontWindowRect(pid: pid_t) -> CGRect? {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],

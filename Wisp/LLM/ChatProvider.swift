@@ -28,7 +28,8 @@ enum ProviderError: LocalizedError {
         case .missingKey:
             return String(localized: "还没有填 API Key。请在设置里填写后再提问。")
         case .badBaseURL:
-            return String(localized: "Base URL 格式不对，请填写形如 https://api.openai.com/v1 的地址。")
+            return String(localized: "Base URL 格式不对，请填写形如 https://api.openai.com/v1 的地址。") + " "
+                + String(localized: "远端接口必须使用 HTTPS；HTTP 仅允许 localhost、127.0.0.1 或 ::1。")
         case .unauthorized:
             return String(localized: "API Key 被拒绝（401）。请检查 Key 是否正确、是否有该模型的权限。")
         case .rateLimited(let detail, let upstream, let resetHint):

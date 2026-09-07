@@ -107,6 +107,9 @@ final class ConversationStore: ObservableObject {
         let file = ConversationFile(conversations: conversations)
         guard let data = try? encoder.encode(file) else { return }
         let tmp = fileURL.appendingPathExtension("tmp")
+        // Do not fall back to writing private content if directory protection fails.
+        do { try AppSettings.ensurePrivateDirectory(fileURL.deletingLastPathComponent()) }
+        catch { return }
         do {
             try data.write(to: tmp, options: .atomic)
             _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: tmp)
@@ -151,10 +154,6 @@ final class ConversationStore: ObservableObject {
     var active: Conversation? {
         guard let activeID else { return nil }
         return conversations.first { $0.id == activeID }
-    }
-
-    func remainingTurns(in conversation: Conversation) -> Int {
-        max(0, maxUserTurns - conversation.userTurnCount)
     }
 
     func isAtTurnLimit(_ conversation: Conversation) -> Bool {

@@ -1,0 +1,248 @@
+{
+  "audit": "all-surface screen visibility audit",
+  "date": "2026-09-07",
+  "environment": {
+    "os": "Version 26.6.1 (Build 25G76)",
+    "display": "single 3024x1964 pixels / 1512x982 points",
+    "capture_paths_tested": [
+      "ScreenCaptureKit SCScreenshotManager",
+      "CGWindowListCreateImage (dlsym)",
+      "CGDisplayCreateImage (dlsym)"
+    ]
+  },
+  "method": "A fixture process compiled against the production Wisp/Support/ScreenPrivacy.swift creates a host window plus the surfaces AppKit derives from it (popover, sheet, alert, menu) and a status item. The parent process enumerates every on-screen window owned by that pid via CGWindowList, so a surface no protection path reaches cannot hide in the gap. Magenta marker fraction is measured per window on each capture path. No Wisp preferences, credentials or providers are used; the installed app is not started or stopped.",
+  "groups": {
+    "visible": {
+      "onScreenWindowsOwnedByFixture": 4,
+      "menuBarStripMarkerFraction": 0,
+      "capturePathsAvailable": {
+        "cgDisplayCreateImage": true,
+        "cgWindowListCreateImage": true,
+        "screenCaptureKit": true
+      },
+      "surfaces": [
+        {
+          "windowNumber": 36696,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 1,
+          "markerScreenCaptureKit": 0.15014935661764706,
+          "markerWindowListImage": 0.15047966452205883,
+          "markerDisplayImage": 0.15047966452205883,
+          "bounds": {
+            "h": 272,
+            "w": 320,
+            "x": 496,
+            "y": 339
+          }
+        },
+        {
+          "windowNumber": 36697,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 1,
+          "markerScreenCaptureKit": 0,
+          "markerWindowListImage": 0,
+          "markerDisplayImage": 0,
+          "bounds": {
+            "h": 116,
+            "w": 226,
+            "x": 546,
+            "y": 523
+          }
+        },
+        {
+          "windowNumber": 36698,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 1,
+          "markerScreenCaptureKit": 0.38895833333333335,
+          "markerWindowListImage": 0.3898139880952381,
+          "markerDisplayImage": 0.3898139880952381,
+          "bounds": {
+            "h": 120,
+            "w": 280,
+            "x": 516,
+            "y": 415
+          }
+        },
+        {
+          "windowNumber": 36701,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 1,
+          "markerScreenCaptureKit": 0.29224060822898035,
+          "markerWindowListImage": 0.2928834973166369,
+          "markerDisplayImage": 0.2928834973166369,
+          "bounds": {
+            "h": 172,
+            "w": 260,
+            "x": 526,
+            "y": 389
+          }
+        }
+      ]
+    },
+    "hidden": {
+      "onScreenWindowsOwnedByFixture": 4,
+      "menuBarStripMarkerFraction": 0,
+      "capturePathsAvailable": {
+        "cgDisplayCreateImage": true,
+        "cgWindowListCreateImage": true,
+        "screenCaptureKit": true
+      },
+      "surfaces": [
+        {
+          "windowNumber": 36683,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 0,
+          "markerScreenCaptureKit": 0,
+          "markerWindowListImage": 0,
+          "markerDisplayImage": 0,
+          "bounds": {
+            "h": 272,
+            "w": 320,
+            "x": 496,
+            "y": 339
+          }
+        },
+        {
+          "windowNumber": 36684,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 0,
+          "markerScreenCaptureKit": 0,
+          "markerWindowListImage": 0,
+          "markerDisplayImage": 0,
+          "bounds": {
+            "h": 116,
+            "w": 226,
+            "x": 546,
+            "y": 523
+          }
+        },
+        {
+          "windowNumber": 36685,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 0,
+          "markerScreenCaptureKit": 0,
+          "markerWindowListImage": 0,
+          "markerDisplayImage": 0,
+          "bounds": {
+            "h": 120,
+            "w": 280,
+            "x": 516,
+            "y": 415
+          }
+        },
+        {
+          "windowNumber": 36688,
+          "layer": 3,
+          "inNSAppWindows": true,
+          "sharingType": 0,
+          "markerScreenCaptureKit": 0,
+          "markerWindowListImage": 0,
+          "markerDisplayImage": 0,
+          "bounds": {
+            "h": 172,
+            "w": 260,
+            "x": 526,
+            "y": 389
+          }
+        }
+      ]
+    }
+  },
+  "observations": {
+    "statusItemWindow": "The status item's app-side window reports sharingType=1 (readOnly) even after ScreenPrivacy.applyToAllWindows(); the request does not take effect on it. It does not appear in the process's CGWindowList windows, so its pixels are composited by the system, not by an app window.",
+    "statusItemPixelCheck": "Not observed on this machine: the probe's status item was placed off-screen (frame origin x = -4227 points) because the menu bar had no room, so the magenta icon never reached the strip. The menu bar was additionally hidden by a full-screen foreground app during the check.",
+    "menuWindow": "The menu window (layer 101) is absent from NSApp.windows, so no ScreenPrivacy code path sets its sharingType, yet it carried no marker on any capture path in the hidden group. Observed system behavior, not a guarantee held by Wisp's code.",
+    "firstFrame": "popover and sheet windows already report sharingType=0 before the run loop turns.",
+    "invalidSample": "The alert's accessory marker did not render in either group (marker 0.000 in the visible control as well), so that window has no pixel evidence; its protection rests on being an NSApp.windows member with sharingType=0."
+  },
+  "missionControl": {
+    "method": "Fixture in hidden mode shows two windows at once: a magenta borderless floating NSPanel with [.canJoinAllSpaces, .fullScreenAuxiliary] (the assistant panel and island configuration) and a cyan ordinary titled NSWindow (the Settings window configuration). Mission Control is opened with `open -a \"Mission Control\"`, the whole screen is captured with `screencapture -x`, and magenta and cyan pixels are counted separately.",
+    "control": {
+      "description": "same two windows, hiding disabled, no Mission Control",
+      "magentaPanelPixels": 238968,
+      "cyanTitledWindowPixels": 237006
+    },
+    "hiddenBaseline": {
+      "description": "hiding enabled, no Mission Control",
+      "magentaPanelPixels": 0,
+      "cyanTitledWindowPixels": 0
+    },
+    "hiddenWithMissionControl": {
+      "description": "hiding enabled, Mission Control open",
+      "magentaPanelPixels": 4,
+      "cyanTitledWindowPixels": 2181,
+      "note": "The panel configuration stays out of the Mission Control image; the ordinary titled window does not."
+    },
+    "attemptedFixesForTitledWindow": [
+      {
+        "change": "collectionBehavior = [.transient, .ignoresCycle]",
+        "cyanPixels": 2181,
+        "result": "still visible"
+      },
+      {
+        "change": "level = .floating",
+        "cyanPixels": 2181,
+        "result": "still visible"
+      },
+      {
+        "change": "collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]",
+        "cyanPixels": 2145,
+        "result": "still visible"
+      }
+    ],
+    "conclusion": "Mission Control renders ordinary titled windows regardless of sharingType = .none, and that image is capturable. Wisp's assistant panel and island are not affected; its Settings window is."
+  },
+  "deadCodeRemoved": [
+    "ScrollDriver.requestTrust()",
+    "PromptBuilder.estimateTokens()",
+    "ConversationStore.remainingTurns(in:)"
+  ],
+  "compilerWarnings": 0,
+  "spotlight": {
+    "decision": "left indexed on purpose so the user's own Spotlight search still finds their data",
+    "measured": ".metadata_never_index did not stop indexing on this machine; a .noindex directory suffix did (0 hits vs 2 for the control). Not applied."
+  },
+  "screenSharingVNC": {
+    "date": "2026-09-07",
+    "setup": "System Settings > General > Sharing > Screen Sharing on, with a temporary VNC password; the probe read the password from stdin, never from argv.",
+    "client": "tools/screen-privacy/VNCFrameProbe.swift — minimal RFB 3.8 client, Raw encoding, server-declared pixel format",
+    "securityTypesOffered": [
+      30,
+      33,
+      36,
+      31,
+      32,
+      2,
+      35
+    ],
+    "securityTypeUsed": 2,
+    "result": {
+      "framebuffer": "3024x1964",
+      "pixelFormat": "32bpp depth24 little-endian shift(16,8,0)",
+      "markerPixelsMagenta": 0,
+      "markerPixelsCyan": 0,
+      "frameNonBlackPercent": 99,
+      "frameAverageRGB": [
+        134,
+        91,
+        80
+      ],
+      "frameContent": "the login / lock screen, not the user's desktop session"
+    },
+    "sameMomentControl": {
+      "path": "screencapture on the physical screen",
+      "markerPixelsMagenta": 239034,
+      "markerPixelsCyan": 237006,
+      "note": "hiding disabled; the fixture windows were demonstrably on the physical screen while VNC showed none of them"
+    },
+    "interpretation": "A VNC-password connection lands in a separate login session, so it sees neither the user's desktop nor anything on it. That is macOS session isolation, not Wisp's hiding. The console session is reachable only through Apple's private authentication types (30/33/35/36), which require the account password; the probe does not implement them and was not given one.",
+    "stillUntested": "The realistic remote-help case: someone authenticates as this user and takes over or observes the live console session. Requires a second device; the judgement has to be made on that device's screen."
+  }
+}

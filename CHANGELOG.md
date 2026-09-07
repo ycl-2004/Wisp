@@ -19,6 +19,34 @@
 
 ### Fixed
 
+- Use ephemeral, cookie-free and cache-free HTTP sessions; refuse redirects
+  and require HTTPS for non-loopback API endpoints. Local Ollama HTTP remains
+  supported. Configure the final HTTPS endpoint for redirecting gateways.
+- Default launch update checks to off (preserve existing saved preferences),
+  restrict the local support/debug directories to owner access, and exclude
+  diagnostic capture/remote-show hooks from ordinary Debug builds as well as
+  Release builds. Diagnostics now require `WISP_DIAGNOSTICS` explicitly.
+- Document CLI process-argument exposure, local plaintext history, browser
+  activity, and the limits of sharing protection in the end-to-end privacy audit.
+  Both READMEs now state that the update check defaults to off and that the
+  screenshot-rendering entry points need a `WISP_DIAGNOSTICS` build, with the
+  command to produce one. Results are recorded in
+  [the end-to-end privacy audit](docs/privacy-audit-e2e-20260907.md).
+
+- **Optional menu bar icon.** The status item is drawn by the system, so the hiding
+  request never applies to it and it shows up in every recording. Settings → Screen
+  sharing can now hide it; the assistant panel grows a gear button in that state so
+  Settings stays reachable without it, and the global shortcut is unaffected.
+
+- Remove three functions that were defined but never called: `ScrollDriver.requestTrust()`,
+  `PromptBuilder.estimateTokens()` and `ConversationStore.remainingTurns(in:)`. The
+  accessibility prompt path was unused because Settings checks `isTrusted` and links to
+  System Settings instead.
+- Audit every surface Wisp puts on screen against several capture paths and record the
+  gaps in [the all-surface visibility audit](docs/screen-visibility-audit-20260907.md):
+  the menu bar icon cannot carry the hiding request, and the Settings window is visible in
+  Mission Control while the assistant panel and island are not.
+
 - Apply the hiding preference when the SwiftUI settings view attaches to its
   window, in addition to the existing app-window update observer. This removes
   reliance on a later update notification for that attachment path; it does

@@ -130,21 +130,4 @@ enum PromptBuilder {
         f.dateFormat = "yyyy-MM-dd HH:mm"
         return f
     }()
-
-    /// 粗略估算 token，用于 UI 提示。中文按 1.5 字/token，英文按 4 字符/token 折中。
-    static func estimateTokens(_ payload: [[String: Any]]) -> Int {
-        var characters = 0
-        var images = 0
-        for message in payload {
-            if let text = message["content"] as? String {
-                characters += text.count
-            } else if let blocks = message["content"] as? [[String: Any]] {
-                for block in blocks {
-                    if let text = block["text"] as? String { characters += text.count }
-                    if block["type"] as? String == "image_url" { images += 1 }
-                }
-            }
-        }
-        return characters / 2 + images * 800
-    }
 }

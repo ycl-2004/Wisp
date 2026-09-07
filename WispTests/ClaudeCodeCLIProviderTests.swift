@@ -3,6 +3,89 @@ import Carbon.HIToolbox
 import XCTest
 @testable import Wisp
 
+final class PrivacyTransportTests: XCTestCase {
+    func testRemoteTransportRequiresTLSButLocalOllamaStillWorks() {
+        XCTAssertNotNil(OpenAICompatibleProvider.endpoint("https://api.example.test/v1"))
+        XCTAssertNotNil(OpenAICompatibleProvider.endpoint("http://localhost:11434/v1"))
+        XCTAssertNotNil(OpenAICompatibleProvider.endpoint("http://127.0.0.1:11434/v1"))
+        XCTAssertNotNil(OpenAICompatibleProvider.endpoint("http://[::1]:11434/v1"))
+        XCTAssertNil(OpenAICompatibleProvider.endpoint("http://api.example.test/v1"))
+        XCTAssertNil(OpenAICompatibleProvider.endpoint("http://192.168.1.2:11434/v1"))
+        XCTAssertNil(OpenAICompatibleProvider.endpoint("https://user:secret@api.example.test/v1"))
+        XCTAssertNil(OpenAICompatibleProvider.endpoint("https://api.example.test/v1?key=secret"))
+    }
+
+    func testSyntheticValidationRequestUsesOnlyConfiguredEndpoint() async throws {
+        let config = OpenAICompatibleProvider.privateSessionConfiguration()
+        config.protocolClasses = [SyntheticAPIProtocol.self]
+        let provider = OpenAICompatibleProvider(configuration: config)
+        try await provider.validate(config: ProviderConfig(kind: .openAICompatible,
+            baseURL: "https://api.example.test/v1", apiKey: "synthetic-key", model: "synthetic-model"))
+    }
+
+    func testCaptureTransportHasNoPersistentStoresOrCookies() {
+        let config = OpenAICompatibleProvider.privateSessionConfiguration()
+        XCTAssertNil(config.urlCache)
+        XCTAssertNil(config.httpCookieStorage)
+        XCTAssertNil(config.urlCredentialStorage)
+        XCTAssertFalse(config.httpShouldSetCookies)
+        XCTAssertEqual(config.requestCachePolicy, .reloadIgnoringLocalCacheData)
+    }
+
+    func testRedirectCannotForwardPrivateRequestToAnotherHost() async throws {
+        let original = URL(string: "https://api.example.test/v1/chat/completions")!
+        let destination = URL(string: "https://other.example.test/collect")!
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.invalidateAndCancel() }
+        let task = session.dataTask(with: original) // Deliberately never resumed.
+        let response = HTTPURLResponse(url: original, statusCode: 307,
+                                       httpVersion: nil, headerFields: ["Location": destination.absoluteString])!
+        var request = URLRequest(url: destination)
+        request.httpMethod = "POST"
+        request.httpBody = Data("synthetic private page".utf8)
+        let forwarded: URLRequest? = await withCheckedContinuation { continuation in
+            PrivateAPIRedirectPolicy().urlSession(session, task: task,
+                willPerformHTTPRedirection: response, newRequest: request) {
+                    continuation.resume(returning: $0)
+                }
+        }
+        XCTAssertNil(forwarded)
+    }
+
+    func testExistingStorageDirectoryIsRestrictedWithoutLosingContent() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Wisp-storage-test-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
+                                                attributes: [.posixPermissions: 0o755])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("conversation.json")
+        let contents = Data("synthetic conversation".utf8)
+        try contents.write(to: file)
+        try AppSettings.ensurePrivateDirectory(directory)
+        let attributes = try FileManager.default.attributesOfItem(atPath: directory.path)
+        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.intValue, 0o700)
+        XCTAssertEqual(try Data(contentsOf: file), contents)
+    }
+}
+
+private final class SyntheticAPIProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        XCTAssertEqual(request.url?.absoluteString, "https://api.example.test/v1/chat/completions")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer synthetic-key")
+        XCTAssertNil(request.value(forHTTPHeaderField: "Cookie"))
+        XCTAssertNil(request.value(forHTTPHeaderField: "Referer"))
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                       httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(#"{"choices":[{"message":{"content":"ok"}}]}"#.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+
 final class ClaudeCodeCLIProviderTests: XCTestCase {
     func testCommandIsRestrictedToReadAndDoesNotPersistSession() {
         let arguments = ClaudeCodeCLIProvider.commandArguments(prompt: "question", model: "sonnet")

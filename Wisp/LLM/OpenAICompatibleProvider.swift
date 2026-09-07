@@ -1,5 +1,16 @@
 import Foundation
 
+/// Keep captured content at the exact configured API destination. A redirect must
+/// be configured explicitly by the user, rather than forwarding a private POST.
+final class PrivateAPIRedirectPolicy: NSObject, URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest,
+                    completionHandler: @escaping (URLRequest?) -> Void) {
+        completionHandler(nil)
+    }
+}
+
 /// 只用 OpenAI-compatible 接口最通用的子集：chat/completions + stream + image_url(data URL)。
 /// 不发 tools、不发 detail，最大化各家网关的兼容性。
 struct OpenAICompatibleProvider: ChatProvider {
@@ -9,14 +20,26 @@ struct OpenAICompatibleProvider: ChatProvider {
     /// 多久没有任何新数据就判定这条流断了。流式回答里它是「静默上限」，不是总时长上限。
     static let idleTimeout: TimeInterval = 60
 
-    init() {
-        let config = URLSessionConfiguration.default
+    init(configuration: URLSessionConfiguration = OpenAICompatibleProvider.privateSessionConfiguration()) {
+        let config = configuration
         config.timeoutIntervalForRequest = Self.idleTimeout
         config.timeoutIntervalForResource = 300
         // 关掉它。开着的话断网不会报错，而是最多干等 timeoutIntervalForResource（5 分钟），
         // 期间界面一直显示「生成中」且没有任何提示。宁可立刻失败。
         config.waitsForConnectivity = false
-        session = URLSession(configuration: config)
+        session = URLSession(configuration: config, delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
+    }
+
+    // No disk cache, cookie jar, or stored HTTP credentials for captured content.
+    // https://developer.apple.com/documentation/foundation/urlsessionconfiguration/ephemeral
+    static func privateSessionConfiguration() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.ephemeral
+        config.urlCache = nil
+        config.httpCookieStorage = nil
+        config.httpShouldSetCookies = false
+        config.urlCredentialStorage = nil
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return config
     }
 
     // MARK: - 请求构造
@@ -26,6 +49,12 @@ struct OpenAICompatibleProvider: ChatProvider {
         while trimmed.hasSuffix("/") { trimmed.removeLast() }
         guard !trimmed.isEmpty, let url = URL(string: trimmed + "/" + path),
               url.scheme == "https" || url.scheme == "http" else { return nil }
+        guard let host = url.host?.lowercased(), !host.isEmpty,
+              url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else { return nil }
+        // Local Ollama remains usable; remote prompts and keys require TLS.
+        if url.scheme == "http", !["localhost", "127.0.0.1", "[::1]", "::1"].contains(host) {
+            return nil
+        }
         return url
     }
 

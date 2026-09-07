@@ -266,7 +266,7 @@ enum ContextCapture {
     /// 把最近一次采集写到 ~/Library/Application Support/Wisp/debug/
     static func dumpForDebug(_ packet: ContextPacket) {
         let dir = AppSettings.supportDirectory.appendingPathComponent("debug", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        guard (try? AppSettings.ensurePrivateDirectory(dir)) != nil else { return }
 
         var json: [String: Any] = [
             "appName": packet.appName,

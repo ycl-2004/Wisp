@@ -82,6 +82,13 @@ struct ContextHeaderView: View {
                 .buttonStyle(IconButtonStyle())
                 .help(store.canCreateNew ? "新建对话" : "已达上限，点一下可以顶掉最久没用的那个")
 
+            // 菜单栏图标藏起来之后，这里是唯一还看得见的设置入口。
+            if !settings.showsMenuBarIcon {
+                SettingsLink { Image(systemName: "gearshape") }
+                    .buttonStyle(IconButtonStyle())
+                    .help("设置（菜单栏图标已隐藏）")
+            }
+
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }
             } label: {

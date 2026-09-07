@@ -8,17 +8,18 @@ extension KeyboardShortcuts.Name {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
-#if DEBUG
+#if DEBUG && WISP_DIAGNOSTICS
     static let remoteShowNotification = Notification.Name("com.yichenlin.Wisp.show")
 #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
-        // 诊断入口只编进 Debug 版。发布版里留着它们等于把已经拿到的
+        // 诊断入口要求 DEBUG 和显式 WISP_DIAGNOSTICS；普通 Debug 也不开放。
+        // 日常版本里留着它们等于把已经拿到的
         // 屏幕录制授权借给任何本地进程：`Wisp --dump-context` 就能把当前屏幕
         // 截图和整页正文写到一个固定路径，`--show` 还能被任意 App 远程触发采集。
-#if DEBUG
+#if DEBUG && WISP_DIAGNOSTICS
         // 用法：.../MacOS/Wisp --dump-context
         if CommandLine.arguments.contains("--dump-context") {
             runContextDump()
@@ -107,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             IslandController.shared.start()
         }
 
-        // 启动时看一眼有没有新版本。默认开着，设置里可以关。
+        // 启动更新检查默认关闭，用户可以在设置里主动开启。
         // 只请求一次版本号，不带任何标识信息，也不自动下载。
         if AppSettings.shared.checkForUpdates {
             Task { @MainActor in
@@ -191,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 
-#if DEBUG
+#if DEBUG && WISP_DIAGNOSTICS
     private func runContextDump() {
         Task { @MainActor in
             let packet = await ContextCapture.capture()

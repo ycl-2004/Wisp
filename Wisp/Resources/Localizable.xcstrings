@@ -7169,6 +7169,86 @@
           }
         }
       }
+    },
+    "在菜单栏显示图标": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show icon in the menu bar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在菜单栏显示图标"
+          }
+        }
+      }
+    },
+    "菜单栏图标由系统绘制，隐藏开关对它无效，录屏和共享里一定看得见。关掉它，菜单栏上就不留痕迹。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The menu bar icon is drawn by the system, so the hiding preference cannot apply to it and every recording or shared screen includes it. Turn it off to leave nothing in the menu bar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "菜单栏图标由系统绘制，隐藏开关对它无效，录屏和共享里一定看得见。关掉它，菜单栏上就不留痕迹。"
+          }
+        }
+      }
+    },
+    "菜单栏没有 Wisp 图标。用全局快捷键唤起面板，面板右上角的齿轮可以回到这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Wisp icon in the menu bar. Use the global shortcut to open the panel; the gear in the panel header brings you back here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "菜单栏没有 Wisp 图标。用全局快捷键唤起面板，面板右上角的齿轮可以回到这里。"
+          }
+        }
+      }
+    },
+    "设置（菜单栏图标已隐藏）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings (menu bar icon hidden)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置（菜单栏图标已隐藏）"
+          }
+        }
+      }
+    },
+    "远端接口必须使用 HTTPS；HTTP 仅允许 localhost、127.0.0.1 或 ::1。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote endpoints must use HTTPS; HTTP is accepted only for localhost, 127.0.0.1, or ::1."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远端接口必须使用 HTTPS；HTTP 仅允许 localhost、127.0.0.1 或 ::1。"
+          }
+        }
+      }
     }
   }
 }

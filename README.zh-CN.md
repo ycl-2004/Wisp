@@ -130,7 +130,7 @@ open "$HOME/Applications/Wisp.app"
 **启动与更新**
 
 - 可选的登录时自启，走 `SMAppService`；被系统拦下待批准时，设置里会直接给出「登录项与扩展」的入口。
-- 可选的更新检查：每次启动向 GitHub 问一次最新版本号。不发送任何关于你或你使用情况的信息，不会自行下载或安装，也可以完全关掉。
+- 可选的更新检查：每次启动向 GitHub 问一次最新版本号。默认关闭，不发送任何关于你或你使用情况的信息，不会自行下载或安装，也可以完全关掉。
 
 **本地对话**
 
@@ -356,10 +356,15 @@ shasum -a 256 dist/Wisp-macOS-universal.zip > dist/Wisp-macOS-universal.zip.sha2
 `--sequesterRsrc`：后者会把资源分叉塞进一个 `__MACOSX` 目录，用户解压后就会看到它。
 这样生成的压缩包是干净的，而且往返之后签名依然可以验证。
 
-诊断入口（`--dump-context`、`--show`、`--render-*`）只编进 Debug 构建。发布版里留着它们，
-等于把已经拿到的屏幕录制授权借给任何本地进程。要重新生成 README 里的截图，请用 Debug 构建：
+诊断入口（`--dump-context`、`--show`、`--render-*`）同时要求 `DEBUG` 和显式的
+`WISP_DIAGNOSTICS`，普通 Debug 构建里也没有它们。发布版或日常构建里留着它们，
+等于把已经拿到的屏幕录制授权借给任何本地进程。要重新生成 README 里的截图，
+请带上这个编译条件构建：
 
 ```bash
+xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Debug \
+  SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG WISP_DIAGNOSTICS" build
+
 Build/Debug/Wisp.app/Contents/MacOS/Wisp --render-header docs/screenshots/context-header.png
 Build/Debug/Wisp.app/Contents/MacOS/Wisp --render-island docs/screenshots/island-states.png
 ```

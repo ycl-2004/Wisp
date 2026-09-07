@@ -181,8 +181,8 @@ open "$HOME/Applications/Wisp.app"
 - Optional launch at login through `SMAppService`, with a direct link to Login
   Items & Extensions when macOS holds the item for approval.
 - Optional update check that asks GitHub once per launch for the latest release
-  tag. It sends nothing about you or your usage, never installs anything on its
-  own, and can be switched off entirely.
+  tag. It is off by default, sends nothing about you or your usage, never
+  installs anything on its own, and can be switched off entirely.
 
 **Local conversations**
 
@@ -272,11 +272,15 @@ selector was cropped because it is not rendered by the offline ImageRenderer.
   </tr>
 </table>
 
-To regenerate the checked-in images, use a **Debug** build — the rendering
-entry points are compiled only into Debug, so that a shipped app cannot be
-driven by another local process:
+To regenerate the checked-in images, build with the diagnostics flag — the
+rendering entry points require both `DEBUG` and an explicit
+`WISP_DIAGNOSTICS`, so that neither a shipped app nor an ordinary Debug build
+can be driven by another local process:
 
 ```bash
+xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Debug \
+  SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG WISP_DIAGNOSTICS" build
+
 Build/Debug/Wisp.app/Contents/MacOS/Wisp --render-header docs/screenshots/context-header.png
 Build/Debug/Wisp.app/Contents/MacOS/Wisp --render-island docs/screenshots/island-states.png
 ```
