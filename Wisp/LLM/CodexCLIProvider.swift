@@ -1,8 +1,7 @@
 import Foundation
 
-/// 走本地 `codex exec`。好处是复用你已经登录的 Codex，不用另配 API Key；
-/// 代价是它每次都会带上一大段固定上下文（实测约两万 token），而且没有逐字流式，
-/// 回答是一次性返回的。
+/// 复用本地 Codex 登录，通过 app-server 的 stdio JSON-RPC 接收文字增量。
+/// 每轮使用独立的临时目录和 ephemeral thread，不连接用户正在运行的服务。
 struct CodexCLIProvider: ChatProvider {
 
     /// 一次调用的硬上限。codex 卡住不出声时，读循环阻塞在 availableData 上叫不醒，
@@ -39,12 +38,12 @@ struct CodexCLIProvider: ChatProvider {
         private var stopReason: Stop?
         private var settled = false
 
-        /// 返回 false 表示进程还没起来就已经被取消，调用方应当立刻收手。
-        func adopt(_ process: Process) -> Bool {
+        /// 启动与取消共用锁，避免取消后才启动一个无人管理的进程。
+        func start(_ process: Process) throws {
             lock.lock(); defer { lock.unlock() }
-            guard !settled else { return false }
+            guard !settled else { throw ProviderError.cancelled }
             self.process = process
-            return true
+            try process.run()
         }
 
         /// - Parameter onlyIfRunning: 看门狗专用。进程已经自己退出了就什么都不做，
@@ -95,7 +94,7 @@ struct CodexCLIProvider: ChatProvider {
         }
     }
 
-    // MARK: - 流式（实为一次性返回）
+    // MARK: - App-server streaming
 
     func stream(messages: [[String: Any]], config: ProviderConfig) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
@@ -113,26 +112,17 @@ struct CodexCLIProvider: ChatProvider {
                     let directory = try CLITemporaryDirectory.create(prefix: "Wisp-codex")
                     workDirectory = directory
 
-                    var arguments = [
-                        "exec", "--json",
-                        "--skip-git-repo-check",
-                        "--ephemeral",
-                        "--sandbox", "read-only",
-                        "--cd", directory.path,
-                    ]
-                    if !config.model.trimmingCharacters(in: .whitespaces).isEmpty {
-                        arguments.append(contentsOf: ["--model", config.model])
-                    }
+                    var imagePaths: [String] = []
                     for (index, data) in imageData.enumerated() {
                         let file = directory.appendingPathComponent("screen-\(index).jpg")
                         try data.write(to: file)
-                        arguments.append(contentsOf: ["--image", file.path])
+                        imagePaths.append(file.path)
                     }
-                    arguments.append("-")
 
                     let process = Process()
                     process.executableURL = URL(fileURLWithPath: binary)
-                    process.arguments = arguments
+                    process.arguments = ["app-server", "--listen", "stdio://"]
+                    process.currentDirectoryURL = directory
                     var environment = ProcessInfo.processInfo.environment
                     environment["CODEX_HOME"] = environment["CODEX_HOME"] ?? (NSHomeDirectory() + "/.codex")
                     process.environment = environment
@@ -152,44 +142,34 @@ struct CodexCLIProvider: ChatProvider {
                         }
                     }
 
-                    // 交给 RunBox 之后，取消和超时才有办法够到这个进程。
-                    guard box.adopt(process) else { throw ProviderError.cancelled }
-
-                    do {
-                        try process.run()
-                    } catch {
+                    defer {
+                        try? stdin.fileHandleForWriting.close()
+                        // app-server 是长驻进程，turn/completed 后必须主动收掉。
+                        Self.shutdown(process)
                         stderrHandle.readabilityHandler = nil
                         box.finish()
-                        throw ProviderError.network(error.localizedDescription)
                     }
+                    try box.start(process)
 
-                    stdin.fileHandleForWriting.write(Data(prompt.utf8))
-                    try? stdin.fileHandleForWriting.close()
-
-                    var delivered = false
-                    var buffer = Data()
+                    var session = AppServerSession(prompt: prompt, imagePaths: imagePaths,
+                                                   directory: directory.path, model: config.model)
+                    func send(_ message: [String: Any]) throws {
+                        var data = try JSONSerialization.data(withJSONObject: message)
+                        data.append(0x0A)
+                        try stdin.fileHandleForWriting.write(contentsOf: data)
+                    }
+                    try send(AppServerSession.initializeRequest)
+                    var lines = CLIJSONLines()
                     let handle = stdout.fileHandleForReading
-
-                    // 进程被 stop() 杀掉时，availableData 会立刻返回空，循环随之退出。
-                    while true {
+                    while !session.completed {
                         let chunk = handle.availableData
-                        if chunk.isEmpty { break }
-                        buffer.append(chunk)
-                        while let range = buffer.firstRange(of: Data("\n".utf8)) {
-                            let lineData = buffer.subdata(in: buffer.startIndex..<range.lowerBound)
-                            buffer.removeSubrange(buffer.startIndex..<range.upperBound)
-                            guard let line = String(data: lineData, encoding: .utf8),
-                                  !line.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
-                            if let text = Self.assistantText(in: line) {
-                                delivered = true
-                                continuation.yield(text)
-                            }
+                        for object in try lines.append(chunk, endOfFile: chunk.isEmpty) {
+                            let update = try session.receive(object)
+                            for message in update.requests { try send(message) }
+                            for text in update.text { continuation.yield(text) }
                         }
+                        if chunk.isEmpty { break }
                     }
-
-                    process.waitUntilExit()
-                    stderrHandle.readabilityHandler = nil
-                    box.finish()
 
                     // 循环是被杀退出的还是自己跑完的，结论完全不同。
                     if let reason = box.reason {
@@ -197,9 +177,9 @@ struct CodexCLIProvider: ChatProvider {
                             ? ProviderError.codexTimedOut(Int(Self.wallClockTimeout))
                             : ProviderError.cancelled
                     }
-                    if !delivered {
+                    if !session.completed || !session.hasText {
                         throw ProviderError.codexFailed(Self.condense(stderrBuffer.text),
-                                                        status: process.terminationStatus)
+                                                        status: process.isRunning ? -1 : process.terminationStatus)
                     }
                     continuation.finish()
                 } catch let error as ProviderError {
@@ -246,22 +226,152 @@ struct CodexCLIProvider: ChatProvider {
 
     // MARK: - 事件解析
 
-    /// 这个版本的 codex 只在回答完成时发一条 agent_message，没有逐字增量。
-    static func assistantText(in line: String) -> String? {
-        guard let data = line.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
+    /// Source: https://developers.openai.com/codex/app-server
+    /// Requests are sequenced after their responses; legacy codex/event notifications are ignored.
+    struct AppServerSession {
+        let prompt: String
+        let imagePaths: [String]
+        let directory: String
+        let model: String
+        private(set) var threadID: String?
+        private(set) var completed = false
+        private var initialized = false
+        private var serviceTier = "default"
+        private var retriedWithoutFast = false
+        private var textByItem: [String: String] = [:]
+        var hasText: Bool { textByItem.values.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
+
+        init(prompt: String, imagePaths: [String], directory: String, model: String) {
+            self.prompt = prompt
+            self.imagePaths = imagePaths
+            self.directory = directory
+            self.model = model
         }
-        // 未来若出现增量事件，也一并接住。
-        if let delta = object["delta"] as? [String: Any], let text = delta["text"] as? String {
-            return text.isEmpty ? nil : text
+
+        static var initializeRequest: [String: Any] {
+            ["id": 0, "method": "initialize", "params": [
+                "clientInfo": ["name": "wisp", "title": "Wisp", "version": "0.3.0"]
+            ]]
         }
-        guard let item = object["item"] as? [String: Any] else { return nil }
-        guard let type = item["type"] as? String else { return nil }
-        if type == "agent_message", let text = item["text"] as? String, !text.isEmpty {
-            return text
+
+        mutating func receive(_ object: [String: Any]) throws -> (requests: [[String: Any]], text: [String]) {
+            if let error = object["error"] as? [String: Any] {
+                let detail = error["message"] as? String ?? "App-server error"
+                if let retry = fallbackRequest(for: detail) { return ([retry], []) }
+                throw ProviderError.codexFailed(detail, status: -1)
+            }
+            if let method = object["method"] as? String {
+                // Wisp has no approval UI. Never silently approve tools or leave a request hanging.
+                if object["id"] != nil {
+                    throw ProviderError.codexFailed("Unsupported app-server request: \(method)", status: -1)
+                }
+                guard !completed, let params = object["params"] as? [String: Any],
+                      let threadID, params["threadId"] as? String == threadID else { return ([], []) }
+                switch method {
+                case "item/agentMessage/delta":
+                    guard let id = params["itemId"] as? String,
+                          let delta = params["delta"] as? String, !delta.isEmpty else { return ([], []) }
+                    let separator = textByItem[id] == nil && hasText ? "\n\n" : ""
+                    textByItem[id, default: ""] += delta
+                    return ([], [separator + delta])
+                case "item/completed":
+                    guard let item = params["item"] as? [String: Any],
+                          item["type"] as? String == "agentMessage",
+                          let id = item["id"] as? String, let text = item["text"] as? String else { return ([], []) }
+                    let previous = textByItem[id] ?? ""
+                    guard text.hasPrefix(previous) else {
+                        throw ProviderError.codexFailed("App-server final text differs from streamed text", status: -1)
+                    }
+                    let suffix = String(text.dropFirst(previous.count))
+                    let separator = textByItem[id] == nil && hasText ? "\n\n" : ""
+                    textByItem[id] = text
+                    return ([], suffix.isEmpty ? [] : [separator + suffix])
+                case "turn/completed":
+                    guard let turn = params["turn"] as? [String: Any], turn["status"] as? String == "completed" else {
+                        let turn = params["turn"] as? [String: Any]
+                        let error = turn?["error"] as? [String: Any]
+                        let detail = error?["message"] as? String ?? "Codex turn did not complete"
+                        if let retry = fallbackRequest(for: detail) { return ([retry], []) }
+                        throw ProviderError.codexFailed(detail, status: -1)
+                    }
+                    completed = true
+                case "error":
+                    if params["willRetry"] as? Bool != true {
+                        let error = params["error"] as? [String: Any]
+                        let detail = error?["message"] as? String ?? "Codex turn failed"
+                        if let retry = fallbackRequest(for: detail) { return ([retry], []) }
+                        throw ProviderError.codexFailed(detail, status: -1)
+                    }
+                default: break
+                }
+                return ([], [])
+            }
+            guard let id = object["id"] as? Int, let result = object["result"] as? [String: Any] else { return ([], []) }
+            if id == 0 && !initialized {
+                initialized = true
+                return ([["method": "initialized"], ["id": 3, "method": "model/list",
+                          "params": ["includeHidden": true]]], [])
+            }
+            if id == 3 && threadID == nil {
+                let models = result["data"] as? [[String: Any]] ?? []
+                let selectedName = model.trimmingCharacters(in: .whitespacesAndNewlines)
+                let selected = models.first {
+                    selectedName.isEmpty ? $0["isDefault"] as? Bool == true
+                        : ($0["model"] as? String == selectedName || $0["id"] as? String == selectedName)
+                }
+                if selected == nil, let cursor = result["nextCursor"] as? String, !cursor.isEmpty {
+                    return ([["id": 3, "method": "model/list", "params": ["includeHidden": true, "cursor": cursor]]], [])
+                }
+                let tiers = selected?["serviceTiers"] as? [[String: Any]] ?? []
+                if let fast = tiers.first(where: { ($0["name"] as? String)?.lowercased() == "fast" }),
+                   let tier = fast["id"] as? String {
+                    // Use the CLI's advertised ID (currently "priority"), not a guessed alias.
+                    serviceTier = tier
+                }
+                return ([threadStartRequest], [])
+            }
+            if id == 1 && threadID == nil {
+                guard let thread = result["thread"] as? [String: Any], let id = thread["id"] as? String else {
+                    throw ProviderError.codexFailed("Missing app-server thread ID", status: -1)
+                }
+                threadID = id
+                var input: [[String: Any]] = [["type": "text", "text": prompt]]
+                input += imagePaths.map { ["type": "localImage", "path": $0] }
+                return ([["id": 2, "method": "turn/start", "params": ["threadId": id, "input": input]]], [])
+            }
+            return ([], [])
         }
-        return nil
+
+        private var threadStartRequest: [String: Any] {
+            var params: [String: Any] = ["cwd": directory, "ephemeral": true,
+                                         "sandbox": "read-only", "approvalPolicy": "never",
+                                         "serviceTier": serviceTier]
+            let name = model.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty { params["model"] = name }
+            return ["id": 1, "method": "thread/start", "params": params]
+        }
+
+        /// Retry a rejected speed tier once, before any text was delivered. Other errors stay errors.
+        /// A fresh ephemeral thread keeps late notifications from the failed turn out of the answer.
+        private mutating func fallbackRequest(for detail: String) -> [String: Any]? {
+            let message = detail.lowercased()
+            guard serviceTier != "default", !retriedWithoutFast, textByItem.isEmpty,
+                  ["fast", "priority", "service_tier", "service tier", "servicetier"].contains(where: message.contains)
+            else { return nil }
+            retriedWithoutFast = true
+            serviceTier = "default"
+            threadID = nil
+            return threadStartRequest
+        }
+    }
+
+    private static func shutdown(_ process: Process) {
+        guard process.isRunning else { return }
+        process.terminate()
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
+            if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+        }
+        process.waitUntilExit()
     }
 
     /// 段落之间的分隔。两个 CLI provider 拼出来的 prompt 要长一个样。
@@ -269,7 +379,7 @@ struct CodexCLIProvider: ChatProvider {
 
     /// 把 messages 摊平成正文段落，外加要附上的图片。
     ///
-    /// 收尾那两段由调用方自己补。Codex 用 `--image` 把截图作为附件递进去，
+    /// 收尾那两段由调用方自己补。Codex 用 `localImage` 把截图作为附件递进去，
     /// 全程不需要碰文件系统；AGY 的 headless 输入只收文本，截图得先落盘再报路径，
     /// 于是两边对「能不能读文件」的说法正好相反，不能共用一份。
     static func flattenBody(_ messages: [[String: Any]]) -> (sections: [String], images: [Data]) {
@@ -319,5 +429,30 @@ struct CodexCLIProvider: ChatProvider {
         let meaningful = text.components(separatedBy: "\n")
             .filter { !$0.contains("failed to scan skill path") && !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         return String(meaningful.suffix(4).joined(separator: "\n").prefix(400))
+    }
+}
+
+/// Frame bytes before decoding UTF-8: pipe reads can split a character or a JSON line.
+struct CLIJSONLines {
+    private var buffer = Data()
+
+    mutating func append(_ data: Data, endOfFile: Bool = false) throws -> [[String: Any]] {
+        buffer.append(data)
+        var lines: [Data] = []
+        while let newline = buffer.firstIndex(of: 0x0A) {
+            lines.append(Data(buffer[..<newline]))
+            buffer.removeSubrange(...newline)
+        }
+        if endOfFile && !buffer.isEmpty {
+            lines.append(buffer)
+            buffer = Data()
+        }
+        return try lines.compactMap { line in
+            if line.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0D }) { return nil }
+            guard let object = try JSONSerialization.jsonObject(with: line) as? [String: Any] else {
+                throw ProviderError.network("Invalid CLI JSON event")
+            }
+            return object
+        }
     }
 }

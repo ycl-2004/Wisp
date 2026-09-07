@@ -60,8 +60,9 @@ roughly 50 MB.
 - **Ollama.** Requests go to your local Ollama by default and stay on the
   machine. If you point the Base URL at a remote host, they go there instead.
 - **Codex CLI.** Wisp starts the local `codex` process, hands it a temporary
-  directory for image input, runs it with `--ephemeral` and a read-only
-  sandbox, and deletes that directory when the command ends. Codex's own
+  directory for image input, and uses app-server over stdio with an
+  `ephemeral: true`, read-only thread and `approvalPolicy: never`. Wisp stops
+  its own app-server and deletes that directory when the request ends. Codex's own
   account, network use, and server-side logging are outside Wisp's control.
 - **AGY CLI.** Wisp starts the local `agy` process in a private temporary
   workspace with `--sandbox`. Attached screenshots are written there for AGY

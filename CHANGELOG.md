@@ -4,6 +4,16 @@
 
 ### Added
 
+- **Streaming for Codex and Antigravity.** Codex now uses app-server text deltas
+  over stdio; AGY uses `stream-json` agent response deltas. Completed snapshots
+  are not appended twice, and interrupted or failed streams remain failures.
+  Private workspaces, screenshot cleanup, cancellation and timeouts are retained.
+- **Prefer Fast when supported.** Codex uses the selected model's advertised
+  Fast tier and retries a rejected tier once at standard speed before any text
+  is delivered. Supported Claude Opus selections receive per-invocation
+  `fastMode: true`; Claude handles availability and quota fallback. AGY's
+  removed Fast switch is not passed. Model selection and effort are preserved.
+
 - **Best-effort screen-sharing visibility control, enabled by default.** Wisp
   requests hiding its windows with the legacy `NSWindow.sharingType = .none`
   flag. Toggle it in the menu bar or Settings → Permissions → Screen sharing;

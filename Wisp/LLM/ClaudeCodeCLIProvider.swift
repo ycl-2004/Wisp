@@ -3,9 +3,8 @@ import Foundation
 /// 走本地 `claude`。Claude Code 自己负责登录、模型额度和会话；Wisp 只调用它的 CLI，
 /// 所以这里和 Codex、AGY 一样归在「Agent CLI」分组下。
 ///
-/// 三个 CLI provider 里只有它能逐字流式：`--output-format stream-json`
-/// 配 `--include-partial-messages` 会一段段吐 `text_delta`，答案边生成边显示，
-/// 而 Codex 和 AGY 都只能等整段答完再一次性返回。
+/// `--output-format stream-json`
+/// 配 `--include-partial-messages` 会一段段吐 `text_delta`，答案边生成边显示。
 ///
 /// 截图和纯文本走同一条 headless 通道。Claude Code 的 headless 输入只收文本，
 /// 但它会用 Read 工具读 prompt 里点名的图片文件——前提是那个文件在它的
@@ -260,7 +259,20 @@ struct ClaudeCodeCLIProvider: ChatProvider {
         if !model.trimmingCharacters(in: .whitespaces).isEmpty {
             arguments.append(contentsOf: ["--model", model])
         }
+        // --restricted still loads explicit --settings. Keep this local to the Wisp invocation.
+        // https://code.claude.com/docs/en/fast-mode (supported models checked 2026-09-07)
+        // Enabling Fast on an unsupported model can switch it to Opus, so preserve model choice.
+        if supportsFastMode(model: model) {
+            arguments.append(contentsOf: ["--settings", #"{"fastMode":true}"#])
+        }
         return arguments
+    }
+
+    static func supportsFastMode(model: String) -> Bool {
+        let name = model.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            .replacingOccurrences(of: "[1m]", with: "")
+        return name == "opus" || name == "claude-opus-5" || name.hasPrefix("claude-opus-5-")
+            || name == "claude-opus-4-8" || name.hasPrefix("claude-opus-4-8-")
     }
 
     enum AuthenticationState: Equatable {

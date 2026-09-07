@@ -1,0 +1,61 @@
+{
+  "date": "2026-09-07",
+  "baseline_commit_pushed_to_origin_main": "17999d26b3ef464c331fab7f81cb6d43d526cd08",
+  "live_protocol_probes": [
+    {
+      "provider": "Codex",
+      "version": "0.153.4",
+      "model": "gpt-5.6-luna",
+      "first_text_seconds": 3.930,
+      "completed_seconds": 5.129,
+      "ephemeral_confirmed": true,
+      "text_event": "item/agentMessage/delta"
+    },
+    {
+      "provider": "AGY",
+      "version": "1.1.27",
+      "model": "gemini-3.8-flash-low",
+      "text_delta_seconds": [3.101, 3.301, 3.502],
+      "completed_seconds": 3.502,
+      "exit_status": 0,
+      "text_event": "step_update.agent_response.text_delta"
+    }
+  ],
+  "fast_handshake_probe": {
+    "model": "gpt-5.6-luna",
+    "advertised_fast_tier_id": "priority",
+    "accepted_service_tiers": ["priority", "default"],
+    "ephemeral_confirmed_for_both": true,
+    "generated_answer": false
+  },
+  "xctest": {
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0,
+    "result_bundle": "/private/tmp/wisp-cli-streaming-fast-tests-20260907",
+    "uses_installed_model_clis": false,
+    "coverage": [
+      "split UTF-8 and final JSON line without newline",
+      "Codex handshake, model and localImage input",
+      "incremental provider delivery before subprocess completion",
+      "snapshot deduplication and final-only fallback",
+      "reasoning and other-thread filtering",
+      "Fast capability selection and unsupported-model fallback",
+      "Fast rejection retries once before text, never after partial output",
+      "Claude Fast command construction without model substitution",
+      "blocked subprocess cancellation and private workspace cleanup",
+      "early EOF without completion fails after partial text",
+      "existing privacy and application regressions"
+    ]
+  },
+  "release_build": {
+    "exit_status": 0,
+    "code_signing_allowed": false,
+    "artifact": "Build/Release/Wisp.app"
+  },
+  "limits": [
+    "Live probes used synthetic text, no personal screenshots.",
+    "Claude CLI was not invoked; Fast was checked using official documentation and pure tests.",
+    "The installed application was not replaced or exercised."
+  ]
+}

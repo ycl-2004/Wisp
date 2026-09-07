@@ -170,11 +170,16 @@ open "$HOME/Applications/Wisp.app"
 - **Ollama:** defaults to `http://localhost:11434/v1`, reads the model list
   from Ollama, and marks models that appear to support vision.
 - **Agent CLI:** the settings section contains Codex, Antigravity and Claude Code.
-  Codex runs `codex exec --json --ephemeral --sandbox read-only`; Antigravity and Claude
-  Code run their headless JSON CLIs, with screenshots written into a temporary
-  workspace for them to read. Claude Code streams the answer as it is written —
-  the other two return one finished block. None of them writes session files
+  Codex runs `codex app-server --listen stdio://` with an ephemeral, read-only
+  thread; Antigravity and Claude Code use headless `stream-json`. All three
+  display answer text as it arrives, with screenshots passed through a private
+  temporary workspace. None of them writes session files
   into Wisp's conversation directory.
+  See [CLI streaming and validation](docs/cli-streaming.md) for protocol details.
+  Fast is preferred for supported Codex models and supported Claude Opus
+  selections, with standard-speed fallback. AGY 1.1.27 has no Fast switch.
+  Fast can consume more credits; it does not lower reasoning effort or change
+  your selected model.
 
 **Startup and updates**
 
@@ -310,8 +315,8 @@ specific localization.
   retention, and privacy policy are outside Wisp's control.
 - Ollama uses `localhost` by default. If you configure a remote Base URL, the
   request goes to that address.
-- Wisp starts the local Codex process, creates a temporary directory for image
-  input, uses `--ephemeral` and a read-only sandbox, and removes the
+- Wisp starts a local Codex app-server, creates a temporary directory for image
+  input, uses an ephemeral thread and a read-only sandbox, and removes the
   temporary directory when the command ends. Codex's own account, network,
   and service-side logging are outside Wisp's control.
 - Wisp starts Antigravity locally, in its own temporary working directory, with
@@ -584,11 +589,11 @@ resolution, and public documentation are tracked.
   the current release has not yet been run on an Intel Mac.
 - Browser extraction depends on supported bundle identifiers, Automation
   permission, browser JavaScript settings, and page security boundaries.
-- Codex CLI responses are returned as one completed response rather than
-  token-by-token streaming, and each request carries Codex's own fixed context
-  cost.
-- Antigravity returns one completed response rather than token-by-token streaming, and
-  each request carries Antigravity's own fixed context cost — about 30,400 tokens before
+- Codex streaming requires a CLI with the app-server v2 protocol (verified with
+  0.153.4). Each request still carries Codex's own fixed context cost.
+- Antigravity streams agent response deltas (verified with 1.1.27); older versions
+  that emit only a final result display that result at completion. Each request
+  carries Antigravity's own fixed context cost — previously measured at about 30,400 tokens before
   any of Wisp's content. Screenshots are passed as files because Antigravity's headless
   input accepts text only — it rejects an `image_url` content block — so a
   screenshot request spends one extra tool turn on reading the file, which costs

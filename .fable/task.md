@@ -157,3 +157,36 @@ Outstanding:
   capture cards and phone cameras remain out of scope.
 - Open product decisions: whether to offer hiding the menu bar icon, and whether to rebuild the Settings
   window as a borderless non-activating panel to escape Mission Control.
+
+## Current task: CLI streaming — 2026-09-07
+
+Goal: save the current code remotely, then make Codex and AGY deliver answer text incrementally.
+
+Requirements (append-only):
+18. Commit and push the pre-change work. Completed: 17999d2 on origin/main.
+19. Switch Codex to app-server text deltas, retaining model/image input, private ephemeral
+    read-only execution, cancellation, timeout and cleanup.
+20. Verify AGY stream-json event shapes and implement incremental text without duplicate final output.
+21. Run meaningful regressions and update user-facing protocol documentation.
+22. (Added) Default Fast on where supported for Codex/Claude; check AGY support.
+    Codex selects the model-advertised Fast service tier. Claude passes fastMode for supported
+    Opus selections only; no model substitution. AGY removed /fast in 1.1.0 (official modes docs).
+23. (Clarified) Fall back to original mode when Fast is unavailable. Codex retries a tier rejection
+    once before text, Claude keeps native fallback, AGY uses normal mode; model/effort stay unchanged.
+
+Decisions/evidence:
+- Prior privacy tasks above retain unresolved scope; their historical evidence is not new validation.
+- Codex 0.153.4 schema and official app-server docs checked. Synthetic live request: first text
+  3.930 s, turn complete 5.129 s, ephemeral thread confirmed.
+- AGY 1.1.27 synthetic live request: text deltas at 3.101/3.301/3.502 s, result at 3.502 s.
+- No Claude CLI access, personal screenshots, installed-app replacement or new streaming-change push.
+- Requirements 18–23 completed. Full Debug XCTest: 32 passed, 0 failed, 0 skipped;
+  /private/tmp/wisp-cli-streaming-fast-tests-20260907. Release build exits 0.
+- Codex live thread/start checks echoed priority and default tiers for the same Luna model.
+- Details and limits: docs/cli-streaming.md; docs/evidence/cli-streaming-20260907.json.
+- At initial delivery, the implementation remained local and uncommitted. Installed app unchanged; Claude live execution
+  and end-to-end screenshot/UI testing were not performed. The pre-change baseline is pushed.
+- Follow-up installation completed: /Applications/Wisp.app replaced, ad-hoc signature verified,
+  executable matched the signed staging bundle, and the restarted process was observed (PID 8168).
+  Backup: /private/tmp/wisp-install-PXmylM/previous/Wisp.app.
+- User subsequently authorized committing and pushing the streaming/Fast implementation to main.

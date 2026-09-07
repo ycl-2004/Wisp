@@ -3,6 +3,238 @@ import Carbon.HIToolbox
 import XCTest
 @testable import Wisp
 
+final class CLIStreamingTests: XCTestCase {
+    private func json(_ text: String) throws -> [String: Any] {
+        try XCTUnwrap(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+    }
+
+    private func codexSession() throws -> CodexCLIProvider.AppServerSession {
+        var state = CodexCLIProvider.AppServerSession(prompt: "question", imagePaths: ["/tmp/screen.jpg"],
+                                                     directory: "/tmp/private-workspace", model: "test-model")
+        let handshake = try state.receive(json(#"{"id":0,"result":{}}"#))
+        XCTAssertEqual(handshake.requests[0]["method"] as? String, "initialized")
+        XCTAssertEqual(handshake.requests[1]["method"] as? String, "model/list")
+        let listing = try state.receive(json(#"{"id":3,"result":{"data":[{"model":"test-model","serviceTiers":[{"id":"priority","name":"Fast"}]}]}}"#))
+        let params = try XCTUnwrap(listing.requests[0]["params"] as? [String: Any])
+        XCTAssertEqual(params["ephemeral"] as? Bool, true)
+        XCTAssertEqual(params["sandbox"] as? String, "read-only")
+        XCTAssertEqual(params["approvalPolicy"] as? String, "never")
+        XCTAssertEqual(params["model"] as? String, "test-model")
+        XCTAssertEqual(params["serviceTier"] as? String, "priority")
+        let start = try state.receive(json(#"{"id":1,"result":{"thread":{"id":"t"}}}"#))
+        let turn = try XCTUnwrap(start.requests.first?["params"] as? [String: Any])
+        let input = try XCTUnwrap(turn["input"] as? [[String: Any]])
+        XCTAssertEqual(input.last?["type"] as? String, "localImage")
+        XCTAssertEqual(input.last?["path"] as? String, "/tmp/screen.jpg")
+        return state
+    }
+
+    func testFramingPreservesSplitUnicodeAndUnterminatedFinalLine() throws {
+        let bytes = Data("{\"text\":\"你好🌤\"}\n{\"text\":\"end\"}".utf8)
+        var parser = CLIJSONLines()
+        var result: [[String: Any]] = []
+        for byte in bytes { result += try parser.append(Data([byte])) }
+        result += try parser.append(Data(), endOfFile: true)
+        XCTAssertEqual(result.compactMap { $0["text"] as? String }, ["你好🌤", "end"])
+        XCTAssertThrowsError(try parser.append(Data("not json\n".utf8)))
+    }
+
+    func testCodexDeltasIgnoreReasoningAndDoNotRepeatSnapshot() throws {
+        var state = try codexSession()
+        XCTAssertEqual(try state.receive(json(#"{"method":"item/agentMessage/delta","params":{"threadId":"t","itemId":"a","delta":"Hello"}}"#)).text, ["Hello"])
+        XCTAssertTrue(try state.receive(json(#"{"method":"item/reasoning/summaryTextDelta","params":{"threadId":"t","delta":"private"}}"#)).text.isEmpty)
+        XCTAssertTrue(try state.receive(json(#"{"method":"item/agentMessage/delta","params":{"threadId":"other","itemId":"a","delta":"wrong"}}"#)).text.isEmpty)
+        XCTAssertEqual(try state.receive(json(#"{"method":"item/completed","params":{"threadId":"t","item":{"type":"agentMessage","id":"a","text":"Hello world"}}}"#)).text, [" world"])
+        XCTAssertTrue(try state.receive(json(#"{"method":"item/completed","params":{"threadId":"t","item":{"type":"agentMessage","id":"a","text":"Hello world"}}}"#)).text.isEmpty)
+        XCTAssertFalse(state.completed)
+        _ = try state.receive(json(#"{"method":"turn/completed","params":{"threadId":"t","turn":{"status":"completed"}}}"#))
+        XCTAssertTrue(state.completed)
+    }
+
+    func testCodexFailuresAndApprovalRequestsAreNotSuccess() throws {
+        var state = try codexSession()
+        XCTAssertThrowsError(try state.receive(json(#"{"method":"turn/completed","params":{"threadId":"t","turn":{"status":"failed","error":{"message":"offline"}}}}"#)))
+        XCTAssertFalse(state.completed)
+        XCTAssertThrowsError(try state.receive(json(#"{"id":2,"error":{"code":-1,"message":"bad model"}}"#)))
+        XCTAssertThrowsError(try state.receive(json(#"{"id":"approval","method":"item/commandExecution/requestApproval","params":{}}"#)))
+    }
+
+    func testCodexDoesNotForceFastOnUnsupportedModel() throws {
+        var state = CodexCLIProvider.AppServerSession(prompt: "q", imagePaths: [], directory: "/tmp", model: "mini")
+        _ = try state.receive(json(#"{"id":0,"result":{}}"#))
+        let listing = try state.receive(json(#"{"id":3,"result":{"data":[{"model":"mini","serviceTiers":[]}]}}"#))
+        let params = try XCTUnwrap(listing.requests[0]["params"] as? [String: Any])
+        XCTAssertEqual(params["serviceTier"] as? String, "default")
+        XCTAssertEqual(params["model"] as? String, "mini")
+    }
+
+    func testCodexFastRejectionFallsBackOnceWithoutChangingModel() throws {
+        var state = try codexSession()
+        let retry = try state.receive(json(#"{"method":"error","params":{"threadId":"t","willRetry":false,"error":{"message":"priority service tier is not available for this account"}}}"#))
+        let params = try XCTUnwrap(retry.requests.first?["params"] as? [String: Any])
+        XCTAssertEqual(params["serviceTier"] as? String, "default")
+        XCTAssertEqual(params["model"] as? String, "test-model")
+        XCTAssertNil(state.threadID)
+        XCTAssertTrue(try state.receive(json(#"{"method":"turn/completed","params":{"threadId":"t","turn":{"status":"failed"}}}"#)).requests.isEmpty)
+        XCTAssertThrowsError(try state.receive(json(#"{"id":1,"error":{"message":"priority service tier is unavailable"}}"#)))
+    }
+
+    func testCodexDoesNotRetryFastFailureAfterTextWasDelivered() throws {
+        var state = try codexSession()
+        _ = try state.receive(json(#"{"method":"item/agentMessage/delta","params":{"threadId":"t","itemId":"a","delta":"partial"}}"#))
+        XCTAssertThrowsError(try state.receive(json(#"{"method":"error","params":{"threadId":"t","willRetry":false,"error":{"message":"fast mode failed"}}}"#)))
+    }
+
+    func testAgyOnlyStreamsAgentTextAndDoesNotRepeatResult() throws {
+        var state = AgyCLIProvider.StreamState()
+        XCTAssertNil(try state.receive(json(#"{"event":"step_update","step_update":{"step_type":"tool_call","text_delta":"private"}}"#)))
+        XCTAssertEqual(try state.receive(json(#"{"event":"step_update","step_update":{"step_index":1,"step_type":"agent_response","text_delta":"Hello "}}"#)), "Hello ")
+        XCTAssertEqual(try state.receive(json(#"{"event":"step_update","step_update":{"step_index":1,"step_type":"agent_response","state":"DONE","text_delta":"world"}}"#)), "world")
+        XCTAssertFalse(state.completed)
+        XCTAssertNil(try state.receive(json(#"{"event":"result","result":{"status":"SUCCESS","response":"Hello world"}}"#)))
+        XCTAssertTrue(state.completed)
+    }
+
+    func testAgyFinalOnlyFallbackAndFailures() throws {
+        var state = AgyCLIProvider.StreamState()
+        XCTAssertEqual(try state.receive(json(#"{"event":"result","result":{"status":"SUCCESS","response":"fallback"}}"#)), "fallback")
+        var failed = AgyCLIProvider.StreamState()
+        _ = try failed.receive(json(#"{"event":"step_update","step_update":{"step_type":"agent_response","text_delta":"partial"}}"#))
+        XCTAssertThrowsError(try failed.receive(json(#"{"event":"result","result":{"status":"ERROR","error":"offline"}}"#)))
+        XCTAssertFalse(failed.completed)
+        var empty = AgyCLIProvider.StreamState()
+        XCTAssertThrowsError(try empty.receive(json(#"{"event":"result","result":{"status":"SUCCESS","response":" "}}"#)))
+    }
+
+    func testProvidersYieldBeforeProcessFinishesAndCleanWorkspace() async throws {
+        for codex in [true, false] {
+            let directory = try CLITemporaryDirectory.create(prefix: "Wisp-stream-test")
+            defer { CLITemporaryDirectory.remove(directory) }
+            let binary = directory.appendingPathComponent("fixture")
+            let marker = directory.appendingPathComponent("finished")
+            let workspace = directory.appendingPathComponent("workspace")
+            // Synthetic subprocess only; no installed model CLI, account or screenshot is accessed.
+            let script = """
+            #!/usr/bin/python3
+            import json,sys,time,os
+            def emit(value):
+                print(json.dumps(value),flush=True)
+            open('\(workspace.path)','w').write(os.getcwd())
+            if '\(codex)' == 'true':
+                assert sys.argv[1:] == ['app-server','--listen','stdio://']
+                assert json.loads(input())['method'] == 'initialize'
+                emit({'id':0,'result':{}})
+                assert json.loads(input())['method'] == 'initialized'
+                assert json.loads(input())['method'] == 'model/list'
+                emit({'id':3,'result':{'data':[{'model':'fixture','serviceTiers':[{'id':'priority','name':'Fast'}]}]}})
+                request=json.loads(input())
+                assert request['params']['ephemeral'] and request['params']['sandbox']=='read-only'
+                assert request['params']['serviceTier']=='priority'
+                emit({'id':1,'result':{'thread':{'id':'t'}}})
+                assert json.loads(input())['method']=='turn/start'
+                emit({'method':'item/agentMessage/delta','params':{'threadId':'t','itemId':'a','delta':'first'}})
+            else:
+                assert sys.argv[sys.argv.index('--output-format')+1]=='stream-json'
+                emit({'event':'step_update','step_update':{'step_type':'agent_response','text_delta':'first'}})
+            time.sleep(1)
+            open('\(marker.path)','w').write('done')
+            if '\(codex)' == 'true':
+                emit({'method':'item/completed','params':{'threadId':'t','item':{'type':'agentMessage','id':'a','text':'first second'}}})
+                emit({'method':'turn/completed','params':{'threadId':'t','turn':{'status':'completed'}}})
+                time.sleep(30)
+            else:
+                sys.stdout.write(json.dumps({'event':'result','result':{'status':'SUCCESS','response':'first second'}}))
+                sys.stdout.flush()
+            """
+            try script.write(to: binary, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: binary.path)
+            let provider: any ChatProvider = codex ? CodexCLIProvider() : AgyCLIProvider()
+            let config = ProviderConfig(kind: .codexCLI, model: "fixture", cliPath: binary.path)
+            var chunks: [String] = []
+            for try await chunk in provider.stream(messages: [["role": "user", "content": "synthetic"]], config: config) {
+                if chunks.isEmpty { XCTAssertFalse(FileManager.default.fileExists(atPath: marker.path)) }
+                chunks.append(chunk)
+            }
+            XCTAssertEqual(chunks, ["first", " second"])
+            let workPath = try String(contentsOf: workspace, encoding: .utf8)
+            for _ in 0..<100 where FileManager.default.fileExists(atPath: workPath) {
+                try await Task.sleep(nanoseconds: 20_000_000)
+            }
+            XCTAssertFalse(FileManager.default.fileExists(atPath: workPath))
+        }
+    }
+    func testCancellationStopsBlockedCLIAndRemovesWorkspace() async throws {
+        for codex in [true, false] {
+            let directory = try CLITemporaryDirectory.create(prefix: "Wisp-cancel-test")
+            defer { CLITemporaryDirectory.remove(directory) }
+            let binary = directory.appendingPathComponent("fixture")
+            let workspace = directory.appendingPathComponent("workspace")
+            let script = """
+            #!/usr/bin/python3
+            import json,os,time,signal
+            signal.signal(signal.SIGTERM,signal.SIG_IGN)
+            def emit(value): print(json.dumps(value),flush=True)
+            open('\(workspace.path)','w').write(os.getcwd())
+            if '\(codex)' == 'true':
+                input();emit({'id':0,'result':{}})
+                input();input();emit({'id':3,'result':{'data':[]}})
+                input();emit({'id':1,'result':{'thread':{'id':'t'}}})
+                input();emit({'method':'item/agentMessage/delta','params':{'threadId':'t','itemId':'a','delta':'first'}})
+            else:
+                emit({'event':'step_update','step_update':{'step_type':'agent_response','text_delta':'first'}})
+            time.sleep(30)
+            """
+            try script.write(to: binary, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: binary.path)
+            let firstChunk = expectation(description: "first chunk before cancellation")
+            let provider: any ChatProvider = codex ? CodexCLIProvider() : AgyCLIProvider()
+            let config = ProviderConfig(kind: .codexCLI, model: "fixture", cliPath: binary.path)
+            let reader = Task {
+                do {
+                    for try await _ in provider.stream(messages: [], config: config) { firstChunk.fulfill() }
+                } catch { /* Cancellation may finish iteration or throw. */ }
+            }
+            await fulfillment(of: [firstChunk], timeout: 5)
+            reader.cancel()
+            await reader.value
+            let workPath = try String(contentsOf: workspace, encoding: .utf8)
+            for _ in 0..<150 where FileManager.default.fileExists(atPath: workPath) {
+                try await Task.sleep(nanoseconds: 20_000_000)
+            }
+            XCTAssertFalse(FileManager.default.fileExists(atPath: workPath), "Blocked process must be stopped before workspace cleanup")
+        }
+    }
+
+    func testProviderEOFWithoutCompletionFailsEvenAfterText() async throws {
+        for codex in [true, false] {
+            let directory = try CLITemporaryDirectory.create(prefix: "Wisp-eof-test")
+            defer { CLITemporaryDirectory.remove(directory) }
+            let binary = directory.appendingPathComponent("fixture")
+            let script = """
+            #!/usr/bin/python3
+            import json
+            def emit(value): print(json.dumps(value),flush=True)
+            if '\(codex)' == 'true':
+                input();emit({'id':0,'result':{}})
+                input();input();emit({'id':3,'result':{'data':[]}})
+                input();emit({'id':1,'result':{'thread':{'id':'t'}}})
+                input();emit({'method':'item/agentMessage/delta','params':{'threadId':'t','itemId':'a','delta':'partial'}})
+            else:
+                emit({'event':'step_update','step_update':{'step_type':'agent_response','text_delta':'partial'}})
+            """
+            try script.write(to: binary, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: binary.path)
+            let provider: any ChatProvider = codex ? CodexCLIProvider() : AgyCLIProvider()
+            let config = ProviderConfig(kind: .codexCLI, model: "fixture", cliPath: binary.path)
+            var text = ""
+            do {
+                for try await chunk in provider.stream(messages: [], config: config) { text += chunk }
+                XCTFail("EOF without a completion event must fail")
+            } catch { XCTAssertEqual(text, "partial") }
+        }
+    }
+}
+
 final class PrivacyTransportTests: XCTestCase {
     func testRemoteTransportRequiresTLSButLocalOllamaStillWorks() {
         XCTAssertNotNil(OpenAICompatibleProvider.endpoint("https://api.example.test/v1"))
@@ -87,6 +319,21 @@ private final class SyntheticAPIProtocol: URLProtocol {
 }
 
 final class ClaudeCodeCLIProviderTests: XCTestCase {
+    func testFastDefaultsOnForSupportedOpusWithoutChangingSelectedModel() throws {
+        for model in ["opus", "opus[1m]", "claude-opus-5", "claude-opus-4-8"] {
+            let arguments = ClaudeCodeCLIProvider.commandArguments(prompt: "q", model: model)
+            let settings = try XCTUnwrap(value(after: "--settings", in: arguments))
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(settings.utf8)) as? [String: Any])
+            XCTAssertEqual(object["fastMode"] as? Bool, true)
+            XCTAssertEqual(value(after: "--model", in: arguments), model)
+            XCTAssertTrue(arguments.contains("--restricted"))
+        }
+        for model in ["sonnet", "haiku", "claude-opus-4-7", "", "custom-model"] {
+            let arguments = ClaudeCodeCLIProvider.commandArguments(prompt: "q", model: model)
+            XCTAssertFalse(arguments.contains("--settings"))
+        }
+    }
+
     func testCommandIsRestrictedToReadAndDoesNotPersistSession() {
         let arguments = ClaudeCodeCLIProvider.commandArguments(prompt: "question", model: "sonnet")
 

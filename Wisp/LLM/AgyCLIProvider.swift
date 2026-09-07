@@ -136,12 +136,12 @@ struct AgyCLIProvider: ChatProvider {
                     let prompt = CLIPrompt.compose(sections: flattened.sections,
                                                    imagePaths: imagePaths,
                                                    budget: Self.promptBudget)
-                    let response = try await Self.runHeadless(prompt: prompt,
-                                                              binary: binary,
-                                                              model: config.model,
-                                                              workDirectory: directory,
-                                                              box: box)
-                    continuation.yield(response)
+                    try await Self.runHeadless(prompt: prompt,
+                                               binary: binary,
+                                               model: config.model,
+                                               workDirectory: directory,
+                                               box: box,
+                                               onText: { continuation.yield($0) })
                     continuation.finish()
                 } catch let error as ProviderError {
                     continuation.finish(throwing: error)
@@ -185,13 +185,14 @@ struct AgyCLIProvider: ChatProvider {
                                     binary: String,
                                     model: String,
                                     workDirectory: URL,
-                                    box: RunBox) async throws -> String {
+                                    box: RunBox,
+                                    onText: (String) -> Void) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: binary)
         process.currentDirectoryURL = workDirectory
 
         var arguments = ["-p", prompt,
-                         "--output-format", "json",
+                         "--output-format", "stream-json",
                          "--print-timeout", "\(Int(wallClockTimeout))s",
                          "--sandbox"]
         if !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -215,19 +216,29 @@ struct AgyCLIProvider: ChatProvider {
             }
         }
 
-        guard box.adopt(process) else { throw ProviderError.cancelled }
-        do {
-            try process.run()
-        } catch {
+        defer {
+            if process.isRunning {
+                process.terminate()
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
+                    if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+                }
+                process.waitUntilExit()
+            }
             stderrHandle.readabilityHandler = nil
             box.finish()
-            throw ProviderError.network(error.localizedDescription)
         }
+        try box.start(process)
 
-        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        var lines = CLIJSONLines()
+        var state = StreamState()
+        while true {
+            let chunk = stdout.fileHandleForReading.availableData
+            for object in try lines.append(chunk, endOfFile: chunk.isEmpty) {
+                if let text = try state.receive(object) { onText(text) }
+            }
+            if chunk.isEmpty { break }
+        }
         process.waitUntilExit()
-        stderrHandle.readabilityHandler = nil
-        box.finish()
 
         if let reason = box.reason {
             throw reason == .timedOut
@@ -237,20 +248,14 @@ struct AgyCLIProvider: ChatProvider {
         guard process.terminationStatus == 0 else {
             throw ProviderError.agyFailed(Self.condense(stderrBuffer.text), status: process.terminationStatus)
         }
-        switch parseResponse(data) {
-        case .success(let response):
-            return response
-        case .failure(let detail):
-            // 解析出来的说明比 stderr 具体，优先用它；AGY 正常时 stderr 是空的。
-            let stderrText = Self.condense(stderrBuffer.text)
-            throw ProviderError.agyFailed(detail.isEmpty ? stderrText : detail,
-                                          status: process.terminationStatus)
+        guard state.completed else {
+            throw ProviderError.agyFailed("AGY stream ended without a result", status: process.terminationStatus)
         }
     }
 
     // MARK: - 子进程
 
-    /// 读循环跑在 detached task 里、阻塞在 readDataToEndOfFile 上，Task.isCancelled 它看不见。
+    /// 读循环跑在 detached task 里、阻塞在 availableData 上，Task.isCancelled 它看不见。
     /// 所以取消和超时都不去「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
     private final class RunBox: @unchecked Sendable {
         enum Stop { case cancelled, timedOut }
@@ -260,11 +265,11 @@ struct AgyCLIProvider: ChatProvider {
         private var stopReason: Stop?
         private var settled = false
 
-        func adopt(_ process: Process) -> Bool {
+        func start(_ process: Process) throws {
             lock.lock(); defer { lock.unlock() }
-            guard !settled else { return false }
+            guard !settled else { throw ProviderError.cancelled }
             self.process = process
-            return true
+            try process.run()
         }
 
         /// - Parameter onlyIfRunning: 看门狗专用。进程已经自己退出了就什么都不做，
@@ -354,35 +359,57 @@ struct AgyCLIProvider: ChatProvider {
         }
     }
 
-    /// `--output-format json` 收尾会打一个对象，里面带 `status`、`response`，出错时还有 `error`。
-    /// 失败时回传一句能往上抛的说明，别让调用方只拿到一个 nil。
-    private enum ParsedResponse {
-        case success(String)
-        case failure(String)
-    }
+    /// Verified against AGY 1.1.27: step_update carries incremental text, result repeats the final answer.
+    struct StreamState {
+        private(set) var completed = false
+        private var streamed = ""
+        private var lastStep: Int?
 
-    private static func parseResponse(_ data: Data) -> ParsedResponse {
-        let raw = String(data: data, encoding: .utf8) ?? ""
-        guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}"),
-              let object = try? JSONSerialization
-                .jsonObject(with: Data(raw[start...end].utf8)) as? [String: Any]
-        else { return .failure(condense(raw)) }
-
-        let status = object["status"] as? String ?? "?"
-        guard status == "SUCCESS" else {
-            let detail = (object["error"] as? String) ?? ""
-            return .failure(condense(detail.isEmpty ? "status=\(status)" : detail))
+        mutating func receive(_ object: [String: Any]) throws -> String? {
+            guard !completed else { return nil }
+            switch object["event"] as? String {
+            case "step_update":
+                guard let step = object["step_update"] as? [String: Any],
+                      step["step_type"] as? String == "agent_response",
+                      let delta = step["text_delta"] as? String, !delta.isEmpty else { return nil }
+                let index = step["step_index"] as? Int
+                let separator = !streamed.isEmpty && index != nil && index != lastStep ? "\n\n" : ""
+                lastStep = index
+                streamed += separator + delta
+                return separator + delta
+            case "result":
+                guard let result = object["result"] as? [String: Any] else {
+                    throw ProviderError.agyFailed("Invalid AGY result", status: -1)
+                }
+                guard result["status"] as? String == "SUCCESS" else {
+                    throw ProviderError.agyFailed(Self.failureDetail(result), status: -1)
+                }
+                let response = result["response"] as? String ?? ""
+                guard !response.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw ProviderError.agyFailed(String(localized: "Agy 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"), status: -1)
+                }
+                completed = true
+                // Some versions only emit a final response. Never append it twice after deltas.
+                if streamed.isEmpty { streamed = response; return response }
+                if response.hasPrefix(streamed) {
+                    let suffix = String(response.dropFirst(streamed.count))
+                    streamed = response
+                    return suffix.isEmpty ? nil : suffix
+                }
+                return nil
+            case "error":
+                throw ProviderError.agyFailed(Self.failureDetail(object), status: -1)
+            default: return nil
+            }
         }
 
-        let response = (object["response"] as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        // AGY 偶尔会在 SUCCESS 下返回空回答，实测在上下文顶到它的输入上限、
-        // 或连着发大请求之后出现。照直交上去，用户看到的是一片空白，既不知道
-        // 出了什么事，也没有该重试还是该改设置的线索。
-        guard !response.isEmpty else {
-            return .failure(String(localized: "Agy 返回了空回答，没有说明原因。多半是这一轮上下文顶到了它的输入上限，或者短时间内发得太密。可以把「页面文字上限」调小一些再试。"))
+        private static func failureDetail(_ object: [String: Any]) -> String {
+            if let error = object["error"] as? String, !error.isEmpty { return AgyCLIProvider.condense(error) }
+            if let error = object["error"] as? [String: Any], let message = error["message"] as? String {
+                return AgyCLIProvider.condense(message)
+            }
+            return "AGY status=\(object["status"] as? String ?? "ERROR")"
         }
-        return .success(response)
     }
 
     private static func condense(_ text: String) -> String {
