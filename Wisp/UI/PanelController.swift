@@ -198,6 +198,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.minSize = NSSize(width: 380, height: Self.minimumCollapsedHeight)
         panel.maxSize = NSSize(width: 2400, height: Self.maximumExpandedHeight)
         panel.delegate = self
+        ScreenPrivacy.apply(to: panel)
 
         let root = ChatView()
             .environmentObject(AssistantModel.shared)

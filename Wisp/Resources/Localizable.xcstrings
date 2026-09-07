@@ -7073,6 +7073,102 @@
           }
         }
       }
+    },
+    "屏幕共享": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen sharing"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕共享"
+          }
+        }
+      }
+    },
+    "屏幕共享时隐藏": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide during screen sharing"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕共享时隐藏"
+          }
+        }
+      }
+    },
+    "屏幕共享和录屏时隐藏 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Wisp from screen sharing and recording"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕共享和录屏时隐藏 Wisp"
+          }
+        }
+      }
+    },
+    "Zoom、Google Meet、腾讯会议、飞书、Teams、QuickTime、系统录屏和 OBS 都读不到 Wisp 的窗口，你自己的屏幕上照常显示。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom, Google Meet, Teams, QuickTime, the built-in screen recorder and OBS cannot read Wisp's windows. Your own display still shows them normally."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom、Google Meet、腾讯会议、飞书、Teams、QuickTime、系统录屏和 OBS 都读不到 Wisp 的窗口，你自己的屏幕上照常显示。"
+          }
+        }
+      }
+    },
+    "Wisp 会和普通窗口一样出现在共享画面和录屏里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wisp appears in shared screens and recordings like any other window."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wisp 会和普通窗口一样出现在共享画面和录屏里。"
+          }
+        }
+      }
+    },
+    "要录 Wisp 的演示视频时关掉它。菜单栏那颗图标由系统绘制，隐身模式盖不住；用手机对着屏幕拍摄也不受影响。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn this off to record a demo of Wisp. The menu bar icon is drawn by the system and stays visible; a phone camera pointed at the screen is unaffected either way."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要录 Wisp 的演示视频时关掉它。菜单栏那颗图标由系统绘制，隐身模式盖不住；用手机对着屏幕拍摄也不受影响。"
+          }
+        }
+      }
     }
   }
 }

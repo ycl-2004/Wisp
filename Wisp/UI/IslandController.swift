@@ -96,6 +96,7 @@ final class IslandController: NSObject {
         panel.isReleasedWhenClosed = false
         panel.acceptsMouseMovedEvents = true
         panel.isMovable = false
+        ScreenPrivacy.apply(to: panel)
 
         rebuildContent(on: panel)
         self.panel = panel

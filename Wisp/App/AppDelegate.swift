@@ -101,6 +101,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         MainActor.assumeIsolated {
+            // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
+            ScreenPrivacy.start()
             PanelController.shared.restoreStoredFrame()
             IslandController.shared.start()
         }

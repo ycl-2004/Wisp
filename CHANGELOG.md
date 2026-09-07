@@ -1,5 +1,27 @@
 # Wisp release notes
 
+## Unreleased
+
+### Added
+
+- **Hidden from screen sharing and recording, on by default.** Wisp's panel and
+  island now set `NSWindow.sharingType = .none`, which tells
+  the WindowServer that no other process may read their contents. Zoom, Google
+  Meet, Teams, QuickTime, `⌘⇧5` and OBS all reach the screen through
+  ScreenCaptureKit or `CGWindowList`, so one flag removes Wisp from every one of
+  them at once instead of needing per-app handling, and it keeps Wisp out of the
+  window picker those tools show. The flag is applied when each window is
+  created rather than a run loop later, because the intervening frame is long
+  enough to be recorded. Settings, sheets and menus are created by the system,
+  so a `NSWindow.didUpdateNotification` observer corrects anything the app did
+  not construct itself. Toggle it from the menu bar item or Settings →
+  Permissions → Screen sharing; turning it off is what you want when recording
+  a demo of Wisp. The menu bar icon is the one part this does not cover: macOS
+  draws third-party menu bar items itself and the app-owned `NSStatusBarWindow`
+  is an empty 35×0 stub, so setting its sharing type changes nothing. Nor can any
+  of this affect a camera pointed at the screen or a hardware capture device on
+  the display output.
+
 ## 0.3.0 — 2026-09-02
 
 ### Added

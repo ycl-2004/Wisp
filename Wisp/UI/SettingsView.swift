@@ -954,6 +954,21 @@ private struct CaptureSettingsView: View {
             }
 
             Section {
+                Toggle("屏幕共享和录屏时隐藏 Wisp", isOn: Binding(
+                    get: { settings.hideFromScreenCapture },
+                    set: { ScreenPrivacy.setEnabled($0) }
+                ))
+                Text(settings.hideFromScreenCapture
+                     ? "Zoom、Google Meet、腾讯会议、飞书、Teams、QuickTime、系统录屏和 OBS 都读不到 Wisp 的窗口，你自己的屏幕上照常显示。"
+                     : "Wisp 会和普通窗口一样出现在共享画面和录屏里。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                SettingsSectionHeader("屏幕共享", info: String(localized: "要录 Wisp 的演示视频时关掉它。菜单栏那颗图标由系统绘制，隐身模式盖不住；用手机对着屏幕拍摄也不受影响。"))
+            }
+
+            Section {
                 HStack {
                     Label(hasScreenRecording ? "屏幕录制：已授权" : "屏幕录制：未授权",
                           systemImage: hasScreenRecording ? "checkmark.circle" : "xmark.circle")

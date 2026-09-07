@@ -96,6 +96,21 @@ are excluded out of the box.
 to exclude a particular URL or domain while still using Wisp in that browser.
 If you do not want a specific page read, do not summon Wisp on it.
 
+## Keeping Wisp out of your screen shares
+
+Settings → Permissions → Screen sharing controls whether Wisp's own windows can
+be read by other processes. It is on by default, and while it is on the panel
+and the island are excluded from Zoom, Google Meet, Teams, QuickTime, the
+built-in screen recorder and OBS, and do not appear in the window picker those
+tools show. macOS enforces this in the WindowServer, so it applies to any
+capture tool rather than a list Wisp maintains.
+
+The menu bar icon is not covered, because macOS draws third-party menu bar items
+itself rather than from a window the app controls. And this protects the window
+contents, not the room: a phone camera pointed at your screen, or a hardware
+capture device on the display output, still sees everything. Turn the setting
+off when you want to record a demo of Wisp itself.
+
 ## Permissions Wisp asks for
 
 - **Screen Recording** — to capture the frontmost window. Without it Wisp still

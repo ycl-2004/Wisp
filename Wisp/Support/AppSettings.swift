@@ -76,6 +76,7 @@ final class AppSettings: ObservableObject {
         static let panelFrame = "panelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
         static let showIsland = "showIsland"
+        static let hideFromScreenCapture = "hideFromScreenCapture"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
         static let checkForUpdates = "checkForUpdates"
@@ -112,6 +113,7 @@ final class AppSettings: ObservableObject {
             K.shortcutTrigger: ShortcutTriggerMode.standard.rawValue,
             K.debugDumpEnabled: false,
             K.showIsland: true,
+            K.hideFromScreenCapture: true,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
             K.checkForUpdates: true,
@@ -292,6 +294,12 @@ final class AppSettings: ObservableObject {
     var showIsland: Bool {
         get { d.bool(forKey: K.showIsland) }
         set { d.set(newValue, forKey: K.showIsland); objectWillChange.send() }
+    }
+
+    /// 把 Wisp 自己的窗口标成其他进程读不到，屏幕共享和录屏里就看不见它。
+    var hideFromScreenCapture: Bool {
+        get { d.bool(forKey: K.hideFromScreenCapture) }
+        set { d.set(newValue, forKey: K.hideFromScreenCapture); objectWillChange.send() }
     }
 
     var islandPosition: String {

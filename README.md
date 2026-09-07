@@ -131,6 +131,23 @@ open "$HOME/Applications/Wisp.app"
   edge instead of always from the middle. It can also snap to the Mac's camera
   notch.
 
+**Hidden from screen sharing**
+
+- On by default: Wisp's windows are marked as unreadable by other processes
+  (`NSWindow.sharingType = .none`), so Zoom, Google Meet, Teams, QuickTime, the
+  built-in screen recorder (`⌘⇧5`) and OBS all capture the screen without them.
+  Your own display still shows everything normally. The enforcement happens in
+  the WindowServer, so it covers every capture tool at once rather than needing
+  per-app handling, and Wisp does not appear in the window picker either.
+- Toggle it from the menu bar item, or in Settings → Permissions → Screen
+  sharing. Turn it off to record a demo of Wisp itself.
+- The menu bar icon is not covered. macOS draws third-party menu bar items
+  itself, and the `NSStatusBarWindow` the app owns is an empty 35×0 stub whose
+  sharing type has no effect, so the icon stays in the recording. Hide it with a
+  menu bar manager if that matters; the shortcut and the island still reach Wisp.
+- It cannot hide anything from a camera pointed at the screen or from a
+  hardware capture device on the display output.
+
 **Shortcuts**
 
 - The default `⌃⌥Space` shortcut remains available and can be changed in
