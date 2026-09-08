@@ -492,3 +492,49 @@ final class BrowserPrivacyTests: XCTestCase {
         XCTAssertTrue(PageTextScript.cleanupJS.contains("window.__wispCollector = null"))
     }
 }
+
+final class SpeedPreferenceTests: XCTestCase {
+    private func body(_ model: String, at base: String) throws -> [String: Any] {
+        let endpoint = try XCTUnwrap(OpenAICompatibleProvider.endpoint(base))
+        return OpenAICompatibleProvider.speedPreferredBody(
+            ["model": model, "stream": true, "messages": [["role": "user", "content": "synthetic"]]],
+            endpoint: endpoint)
+    }
+
+    func testOpenRouterPresetsKeepOrderAndFreeModelIdentity() throws {
+        let presets = CloudProvider.openRouter.presets
+        XCTAssertEqual(presets.map(\.slug), ["openai/gpt-5.6-luna", "z-ai/glm-5.3-flash",
+            "qwen/qwen3.7-flash", "minimax/minimax-m3:free", "thinkingmachines/inkling:free"])
+        for preset in presets {
+            let result = try body(preset.slug, at: "https://openrouter.ai/api/v1/")
+            XCTAssertEqual(result["model"] as? String, preset.slug)
+            let routing = try XCTUnwrap(result["provider"] as? [String: Any])
+            XCTAssertEqual(routing["sort"] as? String, "throughput")
+            XCTAssertEqual(routing["allow_fallbacks"] as? Bool, true)
+            if preset.slug.hasSuffix(":free") { XCTAssertNil(result["service_tier"]) }
+            else { XCTAssertEqual(result["service_tier"] as? String, "priority") }
+            XCTAssertEqual(result["stream"] as? Bool, true)
+            XCTAssertEqual((result["messages"] as? [[String: String]])?.first?["content"], "synthetic")
+        }
+    }
+
+    func testDirectAPIsRequestPriorityWithoutChangingModel() throws {
+        for (base, model) in [("https://api.openai.com/v1", "gpt-5.6-luna"),
+                              ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.7-flash")] {
+            let result = try body(model, at: base)
+            XCTAssertEqual(result["service_tier"] as? String, "priority")
+            XCTAssertEqual(result["model"] as? String, model)
+            XCTAssertNil(result["provider"])
+        }
+    }
+
+    func testOtherHostsAndPathsDoNotReceiveVendorOptions() throws {
+        for base in ["https://api.example.test/v1", "http://localhost:11434/v1",
+                     "https://openrouter.ai.example.test/api/v1", "https://openrouter.ai/custom",
+                     "https://api.anthropic.com/v1", "https://open.bigmodel.cn/api/paas/v4"] {
+            let result = try body("synthetic", at: base)
+            XCTAssertNil(result["service_tier"])
+            XCTAssertNil(result["provider"])
+        }
+    }
+}

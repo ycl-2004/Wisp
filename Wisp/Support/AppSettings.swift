@@ -16,7 +16,7 @@ enum CaptureMode: String, CaseIterable, Identifiable {
         switch self {
         case .screenshotOnly: return String(localized: "纯截图")
         case .pageText: return String(localized: "读取页面正文")
-        case .scrollCollect: return String(localized: "允许滑动采集")
+        case .scrollCollect: return String(localized: "滚动采集")
         }
     }
 

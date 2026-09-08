@@ -65,8 +65,32 @@ struct OpenAICompatibleProvider: ChatProvider {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("Wisp/0.1", forHTTPHeaderField: "User-Agent")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = try JSONSerialization.data(withJSONObject: Self.speedPreferredBody(body, endpoint: url))
         return request
+    }
+
+    /// Apply only documented first-party API options; custom gateways stay compatible.
+    /// https://openrouter.ai/docs/guides/features/service-tiers
+    /// https://openrouter.ai/docs/guides/routing/provider-selection
+    /// https://developers.openai.com/api/docs/guides/fast-mode
+    /// https://ai.google.dev/gemini-api/docs/openai#flex-and-priority-inference
+    static func speedPreferredBody(_ body: [String: Any], endpoint: URL) -> [String: Any] {
+        var result = body
+        switch (endpoint.host?.lowercased(), endpoint.path) {
+        case ("openrouter.ai", "/api/v1/chat/completions"):
+            result["provider"] = ["sort": "throughput", "allow_fallbacks": true] as [String: Any]
+            // Keep free model IDs and their free-only routing. Never switch models for speed.
+            let model = body["model"] as? String ?? ""
+            if !model.split(separator: ":").contains("free") {
+                result["service_tier"] = "priority"
+            }
+        case ("api.openai.com", "/v1/chat/completions"),
+             ("generativelanguage.googleapis.com", "/v1beta/openai/chat/completions"):
+            result["service_tier"] = "priority"
+        default:
+            break
+        }
+        return result
     }
 
     // MARK: - 流式

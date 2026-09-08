@@ -1,0 +1,37 @@
+{
+  "scope": "synthetic execution of checked-in browser.html; no actual media, OS revocation, notifications, accessibility tools or external monitor",
+  "results": [
+    {
+      "name": "capture rejection is explicit",
+      "pass": true,
+      "log": "synthetic audit\n2026-09-08T04:35:48.323Z {\"trustedClick\":true,\"transientActivation\":true,\"documentFocused\":true,\"visibility\":\"visible\",\"secureContext\":true}\n2026-09-08T04:35:48.330Z NotAllowedError: injected failure"
+    },
+    {
+      "name": "unexpected track end clears preview and reports stop",
+      "pass": true,
+      "log": "synthetic audit\n2026-09-08T04:35:48.331Z {\"trustedClick\":true,\"transientActivation\":true,\"documentFocused\":true,\"visibility\":\"visible\",\"secureContext\":true}\n2026-09-08T04:35:48.331Z {\"displaySurface\":\"monitor\"}\n2026-09-08T04:35:48.331Z 整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。\n2026-09-08T04:35:48.331Z 共享已停止"
+    },
+    {
+      "name": "unexpected end distinguished from user stop",
+      "pass": false,
+      "log": "synthetic audit\n2026-09-08T04:35:48.332Z {\"trustedClick\":true,\"transientActivation\":true,\"documentFocused\":true,\"visibility\":\"visible\",\"secureContext\":true}\n2026-09-08T04:35:48.332Z {\"displaySurface\":\"monitor\"}\n2026-09-08T04:35:48.332Z 整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。\n2026-09-08T04:35:48.332Z 共享已停止"
+    },
+    {
+      "name": "muted track raises unavailable warning",
+      "pass": false,
+      "log": "synthetic audit\n2026-09-08T04:35:48.333Z {\"trustedClick\":true,\"transientActivation\":true,\"documentFocused\":true,\"visibility\":\"visible\",\"secureContext\":true}\n2026-09-08T04:35:48.333Z {\"displaySurface\":\"monitor\"}\n2026-09-08T04:35:48.333Z 整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。"
+    },
+    {
+      "name": "missing frame watchdog is registered",
+      "pass": false,
+      "log": "synthetic audit\n2026-09-08T04:35:48.334Z {\"trustedClick\":true,\"transientActivation\":true,\"documentFocused\":true,\"visibility\":\"visible\",\"secureContext\":true}\n2026-09-08T04:35:48.334Z {\"displaySurface\":\"monitor\"}\n2026-09-08T04:35:48.334Z 整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。"
+    },
+    {
+      "name": "blur and focus are telemetry only",
+      "pass": true,
+      "log": "synthetic audit\n2026-09-08T04:35:48.334Z {\"trustedClick\":true,\"transientActivation\":true,\"documentFocused\":true,\"visibility\":\"visible\",\"secureContext\":true}\n2026-09-08T04:35:48.334Z {\"displaySurface\":\"monitor\"}\n2026-09-08T04:35:48.334Z 整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。\n2026-09-08T04:35:48.334Z window blur\n2026-09-08T04:35:48.334Z window focus"
+    }
+  ],
+  "passed": 3,
+  "failed": 3
+}

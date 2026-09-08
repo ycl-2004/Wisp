@@ -1,0 +1,115 @@
+{
+  "scope": "synthetic DOM, media events and monotonic clock; not real browser/OS revocation or external monitor",
+  "results": [
+    {
+      "name": "capture rejection is explicit and retry is enabled",
+      "pass": true,
+      "health": "报警：捕获失败，NotAllowedError: injected failure；本次无法判断。"
+    },
+    {
+      "name": "no success before first frame",
+      "pass": true,
+      "health": "待确认：等待新的预览帧。"
+    },
+    {
+      "name": "first frame observed",
+      "pass": true,
+      "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+    },
+    {
+      "name": "startup without frames warns after deadline",
+      "pass": true,
+      "health": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。"
+    },
+    {
+      "name": "frame updates cease: alarm replaces fresh status",
+      "pass": true,
+      "health": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。"
+    },
+    {
+      "name": "fresh frames recover missing-frame warning",
+      "pass": true,
+      "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+    },
+    {
+      "name": "muted track warns immediately",
+      "pass": true,
+      "health": "报警：捕获源暂时不可用；缺失画面不能判为正常。"
+    },
+    {
+      "name": "already muted capture warns immediately",
+      "pass": true,
+      "health": "报警：捕获源暂时不可用；缺失画面不能判为正常。"
+    },
+    {
+      "name": "unmute waits for a fresh frame",
+      "pass": true,
+      "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+    },
+    {
+      "name": "frames while muted cannot clear warning",
+      "pass": true,
+      "health": "报警：捕获源暂时不可用；缺失画面不能判为正常。"
+    },
+    {
+      "name": "unexpected end alarms and clears resources",
+      "pass": true,
+      "health": "报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。"
+    },
+    {
+      "name": "watchdog also detects ended without event",
+      "pass": true,
+      "health": "报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。"
+    },
+    {
+      "name": "explicit stop is not an alarm",
+      "pass": true,
+      "health": "共享已停止（主动停止）"
+    },
+    {
+      "name": "blur and focus preserve fresh status, never classify violation",
+      "pass": true,
+      "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+    },
+    {
+      "name": "background is unknown; return requires new frame",
+      "pass": true,
+      "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+    },
+    {
+      "name": "unsupported frame API cannot report healthy",
+      "pass": true,
+      "health": "待确认：浏览器不支持帧更新检测，无法确认画面是否冻结。"
+    },
+    {
+      "name": "wrong capture surface is invalid and released",
+      "pass": true,
+      "health": "无效测试：未选择整个屏幕。请重新选择。"
+    },
+    {
+      "name": "queued stale callbacks cannot revive stopped session",
+      "pass": true,
+      "health": "共享已停止（主动停止）"
+    },
+    {
+      "name": "pagehide cleans up capture",
+      "pass": true,
+      "health": "共享已停止（页面离开）"
+    },
+    {
+      "name": "repeated warning does not flood log",
+      "pass": true,
+      "health": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。"
+    },
+    {
+      "name": "pending picker after stop is discarded",
+      "pass": true
+    },
+    {
+      "name": "pending picker after pagehide is discarded",
+      "pass": true
+    }
+  ],
+  "passed": 22,
+  "failed": 0
+}

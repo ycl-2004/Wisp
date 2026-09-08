@@ -38,7 +38,7 @@ private struct MenuContent: View {
         }
 
         // 录演示视频时要临时露出来，藏在设置里第四层太远了。
-        Toggle("尝试在屏幕共享时隐藏", isOn: Binding(
+        Toggle("共享时隐藏", isOn: Binding(
             get: { settings.hideFromScreenCapture },
             set: { ScreenPrivacy.setEnabled($0) }
         ))

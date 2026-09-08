@@ -91,3 +91,7 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory tools/screen-privacy
 - [W3C：Screen Capture](https://www.w3.org/TR/screen-capture/#dom-mediadevices-getdisplaymedia) 定义浏览器共享请求，网站不能仅凭调用参数保证用户选择的是整个显示器。
 
 Wisp 的面板打开流程会主动激活应用。隐藏窗口像素不会撤销浏览器失焦、复制粘贴或代码提交等其他信号；本测试页的焦点日志只描述测试页自身事件，不代表 CodeSignal 的具体 telemetry 字段。
+
+## 浏览器探针的异常状态
+
+探针现在单独显示当前捕获状态：失败、意外断流和 mute 明确报警；超过 3 秒没有预览帧更新则警告无法确认画面。后台或缺少帧检测 API 时显示待确认，失焦只记日志。恢复必须等到新帧，不能仅凭轨道仍 live 判正常。连续重复旧图像无法仅靠帧回调识别，仍需在共享源产生可见变化后复核。页面被挂起时也无法保证即时报警。详见[修复与验证记录](lifecycle-monitor-audit-20260907.md#后续修复同分支)。

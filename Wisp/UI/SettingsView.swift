@@ -240,7 +240,7 @@ struct ModelSettingsView: View {
 
     /// 填完就存，但只在输入框收工时存：失焦、回车、切换服务商、关掉窗口。
     ///
-    /// 以前只有点「保存并测试连接」才写钥匙串，填完 Key 直接切到另一家或者关掉窗口，
+    /// 以前只有点「保存并测试」才写钥匙串，填完 Key 直接切到另一家或者关掉窗口，
     /// 刚填的就没了；改成每敲一个字符写一次，手打 Key 又会把 `s`、`sk`、`sk-`
     /// 依次盖进钥匙串，中途切走就留下一份残缺的，而菜单还显示这家「已配置」。
     ///
@@ -360,7 +360,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
-                    InfoButton(message: String(localized: "使用已登录的 Codex，无需 API Key；回答一次性返回。"))
+                    InfoButton(message: String(localized: "使用 Codex 登录，回答实时显示。"))
                 }
             }
             ModelPickerRow(
@@ -395,7 +395,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
-                    InfoButton(message: String(localized: "使用已登录的 Agy，不需要单独填写 API Key；有截图时会先写进临时目录，再交给 Agy 读取，用完即删。"))
+                    InfoButton(message: String(localized: "使用 Agy 登录。截图临时保存，用后删除。"))
                 }
             }
 
@@ -409,9 +409,9 @@ struct ModelSettingsView: View {
             )
             HStack(spacing: 8) {
                 Spacer()
-                Button(agyScanning ? "扫描中…" : "扫描最新 Agy 模型") { scanAgyModels() }
+                Button(agyScanning ? "扫描中…" : "刷新模型") { scanAgyModels() }
                     .disabled(agyScanning)
-                InfoButton(message: String(localized: "每次扫描都会直接执行 agy models，不缓存版本或模型列表；Agy 更新后重新扫描即可。"))
+                InfoButton(message: String(localized: "从 Agy 获取最新可用模型。"))
             }
 
             if AgyCLIProvider.resolvePath(settings.agyPath) == nil {
@@ -434,7 +434,7 @@ struct ModelSettingsView: View {
                             testResult = nil
                         }
                     }
-                    InfoButton(message: String(localized: "使用已登录的 Claude Code，不需要单独填写 API Key；有截图时会先写进临时目录，再交给它读取，用完即删。三个本地 Cli 里只有它是逐字显示答案的。"))
+                    InfoButton(message: String(localized: "使用 Claude Code 登录。截图临时保存，用后删除。"))
                 }
             }
 
@@ -459,7 +459,7 @@ struct ModelSettingsView: View {
     private var testRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Button(testing ? "测试中…" : "保存并测试连接") { runTest() }
+                Button(testing ? "测试中…" : "保存并测试") { runTest() }
                     .disabled(testing || (kind.needsAPIKey && apiKey.isEmpty))
                 if kind.needsAPIKey, KeychainStore.hasKey(for: settings.cloudProvider) {
                     Button("清除 Key") {
@@ -470,7 +470,7 @@ struct ModelSettingsView: View {
                 }
                 Spacer(minLength: 0)
                 InfoButton(message: String(localized: kind == .codexCLI
-                                            ? "本地 Cli 测试只检查当前选中的命令能否启动，不会为了测试额外消耗模型额度。"
+                                            ? "仅检查本地工具能否启动，不消耗模型额度。"
                                             : "发送一张 64×64 测试图，验证连接和图片输入。"))
             }
             if let result = testResult {
@@ -776,7 +776,10 @@ private struct AdvancedShortcutRecorderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text("唤起助手：")
+                HStack(spacing: 5) {
+                    Text("唤起助手：")
+                    InfoButton(message: instruction)
+                }
                 Spacer()
                 if let shortcut = settings.advancedShortcut, !recorder.isRecording {
                     Text(shortcut.displayName)
@@ -797,22 +800,12 @@ private struct AdvancedShortcutRecorderView: View {
                 .controlSize(.small)
             }
 
-            HStack(alignment: .top, spacing: 6) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
+            if recorder.isRecording {
                 Text(instruction)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
-                    .fill(DS.faint)
-            )
         }
         .onChange(of: settings.shortcutTrigger) { _, _ in
             recorder.cancel()
@@ -875,9 +868,6 @@ private struct CaptureSettingsView: View {
 
                 if settings.shortcutTrigger == .standard {
                     KeyboardShortcuts.Recorder("唤起助手：", name: .toggleAssistant)
-                    Text(ShortcutTriggerMode.standard.detail)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
                 } else {
                     AdvancedShortcutRecorderView()
 
@@ -916,7 +906,7 @@ private struct CaptureSettingsView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Spacer()
                         InfoButton(message: String(localized: "底部位置可拖动，Wisp 会记住位置；面板仍从底部中央打开。"))
-                        Button("回到默认位置") { IslandController.shared.resetPosition() }
+                        Button("重置位置") { IslandController.shared.resetPosition() }
                             .disabled(!settings.hasCustomIslandAnchor || !settings.showIsland)
                     }
                 }
@@ -954,29 +944,26 @@ private struct CaptureSettingsView: View {
             }
 
             Section {
-                Toggle("尝试在共享和录屏中隐藏 Wisp", isOn: Binding(
+                Toggle(isOn: Binding(
                     get: { settings.hideFromScreenCapture },
                     set: { ScreenPrivacy.setEnabled($0) }
-                ))
-                Text(settings.hideFromScreenCapture
-                     ? "在兼容的共享和录屏方式中隐藏窗口，本机照常使用。效果取决于系统和录屏方式，请先检查接收端画面；开启不代表已经隐藏。"
-                     : "Wisp 会和普通窗口一样出现在共享画面和录屏里。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Toggle("在菜单栏显示图标", isOn: Binding(
+                )) {
+                    HStack(spacing: 5) {
+                        Text("在共享和录屏中隐藏 Wisp")
+                        InfoButton(message: String(localized: "在兼容的共享和录屏中隐藏 Wisp，本机仍可正常使用。效果因系统和录屏工具而异，请检查接收端画面。录制 Wisp 演示时请关闭。"))
+                    }
+                }
+                Toggle(isOn: Binding(
                     get: { settings.showsMenuBarIcon },
                     set: { settings.showsMenuBarIcon = $0 }
-                ))
-                Text(settings.showsMenuBarIcon
-                     ? "菜单栏图标由系统绘制，隐藏开关对它无效，录屏和共享里一定看得见。关掉它，菜单栏上就不留痕迹。"
-                     : "菜单栏没有 Wisp 图标。用全局快捷键唤起面板，面板右上角的齿轮可以回到这里。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                )) {
+                    HStack(spacing: 5) {
+                        Text("在菜单栏显示图标")
+                        InfoButton(message: String(localized: "菜单栏图标可能出现在共享和录屏中。关闭后，仍可用全局快捷键打开 Wisp，再通过面板上的齿轮进入设置。"))
+                    }
+                }
             } header: {
-                SettingsSectionHeader("屏幕共享", info: String(localized: "录制 Wisp 演示时请关闭。菜单栏图标、系统弹窗和窗口列表不保证隐藏；摄像机拍屏与硬件采集不受影响。"))
+                SettingsSectionHeader("屏幕共享")
             }
 
             Section {
@@ -989,7 +976,7 @@ private struct CaptureSettingsView: View {
                     Button("打开系统设置") { Permissions.openScreenRecordingSettings() }
                 }
                 HStack {
-                    Text("自动化（控制浏览器）")
+                    Text("浏览器自动化")
                     Spacer()
                     Button("打开系统设置") { Permissions.openAutomationSettings() }
                 }
@@ -1064,7 +1051,7 @@ private struct CaptureSettingsView: View {
 
             Section {
                 if settings.excludedBundleIDs.isEmpty {
-                    Text("目前没有排除任何应用。").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text("没有排除的应用").font(.system(size: 11)).foregroundStyle(.secondary)
                 } else {
                     ForEach(settings.excludedBundleIDs, id: \.self) { bundleID in
                         HStack {
@@ -1077,7 +1064,7 @@ private struct CaptureSettingsView: View {
                         }
                     }
                 }
-                Button("把当前正在读取的应用加进来") { model.excludeCurrentApp() }
+                Button("排除当前应用") { model.excludeCurrentApp() }
                     .disabled(model.packet?.bundleID == nil)
             } header: {
                 SettingsSectionHeader("排除的应用", info: String(localized: "排除后不截图，也不读取浏览器页面。"))
@@ -1149,11 +1136,11 @@ private struct DataSettingsView: View {
                     }
                 }
             } header: {
-                SettingsSectionHeader("存储位置", info: String(localized: "只保存对话和页面文字快照；截图不会写入磁盘。"))
+                SettingsSectionHeader("存储位置", info: String(localized: "对话和页面文字保存在本机。"))
             }
 
             Section {
-                Toggle("把每次采集的上下文写到 debug 文件夹", isOn: Binding(
+                Toggle("保存诊断文件", isOn: Binding(
                     get: { settings.debugDumpEnabled },
                     set: { settings.debugDumpEnabled = $0 }
                 ))
@@ -1284,7 +1271,7 @@ private struct GeneralSettingsView: View {
                         Text("重开之后生效。")
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
-                        Button("立即重启 Wisp") { AppRelaunch.now() }
+                        Button("立即重启") { AppRelaunch.now() }
                         Spacer()
                     }
                 }
@@ -1293,18 +1280,21 @@ private struct GeneralSettingsView: View {
             }
 
             Section {
-                Toggle("登录时自动启动 Wisp", isOn: Binding(
+                Toggle("登录时启动", isOn: Binding(
                     get: { launchAtLogin },
                     set: { setLaunchAtLogin($0) }
                 ))
+                HStack(spacing: 5) {
+                    Text("登录项")
+                    InfoButton(message: String(localized: "在系统设置中管理 Wisp 的登录权限。"))
+                    Spacer()
+                    Button("管理…") { LaunchAtLogin.openLoginItemsSettings() }
+                }
                 if let note = LaunchAtLogin.statusNote {
-                    HStack(spacing: 8) {
-                        Text(note)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Button("打开登录项设置") { LaunchAtLogin.openLoginItemsSettings() }
+                    HStack(spacing: 5) {
+                        Label("需要设置", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                        InfoButton(message: note)
                     }
                 }
                 if let launchError {
@@ -1315,7 +1305,7 @@ private struct GeneralSettingsView: View {
             }
 
             Section {
-                Toggle("启动时检查有没有新版本", isOn: Binding(
+                Toggle("自动检查更新", isOn: Binding(
                     get: { settings.checkForUpdates },
                     set: { settings.checkForUpdates = $0 }
                 ))
@@ -1334,7 +1324,7 @@ private struct GeneralSettingsView: View {
                     Text(store.loadIssue?.message ?? "")
                         .font(.system(size: 11))
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("备份那份文件并重新开始", role: .destructive) {
+                    Button("备份并重置", role: .destructive) {
                         archivedName = store.archiveBlockingFileAndReset()
                     }
                     if let archivedName {

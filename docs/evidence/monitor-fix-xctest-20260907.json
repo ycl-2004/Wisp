@@ -1,0 +1,11 @@
+{
+  "branch": "feat/risk_test",
+  "configuration": "Debug",
+  "testCount": 32,
+  "failures": 0,
+  "exitCode": 0,
+  "resultBundle": "/private/tmp/wisp-monitor-fix-tests-retry.xcresult",
+  "log": "/private/tmp/wisp-monitor-fix-xcodebuild-retry.log",
+  "evidence": "Test Suite 'WispTests.xctest' passed at 2026-09-07 21:43:45.955.\n\t Executed 32 tests, with 0 failures (0 unexpected) in 6.400 (6.423) seconds\nTest Suite 'All tests' passed at 2026-09-07 21:43:45.955.\n\t Executed 32 tests, with 0 failures (0 unexpected) in 6.400 (6.424) seconds\n2026-09-07 21:43:46.250 xcodebuild[29798:5219986] [MT] IDETestOperationsObserverDebug: 8.909 elapsed -- Testing started completed.\n2026-09-07 21:43:46.250 xcodebuild[29798:5219986] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start\n2026-09-07 21:43:46.250 xcodebuild[29798:5219986] [MT] IDETestOperationsObserverDebug: 8.909 sec, +8.909 sec -- end\n\nTest session results, code coverage, and logs:\n\t/tmp/wisp-monitor-fix-tests-retry.xcresult\n\n** TEST SUCCEEDED **\n\nTesting started\n",
+  "initialSandboxFailure": "Dependency fetch DNS blocked; retried successfully outside sandbox"
+}

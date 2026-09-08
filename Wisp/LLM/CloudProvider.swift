@@ -68,11 +68,11 @@ enum CloudProvider: String, CaseIterable, Identifiable {
     var note: String? {
         switch self {
         case .openRouter:
-            return String(localized: "一个 Key 通到各家模型，带若干免费模型。免费模型限流严，付费模型更稳。")
+            return String(localized: "付费模型优先 Fast，免费模型优先速度。模型标价为标准费率，加速可能更贵。")
         case .gemini:
-            return String(localized: "Flash 和 Flash-Lite 有免费额度，不用绑卡；Pro 系列只能付费用。截图场景性价比最高。")
+            return String(localized: "优先请求 Priority 加速，可能产生更高费用。可用性取决于模型和账户。")
         case .openAI:
-            return String(localized: "GPT-5.6 三档全系支持图片输入，按量计费，没有免费额度。")
+            return String(localized: "支持图片输入，优先请求 Fast。模型标价为标准费率，加速按更高费率计费。")
         case .anthropic:
             return String(localized: "走 Anthropic 的 OpenAI 兼容层。图片输入官方标注完全支持，但这层的官方定位是「测试和对比模型能力」，不承诺长期生产可用。")
         case .zhipu:
@@ -95,6 +95,10 @@ enum CloudProvider: String, CaseIterable, Identifiable {
         switch self {
         case .openRouter:
             return [
+                // https://openrouter.ai/openai/gpt-5.6-luna-20260709
+                .init(slug: "openai/gpt-5.6-luna",
+                      title: "GPT-5.6 Luna",
+                      note: String(localized: "输入 $0.20/百万 · 最省，日常够用")),
                 .init(slug: "z-ai/glm-5.3-flash",
                       title: "GLM-5.3 Flash",
                       note: String(localized: "输入 $0.075/百万 · 131 万上下文 · 综合最稳")),

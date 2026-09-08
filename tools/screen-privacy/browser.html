@@ -16,6 +16,7 @@
   <p>画面只在当前页面预览，不上传、不保存；停止按钮或关闭页面会结束共享。这不是 CodeSignal 测试，结果不能代表监考审核。</p>
   <button id="start">开始整屏共享测试</button><button id="stop" disabled>停止共享</button>
   <video id="preview" autoplay muted playsinline></video>
+  <p id="health" role="alert" aria-atomic="true">尚未开始</p>
   <pre id="status">尚未开始</pre>
 </main>
 <script>
@@ -23,20 +24,61 @@
   const stop = document.querySelector('#stop');
   const video = document.querySelector('#preview');
   const status = document.querySelector('#status');
-  let stream;
+  const health = document.querySelector('#health');
+  const staleAfter = 3000;
+  let stream, watchdog, frameCallback;
+  let generation = 0;
+  let lastFrameAt = 0;
+  let receivedFrame = false;
   function log(text) { status.textContent += '\n' + new Date().toISOString() + ' ' + text; }
-  function end() {
-    if (!stream) return;
-    stream.getTracks().forEach(track => track.stop());
+  function report(text) {
+    if (health.textContent === text) return;
+    health.textContent = text;
+    log(text);
+  }
+  function end(message = '共享已停止（主动停止）') {
+    generation++;
+    clearInterval(watchdog);
+    watchdog = undefined;
+    if (frameCallback !== undefined) video.cancelVideoFrameCallback(frameCallback);
+    frameCallback = undefined;
+    if (stream) {
+      for (const track of stream.getTracks()) {
+        track.onended = track.onmute = track.onunmute = null;
+        track.stop();
+      }
+    }
     stream = undefined;
     video.srcObject = null;
     start.disabled = false;
     stop.disabled = true;
-    log('共享已停止');
+    report(message);
+  }
+  function checkHealth() {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (track.readyState === 'ended') {
+      end('报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。');
+    } else if (track.muted) {
+      report('报警：捕获源暂时不可用；缺失画面不能判为正常。');
+    } else if (document.visibilityState !== 'visible') {
+      report('待确认：页面在后台，无法确认预览帧更新；不据此判违规。');
+    } else if (typeof video.requestVideoFrameCallback !== 'function') {
+      report('待确认：浏览器不支持帧更新检测，无法确认画面是否冻结。');
+    } else if (performance.now() - lastFrameAt >= staleAfter) {
+      report('报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。');
+    } else if (!receivedFrame) {
+      report('待确认：等待新的预览帧。');
+    } else {
+      report('已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。');
+    }
   }
   start.onclick = async event => {
+    const current = ++generation;
     start.disabled = true;
+    stop.disabled = false;
     status.textContent = navigator.userAgent;
+    report('待确认：正在请求整屏共享。');
     log(JSON.stringify({
       trustedClick: event.isTrusted,
       transientActivation: navigator.userActivation?.isActive,
@@ -46,34 +88,73 @@
     }));
     try {
       // Source: https://www.w3.org/TR/screen-capture/#dom-mediadevices-getdisplaymedia
-      stream = await navigator.mediaDevices.getDisplayMedia({
+      const acquired = await navigator.mediaDevices.getDisplayMedia({
         video: { displaySurface: 'monitor', frameRate: 10 }, audio: false
       });
+      // A picker can resolve after Stop, pagehide, or a newer request.
+      if (current !== generation) {
+        acquired.getTracks().forEach(track => track.stop());
+        return;
+      }
+      stream = acquired;
       const track = stream.getVideoTracks()[0];
+      if (!track) throw new Error('未获得视频轨道');
       const settings = track.getSettings();
       log(JSON.stringify(settings));
       if (settings.displaySurface !== 'monitor') {
-        log('无效测试：未选择整个屏幕。请重新选择。');
-        end();
+        end('无效测试：未选择整个屏幕。请重新选择。');
         return;
       }
+      // Track.stop() does not fire ended; external termination does.
+      // Source: https://www.w3.org/TR/mediacapture-streams/#life-cycle-and-media-flow
+      track.onended = () => {
+        if (current === generation) end('报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。');
+      };
+      track.onmute = () => {
+        if (current !== generation) return;
+        receivedFrame = false;
+        checkHealth();
+      };
+      track.onunmute = () => {
+        if (current !== generation) return;
+        receivedFrame = false;
+        lastFrameAt = performance.now();
+        checkHealth();
+      };
       video.srcObject = stream;
-      track.onended = end;
-      stop.disabled = false;
-      log('整屏共享进行中；请检查预览。焦点日志仅说明本页观察到了什么。');
-    } catch (error) {
-      log(error.name + ': ' + error.message);
-      if (error.name === 'InvalidStateError') {
-        log('Chrome 未创建共享流。可将本页置于前台手动重试；若上方激活与焦点均为 true，不能仅凭此错误判断原因。此次无法判断隐藏效果。');
+      receivedFrame = false;
+      lastFrameAt = performance.now();
+      // Observe presented frames, not focus events or an advancing playback clock.
+      // Source: https://wicg.github.io/video-rvfc/
+      if (typeof video.requestVideoFrameCallback === 'function') {
+        const onFrame = () => {
+          if (current !== generation) return;
+          lastFrameAt = performance.now();
+          receivedFrame = !track.muted;
+          checkHealth();
+          if (current === generation) frameCallback = video.requestVideoFrameCallback(onFrame);
+        };
+        frameCallback = video.requestVideoFrameCallback(onFrame);
       }
-      end();
-      start.disabled = false;
+      watchdog = setInterval(checkHealth, 500);
+      checkHealth();
+    } catch (error) {
+      if (current !== generation) return;
+      end('报警：捕获失败，' + error.name + ': ' + error.message + '；本次无法判断。');
     }
   };
-  stop.onclick = end;
+  stop.onclick = () => end();
   window.addEventListener('blur', () => { if (stream) log('window blur'); });
-  window.addEventListener('focus', () => { if (stream) log('window focus'); });
-  document.addEventListener('visibilitychange', () => { if (stream) log('visibility: ' + document.visibilityState); });
-  window.addEventListener('pagehide', end);
+  window.addEventListener('focus', () => { if (stream) { log('window focus'); checkHealth(); } });
+  document.addEventListener('visibilitychange', () => {
+    if (!stream) return;
+    // Require a fresh callback after returning from background throttling.
+    receivedFrame = false;
+    lastFrameAt = performance.now();
+    log('visibility: ' + document.visibilityState);
+    checkHealth();
+  });
+  window.addEventListener('pagehide', () => end('共享已停止（页面离开）'));
+
 </script>
 </html>

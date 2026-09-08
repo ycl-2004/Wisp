@@ -180,6 +180,10 @@ open "$HOME/Applications/Wisp.app"
   selections, with standard-speed fallback. AGY 1.1.27 has no Fast switch.
   Fast can consume more credits; it does not lower reasoning effort or change
   your selected model.
+  Cloud requests also prefer Fast/Priority on OpenRouter paid models and the
+  official OpenAI and Gemini endpoints. OpenRouter free models keep their free
+  IDs and prefer throughput; unsupported gateways receive no extra parameters.
+  Availability and billing depend on the service. See [speed preferences](docs/model-speed.md).
 
 **Startup and updates**
 

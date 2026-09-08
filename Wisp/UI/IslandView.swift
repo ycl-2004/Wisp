@@ -83,9 +83,9 @@ struct IslandView: View {
             .contextMenu {
                 Button("唤起助手") { PanelController.shared.show() }
                 Button("新建对话") { AssistantModel.shared.newConversation() }
-                Button("重新读取屏幕") { AssistantModel.shared.refreshContext() }
+                Button("刷新上下文") { AssistantModel.shared.refreshContext() }
                 Divider()
-                Button(settings.sendScreenshot ? "关闭截图附带" : "开启截图附带") {
+                Button(settings.sendScreenshot ? "不附带截图" : "附带截图") {
                     AssistantModel.shared.toggleScreenshot()
                 }
                 Divider()

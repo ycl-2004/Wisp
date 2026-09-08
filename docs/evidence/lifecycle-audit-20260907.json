@@ -1,0 +1,277 @@
+{
+  "branch": "feat/risk_test",
+  "commit": "9295d3ba4acdf20ae672fc3a03034f106bfb56ff",
+  "scope": "Synthetic AppKit surfaces using production ScreenPrivacy; settled-frame capture, not installed Wisp or animation verification",
+  "lifecycleLog": "PASS: startup applies to existing windows\nPASS: disable restores readable windows\nPASS: attachment respects disabled preference\nPASS: re-enable updates every existing window\nPASS: attachment applies before window is ordered on screen\nPASS: observer covers late app-owned windows\nPASS: toggle preserves input, frame and visibility\nPASS: disable includes windows attached after startup\n8 lifecycle checks passed (not a screen-capture verdict)\n",
+  "visible": {
+    "appWindows": [
+      {
+        "number": 4294967296,
+        "sharingType": 1,
+        "title": "Item-0",
+        "visible": true
+      },
+      {
+        "number": 43110,
+        "sharingType": 1,
+        "title": "WispSurfaceProbe-host",
+        "visible": true
+      },
+      {
+        "number": 43111,
+        "sharingType": 1,
+        "title": "",
+        "visible": true
+      },
+      {
+        "number": 43112,
+        "sharingType": 1,
+        "title": "",
+        "visible": true
+      },
+      {
+        "number": 43115,
+        "sharingType": 1,
+        "title": "",
+        "visible": true
+      },
+      {
+        "number": 8589934592,
+        "sharingType": 1,
+        "title": "",
+        "visible": true
+      }
+    ],
+    "capturePaths": {
+      "cgDisplayCreateImage": true,
+      "cgWindowListCreateImage": true,
+      "screenCaptureKit": true
+    },
+    "fixturePid": 27560,
+    "fixtureUsesProductionScreenPrivacy": true,
+    "menuBarStripMarkerFraction": 0,
+    "mode": "visible",
+    "onScreenWindowsOwnedByFixture": 5,
+    "os": "Version 26.6.1 (Build 25G76)",
+    "surfaces": [
+      {
+        "bounds": {
+          "h": 80,
+          "w": 200,
+          "x": 876,
+          "y": 406
+        },
+        "layer": 101,
+        "markerFraction": 0.8625625,
+        "markerFractionDisplayImage": 0.865234375,
+        "markerFractionWindowListImage": 0.865234375,
+        "name": "",
+        "reachableByAppKitProtection": false,
+        "windowNumber": 43116
+      },
+      {
+        "bounds": {
+          "h": 172,
+          "w": 260,
+          "x": 526,
+          "y": 389
+        },
+        "layer": 3,
+        "markerFraction": 0.29224060822898035,
+        "markerFractionDisplayImage": 0.2928834973166369,
+        "markerFractionWindowListImage": 0.2928834973166369,
+        "name": "",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43115
+      },
+      {
+        "bounds": {
+          "h": 120,
+          "w": 280,
+          "x": 516,
+          "y": 415
+        },
+        "layer": 3,
+        "markerFraction": 0.38895833333333335,
+        "markerFractionDisplayImage": 0.3898139880952381,
+        "markerFractionWindowListImage": 0.3898139880952381,
+        "name": "",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43112
+      },
+      {
+        "bounds": {
+          "h": 116,
+          "w": 226,
+          "x": 546,
+          "y": 523
+        },
+        "layer": 3,
+        "markerFraction": 0,
+        "markerFractionDisplayImage": 0,
+        "markerFractionWindowListImage": 0,
+        "name": "",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43111
+      },
+      {
+        "bounds": {
+          "h": 272,
+          "w": 320,
+          "x": 496,
+          "y": 339
+        },
+        "layer": 3,
+        "markerFraction": 0.15014935661764706,
+        "markerFractionDisplayImage": 0.15047966452205883,
+        "markerFractionWindowListImage": 0.15047966452205883,
+        "name": "WispSurfaceProbe-host",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43110
+      }
+    ]
+  },
+  "hidden": {
+    "appWindows": [
+      {
+        "number": 4294967296,
+        "sharingType": 1,
+        "title": "Item-0",
+        "visible": true
+      },
+      {
+        "number": 43124,
+        "sharingType": 0,
+        "title": "WispSurfaceProbe-host",
+        "visible": true
+      },
+      {
+        "number": 43125,
+        "sharingType": 0,
+        "title": "",
+        "visible": true
+      },
+      {
+        "number": 43126,
+        "sharingType": 0,
+        "title": "",
+        "visible": true
+      },
+      {
+        "number": 43129,
+        "sharingType": 0,
+        "title": "",
+        "visible": true
+      },
+      {
+        "number": 8589934592,
+        "sharingType": 1,
+        "title": "",
+        "visible": true
+      }
+    ],
+    "capturePaths": {
+      "cgDisplayCreateImage": true,
+      "cgWindowListCreateImage": true,
+      "screenCaptureKit": true
+    },
+    "fixturePid": 27640,
+    "fixtureUsesProductionScreenPrivacy": true,
+    "menuBarStripMarkerFraction": 0,
+    "mode": "hidden",
+    "onScreenWindowsOwnedByFixture": 5,
+    "os": "Version 26.6.1 (Build 25G76)",
+    "surfaces": [
+      {
+        "bounds": {
+          "h": 80,
+          "w": 200,
+          "x": 876,
+          "y": 406
+        },
+        "layer": 101,
+        "markerFraction": 0,
+        "markerFractionDisplayImage": 0,
+        "markerFractionWindowListImage": 0,
+        "name": "",
+        "reachableByAppKitProtection": false,
+        "windowNumber": 43130
+      },
+      {
+        "bounds": {
+          "h": 172,
+          "w": 260,
+          "x": 526,
+          "y": 389
+        },
+        "layer": 3,
+        "markerFraction": 0,
+        "markerFractionDisplayImage": 0,
+        "markerFractionWindowListImage": 0,
+        "name": "",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43129
+      },
+      {
+        "bounds": {
+          "h": 120,
+          "w": 280,
+          "x": 516,
+          "y": 415
+        },
+        "layer": 3,
+        "markerFraction": 0,
+        "markerFractionDisplayImage": 0,
+        "markerFractionWindowListImage": 0,
+        "name": "",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43126
+      },
+      {
+        "bounds": {
+          "h": 116,
+          "w": 226,
+          "x": 546,
+          "y": 523
+        },
+        "layer": 3,
+        "markerFraction": 0,
+        "markerFractionDisplayImage": 0,
+        "markerFractionWindowListImage": 0,
+        "name": "",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43125
+      },
+      {
+        "bounds": {
+          "h": 272,
+          "w": 320,
+          "x": 496,
+          "y": 339
+        },
+        "layer": 3,
+        "markerFraction": 0,
+        "markerFractionDisplayImage": 0,
+        "markerFractionWindowListImage": 0,
+        "name": "WispSurfaceProbe-host",
+        "reachableByAppKitProtection": true,
+        "windowNumber": 43124
+      }
+    ]
+  },
+  "firstFrameSharingType": {
+    "visible": {
+      "popover": 1,
+      "sheet": 1
+    },
+    "hidden": {
+      "popover": 0,
+      "sheet": 0
+    }
+  },
+  "initialSandboxAttempt": {
+    "exit": 133,
+    "error": "SurfaceProbeError.permissionRequired",
+    "resolution": "Same executable succeeded outside sandbox; not counted as capture success or OS permission revocation test"
+  }
+}

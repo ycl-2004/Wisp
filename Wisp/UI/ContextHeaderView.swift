@@ -80,13 +80,13 @@ struct ContextHeaderView: View {
 
             Button { model.newConversation() } label: { Image(systemName: "square.and.pencil") }
                 .buttonStyle(IconButtonStyle())
-                .help(store.canCreateNew ? "新建对话" : "已达上限，点一下可以顶掉最久没用的那个")
+                .help(store.canCreateNew ? "新建对话" : "已达上限，可移除最早的对话后新建")
 
             // 菜单栏图标藏起来之后，这里是唯一还看得见的设置入口。
             if !settings.showsMenuBarIcon {
                 SettingsLink { Image(systemName: "gearshape") }
                     .buttonStyle(IconButtonStyle())
-                    .help("设置（菜单栏图标已隐藏）")
+                    .help("设置")
             }
 
             Button {
@@ -135,7 +135,7 @@ struct ContextHeaderView: View {
                  enabled: model.packet?.hasScreenshot == true) {
                 model.toggleScreenshot()
             }
-            .help("点一下切换这次要不要附截图")
+            .help("附带截图")
 
             Chip(icon: "doc.plaintext",
                  text: pageTextChipText,
@@ -148,7 +148,7 @@ struct ContextHeaderView: View {
                      active: hasBlockingNote) {
                     withAnimation(.easeOut(duration: 0.14)) { model.showsNotes.toggle() }
                 }
-                .help("查看这次采集的说明")
+                .help("采集详情")
             }
 
             Spacer(minLength: 4)

@@ -1,0 +1,10 @@
+{
+  "scope": "Real headless Chromium rendering a local synthetic CanvasCaptureMediaStream; ended event explicitly dispatched, not OS permission revocation",
+  "browser": "149.0.7827.55",
+  "fresh": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。",
+  "stale": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。",
+  "recovered": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。",
+  "ended": "报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。",
+  "pageErrors": [],
+  "pass": true
+}

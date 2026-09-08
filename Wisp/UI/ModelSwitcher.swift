@@ -63,10 +63,10 @@ struct ModelSwitcher: View {
             Divider()
 
             if currentKind == .ollama {
-                Button("重新扫描本机模型") { state.refreshOllama() }
+                Button("刷新本机模型") { state.refreshOllama() }
             }
             if currentKind == .codexCLI, settings.cliProvider == .agy {
-                Button("重新扫描 Agy 模型") { state.refreshAgy() }
+                Button("刷新 Agy 模型") { state.refreshAgy() }
             }
             SettingsLink { Text("更多设置…") }
         } label: {
