@@ -80,6 +80,8 @@ final class AppSettings: ObservableObject {
         static let hideFromScreenCapture = "hideFromScreenCapture"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
+        static let panelBackgroundOpacity = "panelBackgroundOpacity"
+        static let panelOpaqueWhenActive = "panelOpaqueWhenActive"
         static let checkForUpdates = "checkForUpdates"
         static let lastUpdateCheck = "lastUpdateCheck"
         static let islandOrigin = "islandOrigin"   // 0.2.0 开发期的旧键，只用于迁移
@@ -118,6 +120,8 @@ final class AppSettings: ObservableObject {
             K.hideFromScreenCapture: true,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
+            K.panelBackgroundOpacity: 1.0,
+            K.panelOpaqueWhenActive: true,
             K.checkForUpdates: false,
             K.appLanguage: "system",
         ])
@@ -324,6 +328,34 @@ final class AppSettings: ObservableObject {
     var idleDismissSeconds: Double {
         get { max(0, d.double(forKey: K.idleDismissSeconds)) }
         set { d.set(max(0, newValue), forKey: K.idleDismissSeconds); objectWillChange.send() }
+    }
+
+    /// 面板底的不透明度。1 = 完全不透明（默认），越小越能看穿到底下的窗口。
+    ///
+    /// 只作用在毛玻璃和边框上，文字、图标、按钮永远是实心的——透明是为了对照着
+    /// 底下的东西提问，不是为了把回答也一起看不清。
+    static let minimumPanelBackgroundOpacity: Double = 0.10
+
+    var panelBackgroundOpacity: Double {
+        get { Self.clampPanelOpacity(d.double(forKey: K.panelBackgroundOpacity)) }
+        set {
+            d.set(Self.clampPanelOpacity(newValue), forKey: K.panelBackgroundOpacity)
+            objectWillChange.send()
+        }
+    }
+
+    /// 鼠标停在面板上、或者面板拿到焦点时，先恢复成完全不透明。
+    /// 半透明是给「一边看底下一边想问题」用的；真读起回答来还是要实底。
+    var panelOpaqueWhenActive: Bool {
+        get { d.bool(forKey: K.panelOpaqueWhenActive) }
+        set { d.set(newValue, forKey: K.panelOpaqueWhenActive); objectWillChange.send() }
+    }
+
+    /// 落盘的值可能来自更早的版本或手改的 plist，读写两头都夹一遍。
+    /// 夹到 0 会让面板彻底消失却还在吃点击，比看不清严重得多。
+    private static func clampPanelOpacity(_ value: Double) -> Double {
+        guard value.isFinite else { return 1 }
+        return min(1, max(minimumPanelBackgroundOpacity, value))
     }
 
     /// 启动时去 GitHub 看一眼有没有新版本。只发一个不带标识的请求，不自动下载。

@@ -7841,6 +7841,118 @@
           }
         }
       }
+    },
+    "面板不透明度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel opacity"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板不透明度"
+          }
+        }
+      }
+    },
+    "调低后能看穿到底下的窗口，方便对照着提问。只有面板底会变透，文字和按钮始终清晰。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lower it to see the window underneath while you ask about it. Only the panel background fades; text and buttons stay sharp."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调低后能看穿到底下的窗口，方便对照着提问。只有面板底会变透，文字和按钮始终清晰。"
+          }
+        }
+      }
+    },
+    "悬停或输入时恢复不透明": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go opaque while hovered or focused"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "悬停或输入时恢复不透明"
+          }
+        }
+      }
+    },
+    "文字和按钮不受影响，始终是实心的。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text and buttons stay solid."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字和按钮不受影响，始终是实心的。"
+          }
+        }
+      }
+    },
+    "面板": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板"
+          }
+        }
+      }
+    },
+    "采集": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "采集"
+          }
+        }
+      }
+    },
+    "隐私": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私"
+          }
+        }
+      }
     }
   }
 }

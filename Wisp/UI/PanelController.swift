@@ -61,6 +61,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         cancelIdleTimer()
         saveFrame(panel)
         panel.orderOut(nil)
+        isPointerInside = false
+        broadcastActivity()
         IslandController.shared.setDimmed(false)
         AssistantModel.shared.panelDidHide()
     }
@@ -75,6 +77,20 @@ final class PanelController: NSObject, NSWindowDelegate {
         guard isPointerInside != inside else { return }
         isPointerInside = inside
         refreshIdleTimer()
+        broadcastActivity()
+    }
+
+    /// 面板此刻算不算「正在用」：拿着焦点，或者鼠标停在上面。
+    /// 半透明只在闲置时生效，这两种情况下要先变实。
+    var isActive: Bool {
+        guard let panel, panel.isVisible else { return false }
+        return panel.isKeyWindow || isPointerInside
+    }
+
+    /// 悬停和焦点分别由 SwiftUI 和窗口回调发现，谁变了都从这里通知视图。
+    private func broadcastActivity() {
+        NotificationCenter.default.post(name: .wispPanelActivityChanged, object: nil,
+                                        userInfo: ["active": isActive])
     }
 
     /// 焦点、悬停、生成状态、设置里的秒数，任何一样变了都重新决定要不要计时。
@@ -276,10 +292,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         // 焦点走了：让模型知道该重新读上下文，同时开始自动收起的倒计时。
         AssistantModel.shared.panelDidResignKey()
         refreshIdleTimer()
+        broadcastActivity()
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
         refreshIdleTimer()
+        broadcastActivity()
         // 用户点回面板 = 他准备拿现在这一页提问。过期的上下文在这里补采，
         // 而不是他在浏览器里每换一个标签页就自动采一次。
         AssistantModel.shared.panelDidBecomeKey()
@@ -298,6 +316,8 @@ private final class KeyablePanel: NSPanel {
 
 extension Notification.Name {
     static let wispPanelDidShow = Notification.Name("wispPanelDidShow")
+    /// 面板拿到／失去焦点，或者鼠标进出面板。userInfo["active"] 是 Bool。
+    static let wispPanelActivityChanged = Notification.Name("wispPanelActivityChanged")
 }
 
 private extension NSRect {

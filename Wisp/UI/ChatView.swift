@@ -4,8 +4,12 @@ import SwiftUI
 struct ChatView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
+    @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var focusRequest = 0
     @State private var inputHeight = ChatInput.defaultHeight
+    /// 鼠标停在面板上，或者面板拿着焦点。半透明只在两者都不成立时生效。
+    @State private var isActive = false
 
     /// 到轮次上限或对话数上限时不让继续输入。
     private var inputDisabled: Bool {
@@ -13,22 +17,40 @@ struct ChatView: View {
         return !store.canCreateNew
     }
 
+    /// 面板底此刻的不透明度。
+    ///
+    /// 只有毛玻璃和边框跟着它走，文字和控件永远是实心的——透明是为了对照着底下的
+    /// 窗口提问，不是为了把回答也一起看不清。开了「用的时候变实」就在悬停或聚焦时
+    /// 回到 1：想读回答的那一刻不该还隔着桌面壁纸。
+    private var backgroundOpacity: Double {
+        let resting = settings.panelBackgroundOpacity
+        guard resting < 1 else { return 1 }
+        return (settings.panelOpaqueWhenActive && isActive) ? 1 : resting
+    }
+
     var body: some View {
         ZStack {
             VisualEffect(material: .hudWindow)
+                .opacity(backgroundOpacity)
             content
         }
         .clipShape(RoundedRectangle(cornerRadius: DS.windowCorner, style: .continuous))
         // specularRim 本身就是上亮下暗，再叠一层纯黑描边只会让边框发闷。
+        // 透明时边框反而更要留着：底没了，它是唯一还能说清窗口边界在哪的东西。
         .overlay(
             RoundedRectangle(cornerRadius: DS.windowCorner, style: .continuous)
                 .strokeBorder(DS.specularRim, lineWidth: 0.75)
         )
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: backgroundOpacity)
         .onHover { inside in
             PanelController.shared.setPointerInside(inside)
         }
         .onReceive(NotificationCenter.default.publisher(for: .wispPanelDidShow)) { _ in
             focusRequest += 1
+            isActive = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .wispPanelActivityChanged)) { note in
+            isActive = note.userInfo?["active"] as? Bool ?? false
         }
     }
 
