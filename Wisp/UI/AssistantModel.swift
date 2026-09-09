@@ -7,7 +7,11 @@ final class AssistantModel: ObservableObject {
 
     @Published var packet: ContextPacket?
     @Published var isCapturing = false
-    @Published var input = ""
+    @Published var input = "" {
+        didSet { if input.isEmpty { isSpeechDraft = false } }
+    }
+    @Published private(set) var isSpeechDraft = false
+    @Published private(set) var speechDraftRevision = 0
     @Published var isStreaming = false {
         didSet {
             IslandModel.shared.isGenerating = isStreaming
@@ -18,6 +22,8 @@ final class AssistantModel: ObservableObject {
     @Published var errorText: String?
     @Published var showsConversationList = false
     @Published var showsNotes = false
+    /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
+    @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
     private var suppressCollapseAnimation = false
 
@@ -320,7 +326,7 @@ final class AssistantModel: ObservableObject {
 
     func send() {
         let question = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, !isStreaming else { return }
+        guard !question.isEmpty, canStartQuestion else { return }
 
         if isCollapsed {
             withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) }
@@ -336,7 +342,32 @@ final class AssistantModel: ObservableObject {
         }
     }
 
-    private func performSend(question: String) {
+    func toggleTranscriptView() {
+        showsTranscript.toggle()
+        showsConversationList = false
+        if showsTranscript { setCollapsed(false) }
+    }
+
+    /// 把转写放进输入框。用户自己写了字就用他的问题，一个字没写才用 `fallbackQuestion`
+    /// ——一键分析总得带着问题过去，否则模型只收到一段没有指令的会议记录。
+    @discardableResult
+    func stageSpeechDraft(_ text: String, fallbackQuestion: String? = nil) -> Bool {
+        let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existing = typed.isEmpty ? (fallbackQuestion ?? "") : input
+        guard !text.isEmpty, !isStreaming,
+              let draft = ListeningTranscript.appendingToDraft(text, existing: existing) else { return false }
+        input = draft
+        isSpeechDraft = true
+        speechDraftRevision += 1
+        showsTranscript = false
+        showsConversationList = false
+        setCollapsed(false)
+        return true
+    }
+
+    private func performSend(question: String, includeScreen: Bool = true) {
+        // A previous asynchronous screen read may finish after another send started.
+        guard !isStreaming else { return }
         guard let conversation = store.ensureActive() else {
             errorText = conversationLimitMessage
             return
@@ -351,12 +382,12 @@ final class AssistantModel: ObservableObject {
         input = ""
 
         var screenshotToSend: Data?
-        if settings.sendScreenshot, let packet, packet.hasScreenshot, lastSentPacketID != packet.id {
+        if includeScreen, settings.sendScreenshot, let packet, packet.hasScreenshot, lastSentPacketID != packet.id {
             screenshotToSend = packet.screenshotJPEG
             lastSentPacketID = packet.id
         }
 
-        let snapshot = (packet?.isExcluded == true) ? nil : packet?.snapshot()
+        let snapshot = (!includeScreen || packet?.isExcluded == true) ? nil : packet?.snapshot()
         let userMessage = Message(role: .user,
                                   text: question,
                                   context: snapshot,

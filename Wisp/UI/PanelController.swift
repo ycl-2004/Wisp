@@ -9,13 +9,13 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private var panel: NSPanel?
 
-    static let width: CGFloat = 850
+    static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
-    static let collapsedHeight: CGFloat = 106
-    private static let minimumCollapsedHeight: CGFloat = 100
-    private static let maximumCollapsedHeight: CGFloat = 160
-    private static let minimumExpandedHeight: CGFloat = 420
-    private static let maximumExpandedHeight: CGFloat = 680
+    static let collapsedHeight: CGFloat = 152
+    private static let minimumCollapsedHeight: CGFloat = 144
+    private static let maximumCollapsedHeight: CGFloat = 240
+    private static let minimumExpandedHeight: CGFloat = 280
+    private static let maximumExpandedHeight: CGFloat = 1000
 
     var isVisible: Bool { panel?.isVisible == true }
 
@@ -57,6 +57,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     func hide() {
+        ListeningModel.shared.stop()
         guard let panel else { return }
         cancelIdleTimer()
         saveFrame(panel)
@@ -106,6 +107,7 @@ final class PanelController: NSObject, NSWindowDelegate {
               !panel.isKeyWindow,
               !isPointerInside,
               !AssistantModel.shared.isStreaming,
+              !ListeningModel.shared.isActive,
               !AssistantModel.shared.isCapturing,
               !isWorkingInCapturedApp
         else { cancelIdleTimer(); return }
@@ -134,6 +136,7 @@ final class PanelController: NSObject, NSWindowDelegate {
               !panel.isKeyWindow,
               !isPointerInside,
               !AssistantModel.shared.isStreaming,
+              !ListeningModel.shared.isActive,
               !AssistantModel.shared.isCapturing,
               !isWorkingInCapturedApp
         else { refreshIdleTimer(); return }
@@ -219,16 +222,32 @@ final class PanelController: NSObject, NSWindowDelegate {
         let root = ChatView()
             .environmentObject(AssistantModel.shared)
             .environmentObject(ConversationStore.shared)
+        let hosting = Self.makePanelContentView(root)
+        panel.contentView = hosting
+
+        self.panel = panel
+        return panel
+    }
+
+    static func makePanelContentView<Content: View>(_ root: Content) -> NSView {
+        let container = NSView()
         let hosting = NSHostingView(rootView: root)
+        // AppKit owns resizing. Content-derived bounds otherwise grow/lock the window.
+        // https://developer.apple.com/documentation/swiftui/nshostingview/sizingoptions
+        hosting.sizingOptions = []
         hosting.autoresizingMask = [.width, .height]
         hosting.wantsLayer = true
         hosting.layer?.cornerRadius = DS.windowCorner
         hosting.layer?.cornerCurve = .continuous
         hosting.layer?.masksToBounds = true
-        panel.contentView = hosting
-
-        self.panel = panel
-        return panel
+        // Keep NSHostingView out of NSWindow.contentView so SwiftUI cannot override
+        // the borderless panel's AppKit min/max sizes during root-view changes.
+        container.addSubview(hosting)
+        // 缩放层盖在内容之上，只吃边缘那几个点；其余位置事件照常落到 SwiftUI。
+        let resize = PanelResizeOverlay(frame: container.bounds)
+        resize.autoresizingMask = [.width, .height]
+        container.addSubview(resize)
+        return container
     }
 
     private func position(_ panel: NSPanel) {
@@ -286,6 +305,12 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func windowDidResize(_ notification: Notification) {
         if let panel { saveFrame(panel) }
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let panel else { return }
+        AssistantModel.shared.setCollapsedSilently(panel.frame.height < Self.minimumExpandedHeight)
+        saveFrame(panel)
     }
 
     func windowDidResignKey(_ notification: Notification) {

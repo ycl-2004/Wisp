@@ -1,4 +1,6 @@
 <p align="center">
+
+
   <img src="Design/App_Icon_Mac_Master.png" alt="Wisp 应用图标" width="120" height="120">
 </p>
 
@@ -45,6 +47,28 @@ Wisp 常驻菜单栏。按下 `⌃⌥Space`，它会先记住此刻最前面的�
 
 > **会被发出去的东西：** 用云端接口时，你正在看的那一页的**整页正文**和当前窗口的**截图**
 > 会发到你配置的地址。排除机制是按应用而不是按站点的 —— 详见 [PRIVACY.md](PRIVACY.md)。
+
+## 实时听懂（未发布）
+
+语音输入和 AI 对话共用一个面板：一行实时字幕，左边是录音状态和已录时长，右边是
+「停止并分析」，其余动作收在 ⋯ 菜单里。音源、应用、语言和保存选项集中在
+「设置 → 音频」可选择 SenseVoice Small 识别引擎，复用 `~/Documents/huggingface/models/k2-fsa/` 中的现有模型；Apple Speech 仍可切回。详情见[识别引擎说明](docs/live-listening.md#recognition-engines)。
+
+「设置 → 音频」，那里也有一个总开关：关掉之后面板上不再有语音这一行，快捷键也不会
+再开始录音。⌃⌥R 开始／停止，停止后把最近转写放进输入框；⌃⌥D 可在录音时放入
+草稿，编辑后按 Enter 发送。会议刚结束想直接要结论，⌃⌥↩ 一个键停止录音、等末尾文字
+收完再发出去；⌃⌥A 则是不停止录音直接分析。旁边还有一个按钮，在「AI 回答」和
+「这次的转写原文」之间切换。除这些动作外不会自动发送，也不发完成通知。
+「设置 → 数据 → 录音记录」可独立清理；2 GiB / 100 次容量限制保留。隐藏面板仍会停止录音。
+
+设备需要支持所选语言的本地识别；不支持时会提示，不会自动上传音频。
+采集按应用选择，不能直接区分某个参会人或浏览器标签页，也不保证录音不可检测。
+录制前请取得必要同意。详见[操作、存储上限和验证范围](docs/live-listening.md)。
+
+
+如果菜单栏图标不见了，可从访达或 Spotlight 再打开 Wisp，面板上的齿轮始终可进入设置。
+主动隐藏由「设置 → 隐私」控制；系统移除不再改写这个偏好，异常移除会尝试恢复一次，
+再次移除则打开面板兜底。全屏隐藏、菜单栏空间不足和第三方菜单栏管理工具仍受系统或该工具控制。
 
 ## 快速开始
 
@@ -192,6 +216,7 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 **本地存储**
 
 - 对话文字与页面文字快照：`~/Library/Application Support/Wisp/conversations.json`。
+- 实时听懂：文字、时间和可选音频保存在 `~/Library/Application Support/Wisp/Listening/`，无自动历史淘汰。
 - API Key：存在 macOS 钥匙串，不在 Wisp 的应用支持目录里。
 - 截图：不会写进对话 JSON。云端和 Ollama 只保留在内存；本地 CLI 可能写入权限为 `0700`
   的当次临时目录，命令结束后删除。若应用崩溃或被强制终止，则交由 macOS 后续清理临时目录。
@@ -267,7 +292,8 @@ defaults write com.yichenlin.Wisp AppleLanguages -array zh-Hans
 隐私与安全性」重新勾选屏幕录制，下次读取网页时重新允许对浏览器的自动化，钥匙串弹窗如果被拒
 则重新填一次 API Key。顺手把列表里旧构建那条陈旧记录删掉会清爽一些。
 
-等发布改用 Developer ID 证书签名并公证之后，这个问题就没有了。
+等发布改用 Developer ID 证书签名并公证之后，这个问题就没有了。自己构建、自己每天用的那一份
+现在已经不用忍：`tools/install-local.sh` 用团队证书签名，代码身份在重建之间不再变化。
 
 </details>
 
@@ -335,7 +361,24 @@ xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Debug build
 cp -R Build/Debug/Wisp.app "$HOME/Applications/"
 ```
 
-打 Universal 2 发布包：
+装成自己每天用的那一份（`/Applications/Wisp.app`），且**不丢系统授权**：
+
+```bash
+tools/install-local.sh              # 构建、按团队证书签名、安装
+tools/install-local.sh --no-install # 只构建和签名
+```
+
+ad-hoc 签名没有证书链可以锚定，designated requirement 只能写成 `cdhash H"…"`，
+代码一改哈希就变，macOS 会把它当成另一个程序，屏幕录制／麦克风／语音识别的授权
+每次更新都要重给。脚本改用团队证书签名，requirement 变成
+`identifier "com.yichenlin.Wisp" and anchor apple generic and certificate leaf…`，
+跟代码内容无关，重建多少次都是同一个身份。证书每年轮换、名字里的编号会变，
+所以脚本按团队 ID 从钥匙串里挑证书，再用指纹签名——钥匙串里可能还躺着别的账号的
+开发证书，按名字匹配会挑错。第一次换成证书签名仍要再授权一次，之后不会再问。
+
+**这份包不要拿去分发**：别人的机器上没有你的开发证书，Gatekeeper 会直接拒绝。
+
+打 Universal 2 发布包（对外分发仍然是 ad-hoc，因此使用者每次更新都要重新授权）：
 
 ```bash
 rm -rf Build
@@ -422,7 +465,7 @@ shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
 - CI 已覆盖单元测试、Universal 2 编译、签名验证和 Release 权限检查；仍没有公开的公证与发布签名流水线。
 - 因为发布包是 ad-hoc 签名，每次构建都是新的代码身份。macOS 把屏幕录制、自动化和钥匙串访问绑在这个身份上，所以升级之后可能需要重新授权。
 - 应用排除是按 bundle id 的。没有按网址或域名的排除，而后者恰恰是浏览器里最有用的那种。
-- 对话历史以未加密 JSON 存储，且不按时间淘汰。在默认上限下文件最大约 50 MB，并且每写一条消息都会整份重写。
+- 对话历史以未加密 JSON 存储，且不按时间淘汰。对话数和轮数有上限，但消息字节数没有硬上限；每写一条消息都会整份重写。实时字幕不会自动追加聊天消息。
 - 药丸只有桌面形态可以拖动；刘海形态固定吸附在刘海上。
 - 小圆能贴到屏幕边缘但不能超出去，所以它的圆心最多停在距边缘一个半径（20pt）的位置。
 

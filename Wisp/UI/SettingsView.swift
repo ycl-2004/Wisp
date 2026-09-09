@@ -1,4 +1,6 @@
 import AppKit
+import AVFoundation
+import Speech
 import KeyboardShortcuts
 import SwiftUI
 
@@ -8,6 +10,7 @@ struct SettingsView: View {
             ModelSettingsView().tabItem { Label("模型", systemImage: "cpu") }
             PanelSettingsView().tabItem { Label("面板", systemImage: "macwindow") }
             CaptureSettingsView().tabItem { Label("采集", systemImage: "camera.viewfinder") }
+            AudioSettingsView().tabItem { Label("音频", systemImage: "waveform") }
             PrivacySettingsView().tabItem { Label("隐私", systemImage: "hand.raised") }
             DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }
             GeneralSettingsView().tabItem { Label("通用", systemImage: "gearshape") }
@@ -62,6 +65,29 @@ private struct InfoButton: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(width: 280, alignment: .leading)
                 .padding(12)
+        }
+    }
+}
+
+/// 权限行：状态在前，操作在后。已经授权就不再给「请求」——系统不会再弹第二次窗，
+/// 留着那颗按钮等于把同一件事问两遍，还让人以为授权没生效。
+private struct PermissionRow: View {
+    let title: LocalizedStringKey
+    let status: String
+    let granted: Bool
+    var requestDisabled = false
+    let request: () -> Void
+    let open: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(status).foregroundStyle(granted ? Color.secondary : Color.orange)
+            if !granted {
+                Button("请求", action: request).disabled(requestDisabled)
+            }
+            Button("系统设置…", action: open)
         }
     }
 }
@@ -987,18 +1013,15 @@ private struct CaptureSettingsView: View {
     var body: some View {
         Form {
             Section {
-                HStack {
-                    Label(hasScreenRecording ? "屏幕录制：已授权" : "屏幕录制：未授权",
-                          systemImage: hasScreenRecording ? "checkmark.circle" : "xmark.circle")
-                        .foregroundStyle(hasScreenRecording ? .green : .red)
-                    Spacer()
-                    Button("请求") { Permissions.requestScreenRecording(); refresh() }
-                    Button("打开系统设置") { Permissions.openScreenRecordingSettings() }
-                }
+                PermissionRow(title: "屏幕录制",
+                              status: hasScreenRecording ? String(localized: "已授权") : String(localized: "未授权"),
+                              granted: hasScreenRecording,
+                              request: { Permissions.requestScreenRecording(); refresh() },
+                              open: Permissions.openScreenRecordingSettings)
                 HStack {
                     Text("浏览器自动化")
                     Spacer()
-                    Button("打开系统设置") { Permissions.openAutomationSettings() }
+                    Button("系统设置…") { Permissions.openAutomationSettings() }
                 }
             } header: {
                 SettingsSectionHeader("权限", info: String(localized: "整页文字需要浏览器的 Apple Events 权限；在浏览器的 Developer 菜单中开启。"))
@@ -1126,6 +1149,15 @@ private struct CaptureSettingsView: View {
 /// 别人的屏幕上看不看得见 Wisp。两个开关都只影响它自己的窗口，不碰系统设置。
 private struct PrivacySettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @State private var confirmHidingMenuBarIcon = false
+
+    /// 关掉菜单栏图标之后，用户还剩什么办法把 Wisp 叫出来。
+    private var fallbackEntry: String {
+        if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleAssistant) {
+            return String(localized: "快捷键 \(shortcut.description)，或者在访达里再打开一次 Wisp")
+        }
+        return String(localized: "在访达里再打开一次 Wisp")
+    }
 
     var body: some View {
         Form {
@@ -1141,11 +1173,12 @@ private struct PrivacySettingsView: View {
                 }
                 Toggle(isOn: Binding(
                     get: { settings.showsMenuBarIcon },
-                    set: { settings.showsMenuBarIcon = $0 }
+                    // 关掉之前先问一句：这是没有 Dock 图标的应用唯一看得见的入口。
+                    set: { if $0 { settings.showsMenuBarIcon = true } else { confirmHidingMenuBarIcon = true } }
                 )) {
                     HStack(spacing: 5) {
                         Text("在菜单栏显示图标")
-                        InfoButton(message: String(localized: "菜单栏图标可能出现在共享和录屏中。关闭后，仍可用全局快捷键打开 Wisp，再通过面板上的齿轮进入设置。"))
+                        InfoButton(message: String(localized: "菜单栏图标可能出现在共享和录屏中。关闭后 Wisp 在菜单栏不留痕迹，仍可用全局快捷键唤起，或在访达里再打开一次 Wisp；面板上的齿轮是进入设置的入口。"))
                     }
                 }
             } header: {
@@ -1153,15 +1186,209 @@ private struct PrivacySettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .alert("关掉菜单栏图标？", isPresented: $confirmHidingMenuBarIcon) {
+            Button("关掉", role: .destructive) { settings.showsMenuBarIcon = false }
+            Button("保留", role: .cancel) { }
+        } message: {
+            Text("关掉之后菜单栏上不会再有 Wisp。要再打开它，用\(fallbackEntry)。")
+        }
+    }
+}
+
+// MARK: - 音频
+
+struct AudioSettingsView: View {
+    @ObservedObject private var listening = ListeningModel.shared
+    @State private var microphone = AVCaptureDevice.authorizationStatus(for: .audio)
+    @State private var speech = SFSpeechRecognizer.authorizationStatus()
+    @State private var screen = Permissions.hasScreenRecording
+    @State private var deviceSupport = ""
+    @State private var requesting = false
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("启用语音输入", isOn: $listening.isEnabled)
+            } header: {
+                SettingsSectionHeader("语音输入", info: String(localized: "关掉之后面板上不再有语音那一行，快捷键也不再开始录音；正在录的会先停下来。"))
+            }
+
+            // 关掉之后底下这些都不再影响任何事，留在页面上只会让人以为它们还在生效。
+            if listening.isEnabled {
+                Section {
+                    Picker("音源", selection: $listening.mode) {
+                        ForEach(ListeningMode.allCases) { Text($0.title).tag($0) }
+                    }
+                    if listening.mode.sources.contains(.application) {
+                        HStack {
+                            Picker("应用", selection: $listening.selectedPID) {
+                                Text("选择音频应用…").tag(pid_t(0))
+                                ForEach(listening.applications, id: \.processID) { app in
+                                    Text(app.applicationName).tag(app.processID)
+                                }
+                            }
+                            Button("刷新") { listening.refreshApplications() }
+                                .disabled(listening.isRefreshing)
+                        }
+                    }
+                    Toggle("保存音频", isOn: $listening.savesAudio)
+                } header: {
+                    SettingsSectionHeader("录音", info: String(localized: "应用按次选择；录音期间不能更改音源、语言或保存选项。"))
+                }
+                .disabled(listening.isActive)
+
+                Section {
+                    KeyboardShortcuts.Recorder("开始／停止录音", name: .toggleListening)
+                    KeyboardShortcuts.Recorder("转写放入输入框", name: .stageListening)
+                    KeyboardShortcuts.Recorder("停止并交给 AI 分析", name: .stopAndAnalyzeListening)
+                    KeyboardShortcuts.Recorder("现在分析一下（不停止录音）", name: .analyzeListening)
+                } header: {
+                    SettingsSectionHeader("快捷键", info: String(localized: "转写取上一次交出去之后说的全部内容，最多 12,000 字。「放入输入框」不会自动发送；两个「分析」会连同当前上下文一起发送给所选模型。"))
+                }
+
+                Section {
+                    Picker("识别引擎", selection: $listening.recognitionEngine) {
+                        ForEach(ListeningRecognitionEngine.allCases) { Text($0.title).tag($0) }
+                    }
+                    .disabled(listening.isActive)
+                    if listening.recognitionEngine == .senseVoice {
+                        Picker("转写语言", selection: $listening.senseVoiceLanguage) {
+                            Text("自动检测").tag("auto")
+                            Text("中文").tag("zh")
+                            Text("English").tag("en")
+                            Text("日本語").tag("ja")
+                            Text("한국어").tag("ko")
+                            Text("粤语").tag("yue")
+                        }
+                        .disabled(listening.isActive)
+                        HStack {
+                            Text("共享本地模型")
+                            Spacer()
+                            Text(deviceSupport).foregroundStyle(.secondary)
+                            Button("检查") { refresh() }
+                            Button("打开文件夹") { NSWorkspace.shared.open(SenseVoiceRecognition.modelFolder.deletingLastPathComponent()) }
+                        }
+                        .help(SenseVoiceRecognition.modelFolder.path)
+                    } else {
+                        Picker("转写语言", selection: $listening.locale) {
+                            Text("English").tag("en-US")
+                            Text("简体中文").tag("zh-CN")
+                            Text("繁體中文").tag("zh-TW")
+                            Text("日本語").tag("ja-JP")
+                        }
+                        .disabled(listening.isActive)
+                        HStack {
+                            Text("本机语言支持")
+                            Spacer()
+                            Text(deviceSupport).foregroundStyle(.secondary)
+                            Button("检查") { refresh() }
+                        }
+                    }
+                } header: {
+                    SettingsSectionHeader("转写", info: String(localized: "两种引擎均在本机转写。SenseVoice 复用 Documents/huggingface 中的模型，支持自动检测语言；不会下载、复制或删除模型。Apple Speech 使用系统语言资源。"))
+                }
+
+                Section {
+                    permissionRow("麦克风", status: microphoneStatus, granted: microphone == .authorized, request: {
+                        requesting = true
+                        Task {
+                            _ = await AVCaptureDevice.requestAccess(for: .audio)
+                            requesting = false
+                            refresh()
+                        }
+                    }, open: Permissions.openMicrophoneSettings)
+                    if listening.recognitionEngine.requiresSpeechAuthorization {
+                        permissionRow("语音识别", status: speechStatus, granted: speech == .authorized, request: {
+                            requesting = true
+                            SFSpeechRecognizer.requestAuthorization { _ in
+                                Task { @MainActor in requesting = false; refresh() }
+                            }
+                        }, open: Permissions.openSpeechSettings)
+                    }
+                    permissionRow("屏幕与系统音频",
+                                  status: screen ? String(localized: "已授权") : String(localized: "未授权"),
+                                  granted: screen, request: {
+                        Permissions.requestScreenRecording()
+                        refresh()
+                    }, open: Permissions.openScreenRecordingSettings)
+                } header: {
+                    SettingsSectionHeader("权限", info: String(localized: "仅在点击请求时弹出系统授权；打开此页不会开始录音。系统采集指示无法由 Wisp 的状态点替代。"))
+                }
+
+                Section {
+                    HStack {
+                        Text("输入与输出音量")
+                        Spacer()
+                        Button("系统声音…") { Permissions.openSoundSettings() }
+                    }
+                } header: {
+                    SettingsSectionHeader("声音", info: String(localized: "使用系统默认麦克风。设备及输入、输出音量在 macOS 声音设置中调整；Wisp 不改变其他应用的音量。"))
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear { refresh() }
+        .onChange(of: listening.locale) { refresh() }
+        .onChange(of: listening.recognitionEngine) { refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
+    }
+
+    /// 录音期间请求会打断采集，所以这一页的「请求」统一带上同一个禁用条件。
+    private func permissionRow(_ title: LocalizedStringKey, status: String, granted: Bool,
+                               request: @escaping () -> Void, open: @escaping () -> Void) -> some View {
+        PermissionRow(title: title, status: status, granted: granted,
+                      requestDisabled: requesting || listening.isActive,
+                      request: request, open: open)
+    }
+
+    private var microphoneStatus: String {
+        switch microphone {
+        case .authorized: return String(localized: "已授权")
+        case .notDetermined: return String(localized: "未请求")
+        case .denied: return String(localized: "未授权")
+        case .restricted: return String(localized: "受限")
+        @unknown default: return String(localized: "未知")
+        }
+    }
+
+    private var speechStatus: String {
+        switch speech {
+        case .authorized: return String(localized: "已授权")
+        case .notDetermined: return String(localized: "未请求")
+        case .denied: return String(localized: "未授权")
+        case .restricted: return String(localized: "受限")
+        @unknown default: return String(localized: "未知")
+        }
+    }
+
+    private func refresh() {
+        microphone = AVCaptureDevice.authorizationStatus(for: .audio)
+        speech = SFSpeechRecognizer.authorizationStatus()
+        screen = Permissions.hasScreenRecording
+        if listening.recognitionEngine == .senseVoice {
+            do {
+                try SenseVoiceRecognition.validateModel()
+                deviceSupport = String(localized: "文件就绪")
+            } catch {
+                deviceSupport = String(localized: "模型缺失")
+            }
+        } else if let recognizer = SFSpeechRecognizer(locale: Locale(identifier: listening.locale)), recognizer.supportsOnDeviceRecognition {
+            deviceSupport = recognizer.isAvailable ? String(localized: "可用") : String(localized: "暂不可用")
+        } else {
+            deviceSupport = String(localized: "不支持")
+        }
     }
 }
 
 // MARK: - 数据
 
-private struct DataSettingsView: View {
+struct DataSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @EnvironmentObject private var model: AssistantModel
     @State private var confirmWipe = false
+    @State private var confirmListeningWipe = false
+    @State private var cleanupResult: String?
+    @ObservedObject private var listening = ListeningModel.shared
 
     var body: some View {
         Form {
@@ -1203,21 +1430,53 @@ private struct DataSettingsView: View {
             }
 
             Section {
-                Button("删除全部对话与 API Key", role: .destructive) { confirmWipe = true }
+                HStack {
+                    Text("录音与转写")
+                    Spacer()
+                    Button("打开文件夹") { listening.showFiles() }
+                    Button("清理…", role: .destructive) { confirmListeningWipe = true }
+                        .disabled(listening.isActive)
+                }
+                if listening.isActive {
+                    Text("请先停止录音，再清理记录。")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                if let cleanupResult {
+                    Text(cleanupResult).font(.system(size: 11)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
             } header: {
-                SettingsSectionHeader("清除", info: String(localized: "删除对话、调试文件和钥匙串中的 API Key；不可撤销。"))
+                SettingsSectionHeader("录音记录", info: String(localized: "最多 2 GiB / 100 次。手动清理全部录音与转写，不影响对话和 API Key；不会定时自动删除。"))
+            }
+
+            Section {
+                Button("删除全部记录与 API Key", role: .destructive) { confirmWipe = true }
+            } header: {
+                SettingsSectionHeader("清除", info: String(localized: "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key；不可撤销。"))
             }
         }
         .formStyle(.grouped)
+        .alert("清理录音与转写？", isPresented: $confirmListeningWipe) {
+            Button("清理", role: .destructive) {
+                do {
+                    try listening.clearRecords()
+                    cleanupResult = String(localized: "录音与转写已清理。")
+                } catch { cleanupResult = error.localizedDescription }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("删除所有本地录音与转写文件，无法撤销。对话和 API Key 保留。")
+        }
         .alert("删除全部数据？", isPresented: $confirmWipe) {
             Button("全部删除", role: .destructive) {
+                ListeningModel.shared.discardForDataReset()
                 model.store.deleteAll()
                 KeychainStore.deleteAll()
                 settings.wipeLocalData()
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("所有对话和 API Key 都会被删除，无法撤销。")
+            Text("所有对话、录音与转写记录和 API Key 都会被删除，无法撤销。")
         }
     }
 }

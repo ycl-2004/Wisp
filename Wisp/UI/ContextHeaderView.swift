@@ -42,26 +42,31 @@ struct ContextHeaderView: View {
                   ? "回到当前对话"
                   : "对话记录（\(store.conversations.count)/\(store.maxConversations)），可切换和删除")
 
-            appIcon
-                .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
+            // 图标到右边控件之间这一段是这个无边框面板的标题栏：拖它可以把窗口挪走。
+            HStack(spacing: 6) {
+                appIcon
+                    .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
 
-            Text(model.packet?.appName ?? String(localized: "读取中…"))
-                .font(DS.title)
-                .lineLimit(1)
-                .fixedSize()
+                Text(model.packet?.appName ?? String(localized: "读取中…"))
+                    .font(DS.title)
+                    .lineLimit(1)
+                    .fixedSize()
 
-            if let subtitle {
-                HStack(spacing: 4) {
-                    Text(verbatim: "·").font(DS.meta).foregroundStyle(.tertiary)
-                    Text(subtitle)
-                        .font(DS.meta)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                if let subtitle {
+                    HStack(spacing: 4) {
+                        Text(verbatim: "·").font(DS.meta).foregroundStyle(.tertiary)
+                        Text(subtitle)
+                            .font(DS.meta)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
-            }
 
-            Spacer(minLength: 2)
+                Spacer(minLength: 2)
+            }
+            .background(WindowDragArea())
+            .help("拖这里可以移动面板")
 
             if model.isCapturing {
                 ProgressView().controlSize(.small).scaleEffect(0.7).frame(width: 16)
@@ -82,12 +87,10 @@ struct ContextHeaderView: View {
                 .buttonStyle(IconButtonStyle())
                 .help(store.canCreateNew ? "新建对话" : "已达上限，可移除最早的对话后新建")
 
-            // 菜单栏图标藏起来之后，这里是唯一还看得见的设置入口。
-            if !settings.showsMenuBarIcon {
-                SettingsLink { Image(systemName: "gearshape") }
-                    .buttonStyle(IconButtonStyle())
-                    .help("设置")
-            }
+            // Keep settings reachable even when macOS crowds out an enabled menu item.
+            SettingsLink { Image(systemName: "gearshape") }
+                .buttonStyle(IconButtonStyle())
+                .help("设置")
 
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }

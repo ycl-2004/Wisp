@@ -52,16 +52,20 @@ struct ChatView: View {
         .onReceive(NotificationCenter.default.publisher(for: .wispPanelActivityChanged)) { note in
             isActive = note.userInfo?["active"] as? Bool ?? false
         }
+        .onChange(of: model.speechDraftRevision) { focusRequest += 1 }
     }
 
     private var content: some View {
         VStack(spacing: 0) {
             ContextHeaderView()
+            ListeningView()
 
             if !model.isCollapsed {
                 Group {
                     if model.showsConversationList {
                         ConversationListView()
+                    } else if model.showsTranscript {
+                        TranscriptView()
                     } else {
                         messageList
                     }
@@ -71,6 +75,7 @@ struct ChatView: View {
 
             composer
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // 挂在这里而不是对话列表上：面板收起时列表根本没上屏，
         // 挂在列表上的话满额时点新建不会有任何反应。
         .alert("腾出位置新建对话？", isPresented: $model.confirmsEviction) {
@@ -150,6 +155,11 @@ struct ChatView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if model.isSpeechDraft {
+                Text("转写草稿 · Enter 发送，附带当前上下文")
+                    .font(DS.meta).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(alignment: .bottom, spacing: 6) {
                 ChatInput(text: $model.input,
                           placeholder: String(localized: "问点什么…  Return 发送，Shift+Return 换行"),

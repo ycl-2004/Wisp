@@ -87,6 +87,7 @@ final class AppSettings: ObservableObject {
         static let islandOrigin = "islandOrigin"   // 0.2.0 开发期的旧键，只用于迁移
         static let islandAnchor = "islandAnchor"
         static let appLanguage = "appLanguage"
+        static let listeningEnabled = "listeningEnabled"
     }
 
     private init() {
@@ -124,6 +125,7 @@ final class AppSettings: ObservableObject {
             K.panelOpaqueWhenActive: true,
             K.checkForUpdates: false,
             K.appLanguage: "system",
+            K.listeningEnabled: true,
         ])
     }
 
@@ -295,6 +297,12 @@ final class AppSettings: ObservableObject {
     var debugDumpEnabled: Bool {
         get { d.bool(forKey: K.debugDumpEnabled) }
         set { d.set(newValue, forKey: K.debugDumpEnabled); objectWillChange.send() }
+    }
+
+    /// 语音功能的总开关。关掉之后面板上不再留那一行，快捷键也不响应。
+    var listeningEnabled: Bool {
+        get { d.bool(forKey: K.listeningEnabled) }
+        set { d.set(newValue, forKey: K.listeningEnabled); objectWillChange.send() }
     }
 
     var showIsland: Bool {

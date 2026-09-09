@@ -1,4 +1,6 @@
 <p align="center">
+
+
   <img src="Design/App_Icon_Mac_Master.png" alt="Wisp app icon" width="120" height="120">
 </p>
 
@@ -53,6 +55,38 @@ Simplified Chinese and follows your system language.
 > you are looking at and a screenshot of the current window go to the endpoint
 > you configured. Exclusions are per application, not per site — see
 > [PRIVACY.md](PRIVACY.md).
+
+## Live listening (unreleased)
+
+Voice input shares the main chat panel: a single live caption line with the elapsed
+time, the microphone/stop button, Stop & analyze, and the rest under a ⋯ menu.
+Configure source/application/language in Settings → Audio. Control–Option–R
+starts/stops recording; stopping stages recent speech. Control–Option–D stages it
+while capture continues. Edit, then Enter sends through the selected AI with normal
+screen context. For a meeting that just ended, Stop & analyze (Control–Option–Return)
+stops, waits for the trailing text, and sends it in one key; Control–Option–A does the
+same without stopping. One more button swaps the answer area between the AI answer and
+this session's raw transcript. Nothing is submitted without one of those explicit
+actions, and no completion notification is emitted. Settings → Data can clear listening
+records separately. The archive retains its 2 GiB / 100-session admission budget.
+Hiding the panel stops recording. Settings → Audio also carries a master switch:
+turn voice input off and the row leaves the panel, the shortcuts stop starting a
+recording, and a session still running is stopped.
+
+Choose **SenseVoice Small** in **Settings → Audio → Recognition engine** to reuse
+`~/Documents/huggingface/models/k2-fsa/`. Apple Speech remains available.
+See [engine setup and limits](docs/live-listening.md#recognition-engines).
+
+Device/language support is required for on-device transcription. Audio selection
+is application-level, not per participant or browser tab. This feature does not
+promise undetectability. See [setup, storage limits, and verification scope](docs/live-listening.md).
+
+
+If the menu-bar icon is missing, reopen Wisp from Finder or Spotlight to reveal the
+panel; its gear always opens Settings. Settings → Privacy controls intentional
+hiding. System removal no longer changes that preference: Wisp retries insertion
+once, then shows the panel if removal repeats. Full-screen menu hiding, limited
+menu-bar space and third-party menu utilities remain controlled by macOS/the utility.
 
 ## Quick start
 
@@ -338,7 +372,8 @@ specific localization.
   address and a `Wisp/<version>` user agent, downloads nothing, and installs
   nothing. Turning it off makes no request at all.
 - Wisp has no account system, sync service, analytics SDK, crash-reporting SDK,
-  or background continuous-recording feature.
+  or automatic background recording. Explicit Live listening sessions continuously
+  capture selected audio until stopped; see [details](docs/live-listening.md).
 
 **Exclusions are per app, not per site.** The exclusion list takes bundle
 identifiers, so there is currently no way to exempt one URL or domain while
@@ -419,7 +454,9 @@ and re-enter the API key if the Keychain prompt is declined. Removing the stale
 entry for the old build from the Screen Recording list keeps that list tidy.
 
 This goes away once releases are signed with a Developer ID certificate and
-notarized.
+notarized. For the copy you build and use yourself, `tools/install-local.sh` already
+avoids it: it signs with your team certificate, so the code identity stops changing
+between rebuilds.
 
 </details>
 
@@ -490,6 +527,28 @@ xcodegen generate
 xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Debug build
 cp -R Build/Debug/Wisp.app "$HOME/Applications/"
 ```
+
+Install the copy you actually use (`/Applications/Wisp.app`) without losing system
+permissions:
+
+```bash
+tools/install-local.sh              # build, sign with the team certificate, install
+tools/install-local.sh --no-install # build and sign only
+```
+
+An ad-hoc signature has no certificate chain to anchor to, so its designated
+requirement is `cdhash H"…"`. Any code change changes that hash, macOS treats the
+result as a different program, and screen recording, microphone and speech
+recognition must be granted again on every update. Signing with the team certificate
+makes the requirement `identifier "com.yichenlin.Wisp" and anchor apple generic and
+certificate leaf…`, which does not depend on the code at all. Certificates rotate
+yearly and their names carry an identifier that changes, so the script picks the
+certificate by team ID and signs with its fingerprint — a keychain can also hold
+development certificates belonging to other accounts, and matching by name picks the
+wrong one. The switch itself asks for permissions once more; rebuilds after that do not.
+
+**Do not distribute that build:** other machines do not have your development
+certificate, and Gatekeeper will refuse it.
 
 If your machine does not have the development team or signing identity in the
 project, use an unsigned build for compile verification:
@@ -615,8 +674,9 @@ resolution, and public documentation are tracked.
 - App exclusions are per bundle identifier. There is no per-URL or per-domain
   exclusion, which is the exclusion most useful in a browser.
 - Conversation history is stored as unencrypted JSON and is not evicted by age.
-  At the default limits the file can reach roughly 50 MB, and it is rewritten in
-  full on every message.
+  Conversation and turn counts are bounded, but message bytes are not strictly
+  capped; the file is rewritten in full on every message. Live captions do not
+  append messages automatically.
 - The island can be dragged only in its desktop form; the notch form stays
   anchored to the notch.
 - The island's circle can reach a screen edge but not overlap it, so its centre

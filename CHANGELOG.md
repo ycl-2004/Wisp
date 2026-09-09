@@ -4,6 +4,43 @@
 
 ### Added
 
+- **SenseVoice Small recognition engine.** Audio settings can reuse the shared local
+  ONNX model with automatic language detection, alongside Apple on-device Speech.
+  Background CPU inference, persisted engine/language options, missing-model feedback;
+  no duplicate model download and no Apple Speech permission for SenseVoice.
+
+- **Live listening.** Opt-in microphone, selected application audio, or separate
+  dual-source local captions; timestamped text sessions and optional PCM audio.
+  Integrated single-line voice input above the chat, configurable start/stop and
+  draft shortcuts, manual contextual submission to the selected model/CLI.
+  Fixed content-driven panel resize constraints with an AppKit hosting container. No completion notifications or auto-copy.
+  Archive admission budget of 2 GiB / 100 sessions, without automatic deletion.
+  A master switch in Settings → Audio turns voice input off entirely: the panel
+  drops the voice row, the shortcuts stop starting a recording, and the rest of
+  the audio settings go with it.
+  Audio settings persist source/language/retention, expose permission checks and
+  system volume access. Data settings can clear only listening records with
+  confirmation. A small in-panel status dot leaves OS privacy indicators intact.
+  Explicit permissions, stop/error states, lifecycle cleanup, and session limits.
+  See [usage and validation limits](docs/live-listening.md).
+
+- **One-key analysis of what was just said.** Stop & analyze (⌃⌥↩) stops recording,
+  waits for trailing recognition to drain, drops the recent transcript into the draft
+  and sends it; Analyze now (⌃⌥A) does the same without stopping, for a meeting still
+  in progress. When the input box is empty the request carries a fixed question asking
+  for discussion points, conclusions and action items, and telling the model not to
+  follow instructions inside the transcript; anything the user typed is used instead.
+  Both go through the ordinary send path: same screen context, history and provider,
+  and both are blocked while an answer is streaming.
+- **Transcript view.** One button in the voice row swaps the answer area between the
+  AI answer and the raw transcript of this session, with timestamps, per-source
+  colouring, provisional-text marking, copy and the records folder. It is a view
+  switch only: recording, capture and the draft are untouched.
+- **A resizable panel that can actually be grabbed.** A transparent overlay claims the
+  outer six points of the borderless panel (sixteen at the corners) and resizes from
+  any edge, with the opposite edge pinned and the window's min/max respected; a faint
+  grip appears at the bottom-right corner on hover. Everything inside keeps its clicks.
+
 - **Streaming for Codex and Antigravity.** Codex now uses app-server text deltas
   over stdio; AGY uses `stream-json` agent response deltas. Completed snapshots
   are not appended twice, and interrupted or failed streams remain failures.
@@ -29,6 +66,36 @@
 
 ### Fixed
 
+- Permission rows no longer offer Request once the permission is granted; the
+  system will not ask a second time, so only the System Settings link remains.
+- Menu-bar insertion callbacks no longer overwrite the saved visibility preference.
+  An unexpected removal gets one recovery attempt; repeated removal opens the panel.
+  Its Settings entry remains available even when macOS crowds the icon out.
+- Opening the transcript expands a collapsed panel and leaves conversation history.
+  Copy transcript remains available after staging and during an answer.
+- Listening storage admission rejects linked roots, including dangling links.
+  Analysis checks conversation capacity before consuming unstaged transcript IDs.
+- Privacy documentation now states that the two explicit analysis actions send directly;
+  Add to draft remains the path for reviewing text before sending.
+
+- The menu bar icon stays the default and is no longer the only way back in. Turning
+  it off now asks for confirmation and names the remaining entry points; launching
+  Wisp again from Finder reveals the panel, and so does starting the app while the
+  icon is disabled.
+- A transfer now carries everything said since the previous one instead of the last 90
+  seconds. Analysing every few minutes in a meeting silently dropped the minutes between
+  two presses: they were outside the window, and the next transfer excluded them as
+  already-seen segments, so they reached no request at all. The 12,000-character budget
+  is now the only bound, and trimming happens per recognition batch before merging, so
+  a long single-speaker stretch is cut at a sentence boundary rather than mid-word.
+- Transcript staged into the input box reads as speech instead of a log: timestamps are
+  gone, consecutive batches from one source are merged into a turn, a speaker label
+  appears only when both sources are present, and provisional text is marked once per
+  turn. Local records keep their full timestamps.
+- The panel can be dragged again once expanded: the header's title area is a real drag
+  handle, instead of relying on background dragging that the message list covers.
+- Trimming the transcript to the draft budget drops whole turns from the oldest end
+  instead of cutting mid-sentence.
 - Use ephemeral, cookie-free and cache-free HTTP sessions; refuse redirects
   and require HTTPS for non-loopback API endpoints. Local Ollama HTTP remains
   supported. Configure the final HTTPS endpoint for redirecting gateways.

@@ -158,35 +158,213 @@ Outstanding:
 - Open product decisions: whether to offer hiding the menu bar icon, and whether to rebuild the Settings
   window as a borderless non-activating panel to escape Mission Control.
 
-## Current task: CLI streaming — 2026-09-07
+## Current task: Live listening — 2026-09-08
 
-Goal: save the current code remotely, then make Codex and AGY deliver answer text incrementally.
+Goal: add opt-in microphone/application audio transcription and explain recent speech through Wisp's existing provider.
 
 Requirements (append-only):
-18. Commit and push the pre-change work. Completed: 17999d2 on origin/main.
-19. Switch Codex to app-server text deltas, retaining model/image input, private ephemeral
-    read-only execution, cancellation, timeout and cleanup.
-20. Verify AGY stream-json event shapes and implement incremental text without duplicate final output.
-21. Run meaningful regressions and update user-facing protocol documentation.
-22. (Added) Default Fast on where supported for Codex/Claude; check AGY support.
-    Codex selects the model-advertised Fast service tier. Claude passes fastMode for supported
-    Opus selections only; no model substitution. AGY removed /fast in 1.1.0 (official modes docs).
-23. (Clarified) Fall back to original mode when Fast is unavailable. Codex retries a tier rejection
-    once before text, Claude keeps native fallback, AGY uses normal mode; model/effort stay unchanged.
+24. Three modes: microphone, selected application's audio, both separately labeled.
+25. Local live captions with timestamps and persistent text sessions; optional audio retention.
+26. Explicit explain-recent action through the selected LLM without capturing a new screen.
+27. Permission/error/stop states, bounded resources, lifecycle cleanup; no invisibility guarantee.
+28. macOS 14 compatibility; device-only transcription or explicit unsupported-language error.
+29. Build and meaningful regression checks; update usage/privacy docs and disclose untested hardware paths.
 
-Decisions/evidence:
-- Prior privacy tasks above retain unresolved scope; their historical evidence is not new validation.
-- Codex 0.153.4 schema and official app-server docs checked. Synthetic live request: first text
-  3.930 s, turn complete 5.129 s, ephemeral thread confirmed.
-- AGY 1.1.27 synthetic live request: text deltas at 3.101/3.301/3.502 s, result at 3.502 s.
-- No Claude CLI access, personal screenshots, installed-app replacement or new streaming-change push.
-- Requirements 18–23 completed. Full Debug XCTest: 32 passed, 0 failed, 0 skipped;
-  /private/tmp/wisp-cli-streaming-fast-tests-20260907. Release build exits 0.
-- Codex live thread/start checks echoed priority and default tiers for the same Luna model.
-- Details and limits: docs/cli-streaming.md; docs/evidence/cli-streaming-20260907.json.
-- At initial delivery, the implementation remained local and uncommitted. Installed app unchanged; Claude live execution
-  and end-to-end screenshot/UI testing were not performed. The pre-change baseline is pushed.
-- Follow-up installation completed: /Applications/Wisp.app replaced, ad-hoc signature verified,
-  executable matched the signed staging bundle, and the restarted process was observed (PID 8168).
-  Backup: /private/tmp/wisp-install-PXmylM/previous/Wisp.app.
-- User subsequently authorized committing and pushing the streaming/Fast implementation to main.
+Decisions:
+- Keep existing DS/native panel styling; no external visual redesign.
+- AVAudioEngine microphone + ScreenCaptureKit selected application audio; no video retention in v1.
+- Device-only SFSpeechRecognizer with a bounded serial queue of 1–4 second source batches supports the existing deployment target without assuming concurrent device recognition. This trades a few seconds of caption latency for compatibility.
+- Raw audio is off by default. Explicit start is required; manually hiding the panel stops capture; switching between captions and chat keeps it running.
+- Existing unfinished privacy scope above remains historical and outside this feature.
+
+Validation (resumed 2026-09-09):
+- Requirements 24–29 are implemented; hardware validation remains outstanding below.
+- Fresh Debug build and full XCTest suite: 46 passed, 0 failures. Result bundle:
+  `/private/tmp/wisp-listening-resume-20260909-r2.xcresult`; log:
+  `/private/tmp/wisp-listening-resume-20260909-r2.log`.
+- Initial sandboxed attempt failed on compiler/SwiftPM cache permissions; the approved
+  retry with standard cache access succeeded. This was an environment failure, not a test failure.
+- Prior Release build log `/private/tmp/wisp-listening-release.log` ends BUILD SUCCEEDED;
+  prior final suite also passed 46 tests. Release was not rerun in this continuation.
+- Reviewed capture cleanup, bounded serial recognition, transcript persistence, explicit
+  explanation without new screen context, and data-reset callback invalidation.
+- Inspected native idle-view renders at the panel width and 380 points:
+  `/private/tmp/wisp-listening-ui.png` and `/private/tmp/wisp-listening-ui-narrow.png`.
+  Normal panel layout is readable. Narrow English rendering truncates the audio-source
+  label and application hint; the shared application label remains Chinese in English.
+- `git diff --check` and localization JSON parsing pass.
+- Usage and privacy documentation are present in docs/live-listening.md, both READMEs,
+  PRIVACY.md and CHANGELOG.md.
+
+Outstanding / delivery limits:
+- Live microphone/application capture, actual permission prompts, language-resource
+  availability, transcription accuracy and sustained two-source throughput have not
+  been exercised. Synthetic tests do not establish those hardware-dependent behaviors.
+- macOS 14 and Intel runtime compatibility are not tested; the build targets macOS 14.
+- Narrow-layout truncation and the shared English application-label translation remain
+  minor UI limitations; active-caption UI was not visually exercised.
+- No model CLI was invoked, no personal audio was captured or sent, and no installed
+  application was replaced, committed or pushed during this continuation.
+
+## Follow-up: bounded storage and manual sharing — 2026-09-09
+
+Requirements (append-only):
+30. Audit audio buffers, transcript history, disk growth and conversation growth; fix unbounded listening storage.
+31. Keep transcription local and quiet: no completion notifications, sounds, automatic clipboard writes or external sends.
+32. Let the user choose transcript segments, copy them or stage an editable draft, and send only through the existing manual Enter/send action.
+33. Preserve window privacy requests and accurately document OS indicators and recorder-specific limits.
+34. Clarify whether hiding the panel should keep an explicitly started recording active; answer pending.
+
+Decisions:
+- Preserve the existing native DS/Raycast-inspired panel; add native selection controls without a redesign.
+- Do not delete existing history automatically. Refuse new listening sessions at the storage budget.
+- Existing draft text must survive staging; newly arriving captions must never append themselves to a staged draft.
+- No real microphone capture, clipboard mutation or external message is needed for synthetic verification.
+
+Follow-up implementation/evidence:
+- Replaced immediate explanation submission with explicit segment selection, Copy selected,
+  and Add to draft. Staging appends to existing input, requests input focus, snapshots text,
+  skips new screen context on manual send, and never invokes a provider or clipboard itself.
+  A draft-mode hint discloses that current conversation history still accompanies submission.
+- Selection has a 12,000-character combined draft budget without silent truncation. New
+  captions do not auto-select, auto-copy, auto-send or grow the draft. Selecting pauses
+  automatic scrolling. No notification/sound/attention APIs were found in Wisp source.
+- Listening archive admission now reserves 32 MiB (text only) or 544 MiB (audio) within
+  2 GiB and at most 100 session directories. No old files are deleted. Unexpected nested
+  folders/links fail closed. Per-source PCM is checked before write, with at most 128 parts.
+- Transcript updates reject over 200,000 characters / 2,000,000 UTF-8 bytes / 7,200 segments
+  before mutation, including late results. Unchanged transcripts are not checkpointed again.
+- Recognition timeout/callback closures retain only batch IDs, allowing completed PCM to
+  release immediately rather than waiting for the ten-second timer.
+- Fresh Debug suite including final input-focus change: 52 passed, 0 failed (7.267 s).
+  `/private/tmp/wisp-listening-manual-focus-20260909.xcresult` and matching `.log`.
+  Added regressions cover selected-only payloads, no silent truncation, existing-draft
+  preservation, snapshot stability, Unicode/segment limits, sparse-file disk admission,
+  no old-record deletion, immediate PCM release, and staging without message/clipboard changes.
+- Native idle renders at normal and 380-point widths inspected. Normal panel controls are
+  readable; narrow configuration leaves a short scrollable caption region. Source-label
+  truncation and the English application label were corrected. Active/live device UI is not tested.
+- Read-only local metadata: Listening directory absent; conversations.json 27,141 bytes.
+  No conversation content, real audio, credentials or Claude CLI state was read.
+- Conversation counts default to 10 × 30 turns, but generic message/response bytes and some
+  manual archive paths are not hard-capped. Corrected the old approximate-50-MB documentation
+  so it is not described as a guarantee. No automatic transcript-to-chat history stream exists.
+- Apple documentation confirms the legacy capture flag must not be relied on universally;
+  macOS microphone/system-audio indicators remain visible. Existing panel privacy requests
+  are preserved. No claim of new recorder-specific coverage is made.
+- Requirement 34: optional clarification received no reply during implementation. Preserve
+  hide-to-stop for now; switching listening/chat continues an explicitly started session.
+  Changing hidden-panel behavior remains a user preference, not a prerequisite for these fixes.
+- Docs: docs/live-listening.md, PRIVACY.md, both READMEs and CHANGELOG.md updated.
+  JSON/English action-label checks and git diff --check pass.
+- No installation, commit, push, external message or real audio capture performed.
+- Final Release build (including input focus): exit 0, BUILD SUCCEEDED; log
+  `/private/tmp/wisp-listening-manual-release-final-20260909.log`. Both arm64 and
+  x86_64 compile steps succeeded; this is compilation, not Intel runtime validation.
+
+## Follow-up: audio settings and focused cleanup — 2026-09-09
+Requirements (append-only):
+35. Audit settings and add missing audio preferences, permission checks and volume access.
+36. Add a focused one-action cleanup for listening records, without clearing chats/API keys.
+37. Match existing restrained native settings styling; move optional explanations to info controls.
+38. Explain Apple on-device speech recognition and the limits of replacing system privacy indicators.
+Decisions:
+- Continue the existing Raycast-inspired native grouped forms and InfoButton pattern.
+- Volume/device control opens macOS Sound settings; do not invent an ineffective recording slider.
+- Cleanup is user-triggered with a destructive confirmation; no actual user records are deleted during testing.
+- No silent automatic deletion policy is enabled. The existing total storage admission budget remains.
+
+Settings follow-up evidence:
+- Added Audio tab using existing grouped Form/SettingsSectionHeader/InfoButton styling.
+  Source/language/audio retention persist via a Codable UserDefaults value; preferences
+  remain locked while capture is active. Per-session application selection stays in the panel.
+- Added microphone, Speech and screen/system-audio status/request/system-settings rows,
+  an Apple on-device engine label, language support check, and macOS Sound entrypoint.
+  No fake gain slider; actual device/volume controls remain owned by macOS.
+- Data → Listening records → Clear confirms destruction and removes only Listening/.
+  Capture must be stopped; late callbacks are invalidated first. Errors remain inline.
+  Existing full reset remains separate. No automatic timed cleanup policy was enabled.
+- Header uses a five-point dot on the waveform: red recording, orange starting/stopping;
+  accessible text reports state. No system indicator override is implemented.
+- Official Apple support https://support.apple.com/en-us/118449 confirms its supported
+  external/full-screen exception still leaves privacy indicators on the main display.
+  Source uses SFSpeechRecognizer, supportsOnDeviceRecognition and requiresOnDeviceRecognition;
+  no Whisper weights/backend or macOS 26 SpeechAnalyzer backend is used.
+- Full Debug suite: 55 passed, 0 failed (8.566 s),
+  `/private/tmp/wisp-audio-settings-20260909.xcresult`; matching log confirms TEST SUCCEEDED.
+- Additional full-height UI render: one test passed, zero failures;
+  `/private/tmp/wisp-audio-settings-render-20260909.log`.
+- Visually inspected `/private/tmp/wisp-audio-settings.png`,
+  `/private/tmp/wisp-audio-settings-full.png`, `/private/tmp/wisp-data-settings.png`.
+  Normal 620×520-point forms scroll for lower rows; full-height render verifies Sound row.
+  Labels and controls fit without long always-visible explanations.
+- Synthetic cleanup removed transcript/audio fixtures, preserved sibling chat bytes and a
+  symlink target, was safe to repeat, and freed storage admission. No real user files deleted.
+- Preference round-trip and invalid-locale/corrupt-value fallback tested in a temporary
+  UserDefaults suite. Settings rendering left capture inactive; permission grants were not requested.
+- English labels/JSON and git diff --check pass. Usage, privacy and changelog docs updated.
+- Limitations: real permission dialog interactions, System Settings deep-link destinations,
+  physical audio volume changes and live recorder compatibility remain untested. Existing
+  model-provider settings were not exercised against real services/CLIs in this audit.
+- Nothing installed, committed, pushed, or sent. No microphone capture or privacy-indicator
+  system configuration changes were performed.
+- Release build exits 0, BUILD SUCCEEDED:
+  `/private/tmp/wisp-audio-settings-release-20260909.log` (arm64 and x86_64 compilation).
+
+39. User correction: only capture other-party/video application playback; never open Wisp microphone capture. Implemented immutable application mode in ListeningModel, removed microphone authorization path and selectable source modes/permission request UI. Existing saved preferences cannot enable microphone. Retained backend is not exposed. Application loopback/echo is not speaker-filtered.
+
+40. User supersedes requirement 39: restore all three source modes for debugging/testing, run checks, then install into Applications. Microphone remains opt-in; default is application audio. Installation explicitly authorized this turn.
+- Requirement 40 verification: all 56 tests pass (8.600 s), /private/tmp/wisp-restored-audio-tests.log; signed Release BUILD SUCCEEDED, /private/tmp/wisp-restored-audio-release.log. Universal x86_64 + arm64; strict codesign verification passes, audio-input entitlement present, no debug entitlement. Settings render inspected and localization JSON/git diff --check pass.
+- User-authorized install completed at /Applications/Wisp.app; executable comparison and strict signature check pass. Previous app backed up at /private/tmp/wisp-restored-install-z7u7wP/previous-Wisp.app. App launch requested successfully; no automatic recording or real microphone test performed. No commit or push.
+
+41. User requests integrated single-line transcription above the existing AI chat; remove recording-page clutter, stop/shortcut draft or copy, manual Enter/send with screen context; fix broken resizing. Supersedes separate ListeningView destination and speech-only context bypass.
+- Default stop behavior: stage recent unstaged speech after drain (optional async preference unanswered); no automatic provider submission. Control–Option–R toggles capture, Control–Option–D stages, both configurable. Application selection moved to Audio settings.
+- Reproduced resize failure in native fixture: root hosting reset heights to 36 and minimum width to zero even with sizingOptions=[]. Fixed using an AppKit NSView container, with SwiftUI as its autoresizing child.
+
+
+## Current extension: uncommitted health audit — 2026-09-09
+42. Investigate intermittent menu-bar loss and prevent persistent accidental disappearance while preserving explicit hiding.
+43. Review all uncommitted changes, especially speech capture, lifecycle, storage, draft/send and window interactions; fix confirmed defects.
+44. Rerun meaningful tests and Debug/Release builds; distinguish synthetic coverage from live hardware verification. Do not commit, install, invoke real model CLIs or send captured content.
+
+Decisions/evidence (in progress):
+- MenuBarExtra writes insertion removal back into its binding (Apple documentation). Separate runtime insertion from the stored opt-out, allow one reinsertion per explicit setting change, and expose settings from every panel state.
+- Initial isolated build failed dependency resolution because sandbox DNS/network access was denied; approved Xcode retry is running.
+- Preserve earlier unresolved requirements and historical evidence above; this audit does not certify previous hardware/privacy claims.
+
+Health audit evidence:
+- Baseline 72 tests and fixed full suite 75 tests pass with zero failures; final result `/private/tmp/wisp-health-final.xcresult`.
+- Universal unsigned Release build passes; architectures x86_64 + arm64. Native compact chat, narrow recording row and transcript page inspected; corrected transcript fixture background and targeted render test passes.
+- Installer fixture exercises success, copy failure and both signature-failure stages; all four pass with old bytes preserved/restored. Reproduction: `python3 tools/test-install-local.py`.
+- Detailed scope, fixes and unverified hardware/menu cases: docs/health-audit-20260909.md. Syntax, plist, localization JSON, source membership and diff whitespace checks pass.
+45. User explicitly authorizes replacing /Applications/Wisp.app with the repaired version and reopening it. Signed build and installation now in progress; preserve prior app backup. This supersedes requirement 44's no-install constraint only.
+
+Requirement 45 installation evidence:
+- Signed Release build succeeded using the existing Apple Development identity; certificate-anchored designated requirement, not ad-hoc. Log: /private/tmp/wisp-health-signed-build.log.
+- Gracefully quit prior installed PID 23082, installed the verified candidate and reopened /Applications/Wisp.app. New PID 28894 observed.
+- Strict deep signature verification and executable byte comparison pass; installed binary contains x86_64 + arm64.
+- Previous bundle: /var/folders/bj/_6886nzd0rd2f4vvw_2bdq7h0000gn/T/wisp-install-backup.6MmioI/previous-Wisp.app. Installation log: /private/tmp/wisp-health-install.log.
+- Native AX confirms running Wisp and an Open Assistant control. Screenshot inspection failed with ScreenCaptureKit -3811, so physical menu-icon visibility/recovery is still not certified.
+- Installer now fails closed when process enumeration itself fails. Four install fixtures pass after final script edits. No commit or push; live audio remains untested.
+
+## Current follow-up: voice visibility and additional recognition model — 2026-09-09
+46. Verify Settings can hide/show the voice bar and preserve working voice controls. Existing Audio → Enable voice input gates the row, prevents starting while disabled, stops capture on disable, and closes the transcript destination. Fresh Debug build and full suite: 76 tests passed, zero failures; /private/tmp/wisp-voice-settings-check-20260909-r2.xcresult. Real audio hardware was not exercised.
+47. Integrate the user's referenced Hugging Face speech-recognition model. Awaiting exact model name or document/link; repository docs contain no Hugging Face model reference. Current engine is Apple on-device Speech. No model selected, downloaded, or integrated yet.
+- Initial test attempt failed on sandbox compiler/package cache writes; approved retry succeeded. No installation, model CLI invocation, or external audio transmission performed.
+
+48. User identified and authorized SenseVoice Small integration: add a persisted engine option, reuse ~/Documents/huggingface/models/k2-fsa/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17 without copying/downloading weights, preserve Apple Speech and the voice enable switch.
+- Native dependency pinned to sherpa-onnx 1.13.7, matching NoType; official Package.swift supports macOS 10.15+, within Wisp's macOS 14 target. Use bounded batches and a separate serial inference queue. No automatic cloud fallback or model-file deletion.
+- Acceptance: engine/language selection persists, missing files fail clearly, SenseVoice bypasses Speech authorization, synthetic regressions plus real bundled sample WAV decode, Debug/Release builds and settings render. Installation is not part of this request.
+
+SenseVoice implementation evidence (2026-09-09):
+- Requirements 47–48 resolved: model identified in the shared Documents/huggingface location and wired into a persisted Audio engine picker. Existing preference JSON migrates without losing source/locale/retention; default remains Apple Speech. SenseVoice language defaults to auto. Voice enable/disable behavior is preserved (requirement 46).
+- Shared files are read only. No model installer, duplicate weights, model deletion or cloud fallback. Native CPU initialization and inference run on a serial background queue; scheduler cancellation ignores late results. PCM conversion preserves batch duration at 16 kHz mono; capture permissions remain source-specific while SenseVoice bypasses Speech authorization.
+- Final Debug suite: 81 passed, zero failures, zero skips; /private/tmp/wisp-sensevoice-verified.xcresult and /private/tmp/wisp-sensevoice-verified.log. Real installed-model test decoded bundled English and Chinese WAVs in 1.191 seconds (including loading); this is an integration smoke test, not an accuracy benchmark. Earlier runs exposed overly specific sample assertions, corrected after examining output; Chinese wording varied.
+- Native settings render /private/tmp/wisp-sensevoice-settings.png inspected with English translations: picker, automatic language option, shared-model file status, no Speech permission row in SenseVoice mode. No capture started.
+- Documentation, privacy text, English/Chinese README, changelog, sherpa-onnx/ONNX Runtime licenses and third-party notices updated. Localization JSON and git diff --check pass.
+- No installed app replacement, live microphone/application recording, model CLI invocation, transcript submission, commit or push. Sustained live audio accuracy, Intel hardware runtime and macOS 14 runtime remain unverified.
+- Universal unsigned Release build succeeded: /private/tmp/wisp-sensevoice-release.log. `lipo -info` confirms x86_64 and arm64 in Build/Release/Wisp.app/Contents/MacOS/Wisp. This verifies compilation/linking for both architectures, not Intel runtime behavior.
+
+49. User explicitly authorizes installing the SenseVoice-enabled build into /Applications. Build with the existing Apple Development identity, preserve the old bundle, reopen and verify the installed executable/signature. Signed build in progress; use the verified installer staging/rollback steps.
+- Requirement 49 complete: signed Release build succeeded (/private/tmp/wisp-sensevoice-signed-build.log); installed and reopened /Applications/Wisp.app. PID 2381 observed. Strict deep signature verification and byte comparison with Build/Release/Wisp.app/Contents/MacOS/Wisp both pass outside the sandbox; installed binary is arm64 + x86_64.
+- Previous app backup: /var/folders/bj/_6886nzd0rd2f4vvw_2bdq7h0000gn/T/wisp-install-backup.mZnTXV/previous-Wisp.app. Install log: /private/tmp/wisp-sensevoice-install.log. Sandbox-only verification initially lacked signing trust/process access; authorized verification succeeded. No recording started and no model selection changed.

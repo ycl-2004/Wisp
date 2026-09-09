@@ -2,6 +2,11 @@ import AppKit
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
+    static let toggleListening = Self("toggleListening", default: .init(.r, modifiers: [.control, .option]))
+    static let stageListening = Self("stageListening", default: .init(.d, modifiers: [.control, .option]))
+    static let analyzeListening = Self("analyzeListening", default: .init(.a, modifiers: [.control, .option]))
+    static let stopAndAnalyzeListening = Self("stopAndAnalyzeListening",
+                                              default: .init(.return, modifiers: [.control, .option]))
     static let toggleAssistant = Self("toggleAssistant",
                                       default: .init(.space, modifiers: [.control, .option]))
 }
@@ -106,6 +111,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ScreenPrivacy.start()
             PanelController.shared.restoreStoredFrame()
             IslandController.shared.start()
+            // 菜单栏图标关着的时候，启动完成后什么都不显示等于「打开了但找不到」。
+            // 这时候先把面板亮出来，设置也能从它的齿轮进。
+            if !AppSettings.shared.showsMenuBarIcon { PanelController.shared.show() }
         }
 
         // 启动更新检查默认关闭，用户可以在设置里主动开启。
@@ -124,6 +132,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 PanelController.shared.toggle()
             }
         }
+
+        onListeningShortcut(.toggleListening) { $0.toggleFromUser() }
+        onListeningShortcut(.stageListening) { $0.stageRecentSpeech() }
+        onListeningShortcut(.analyzeListening) { $0.analyzeRecentSpeech() }
+        onListeningShortcut(.stopAndAnalyzeListening) { $0.stopAndAnalyze() }
 
         AdvancedShortcutMonitor.shared.configure {
             Task { @MainActor in
@@ -184,8 +197,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.attributedTitle = attributed
     }
 
+    /// 语音的快捷键统一从这里注册：总开关关掉之后，面板上没有任何东西能提示
+    /// 正在录音，快捷键就不该还能悄悄把它开起来。
+    private func onListeningShortcut(_ name: KeyboardShortcuts.Name,
+                                     _ action: @escaping @MainActor (ListeningModel) -> Void) {
+        KeyboardShortcuts.onKeyUp(for: name) {
+            Task { @MainActor in
+                let listening = ListeningModel.shared
+                guard listening.isEnabled else { return }
+                action(listening)
+            }
+        }
+    }
+
+    /// 菜单栏图标是这个没有 Dock 图标的应用唯一看得见的入口。用户在访达或聚焦里
+    /// 再点一次 Wisp（图标被关掉、被菜单栏挤掉、或者只是没找到），至少要有反应。
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        MainActor.assumeIsolated { PanelController.shared.show() }
+        return true
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
+            ListeningModel.shared.terminate()
             ConversationStore.shared.flush()
         }
     }
