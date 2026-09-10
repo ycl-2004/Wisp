@@ -53,6 +53,12 @@ struct ChatView: View {
             isActive = note.userInfo?["active"] as? Bool ?? false
         }
         .onChange(of: model.speechDraftRevision) { focusRequest += 1 }
+        .onChange(of: inputHeight) { _, height in
+            PanelController.shared.updateCollapsedHeight(forInputHeight: height)
+        }
+        .onChange(of: model.showsConversationList) { _, showsHistory in
+            if showsHistory, model.isCollapsed { model.setCollapsed(false) }
+        }
     }
 
     private var content: some View {
@@ -160,7 +166,6 @@ struct ChatView: View {
                     .font(DS.meta).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            ResponseModeBar()
             HStack(alignment: .bottom, spacing: 6) {
                 ChatInput(text: $model.input,
                           placeholder: String(localized: "问点什么…  Return 发送，Shift+Return 换行"),
@@ -181,6 +186,9 @@ struct ChatView: View {
                             .strokeBorder(DS.hairline, lineWidth: 0.5)
                     )
 
+                if !settings.listeningEnabled {
+                    ResponseModeToggle()
+                }
                 sendButton
             }
         }

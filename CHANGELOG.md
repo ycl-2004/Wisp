@@ -15,6 +15,10 @@
   information button contains the active connection, endpoint or CLI executable, and effective
   models, with English and Simplified Chinese translations.
 
+- Quick and Deep are now icon-only controls on the Voice input row (or beside the composer when
+  voice input is disabled). The compact panel defaults to a tight 140pt height, grows with
+  multiline questions, and expands to the saved height when conversation history is opened.
+
 - **SenseVoice Small recognition engine.** Audio settings can reuse the shared local
   ONNX model with automatic language detection, alongside Apple on-device Speech.
   Background CPU inference, persisted engine/language options, missing-model feedback;

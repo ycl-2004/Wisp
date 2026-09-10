@@ -298,10 +298,20 @@ final class AssistantModel: ObservableObject {
 
     @Published var confirmsEviction = false
 
+    func toggleConversationList() {
+        let showing = !showsConversationList
+        showsConversationList = showing
+        if showing {
+            showsTranscript = false
+            if isCollapsed { setCollapsed(false) }
+        }
+    }
+
     func newConversation() {
         guard store.canCreateNew else {
             // 满了不是死路：把「要顶掉哪一个」摆出来让用户确认。
             showsConversationList = true
+            if isCollapsed { setCollapsed(false) }
             confirmsEviction = true
             return
         }

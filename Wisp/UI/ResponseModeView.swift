@@ -1,38 +1,35 @@
 import SwiftUI
 import KeyboardShortcuts
 
-struct ResponseModeBar: View {
+/// Compact mode switch used in the voice row (or beside the composer when voice is off).
+/// The icons keep the panel one row shorter while the labels remain available to VoiceOver
+/// and the hover tooltip.
+struct ResponseModeToggle: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var model = AssistantModel.shared
     @State private var showsTiming = false
 
     var body: some View {
-        HStack(spacing: 6) {
-            Menu {
-                Picker("回答模式", selection: $settings.responseMode) {
-                    ForEach(ResponseMode.allCases) { mode in
-                        Label(mode.title, systemImage: mode.symbol).tag(mode)
-                    }
+        HStack(spacing: 2) {
+            ForEach(ResponseMode.allCases) { mode in
+                Button {
+                    settings.responseMode = mode
+                } label: {
+                    Image(systemName: mode.symbol)
+                        .font(.system(size: 11, weight: .medium))
+                        .frame(width: 21, height: 19)
+                        .foregroundStyle(settings.responseMode == mode ? Color.accentColor : Color.secondary)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(settings.responseMode == mode ? Color.accentColor.opacity(0.14) : .clear)
+                        )
                 }
-                Divider()
-                Text(settings.responseMode.explanation)
-                SettingsLink { Text("模式与模型设置…") }
-            } label: {
-                Label(settings.responseMode.title, systemImage: settings.responseMode.symbol)
-                    .font(DS.meta)
+                .buttonStyle(.plain)
+                .help(mode.explanation)
+                .accessibilityLabel(Text(mode.title))
+                .accessibilityAddTraits(settings.responseMode == mode ? .isSelected : [])
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help(settings.responseMode.explanation)
 
-            Text(model.isStreaming ? String(localized: "修改将在下次提问生效") : model.isPreparingResponse ? String(localized: "正在准备上下文…")
-                 : settings.responseMode == .quick ? String(localized: "已有上下文 · 不取新正文")
-                 : String(localized: "按采集设置读取正文"))
-                .font(DS.meta).foregroundStyle(.secondary)
-                .lineLimit(1).truncationMode(.tail)
-                .help(settings.responseMode.explanation)
-            Spacer(minLength: 0)
             if let timing = model.lastResponseTiming {
                 Button { showsTiming.toggle() } label: {
                     Image(systemName: "stopwatch").font(DS.meta)
@@ -55,7 +52,13 @@ struct ResponseModeBar: View {
                 }
             }
         }
-        .frame(minHeight: 18)
+        .padding(2)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color.primary.opacity(0.05))
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("回答模式"))
     }
 }
 

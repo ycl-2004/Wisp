@@ -60,6 +60,7 @@ struct ListeningBar: View {
             if isRecording, let startedAt { ElapsedLabel(startedAt: startedAt) }
             message
             Spacer(minLength: 2)
+            ResponseModeToggle()
             actions
         }
         .padding(.horizontal, DS.gutter)

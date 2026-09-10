@@ -11,8 +11,9 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
-    static let collapsedHeight: CGFloat = 180
-    private static let minimumCollapsedHeight: CGFloat = 180
+    static let collapsedHeight: CGFloat = 140
+    private static let minimumCollapsedHeight: CGFloat = 140
+    private static let legacyCollapsedHeight: CGFloat = 180
     private static let maximumCollapsedHeight: CGFloat = 240
     private static let minimumExpandedHeight: CGFloat = 280
     private static let maximumExpandedHeight: CGFloat = 1000
@@ -159,6 +160,29 @@ final class PanelController: NSObject, NSWindowDelegate {
     func setCollapsed(_ collapsed: Bool, animated: Bool = true) {
         guard let panel else { return }
         let target = collapsed ? storedCollapsedHeight : storedExpandedHeight
+        setPanelHeight(target, animated: animated)
+    }
+
+    /// Keep the collapsed panel tight to the composer as a multiline question grows.
+    /// The stored value is updated even while expanded so the next show starts at the
+    /// one-line height after the draft is cleared.
+    func updateCollapsedHeight(forInputHeight inputHeight: CGFloat, animated: Bool = true) {
+        let target = Self.collapsedHeight(forInputHeight: inputHeight)
+        storedCollapsedHeight = target
+        guard AssistantModel.shared.isCollapsed else { return }
+        setPanelHeight(target, animated: animated)
+    }
+
+    /// The collapsed height follows the measured composer height one point for one,
+    /// while keeping a predictable one-line minimum and a bounded multiline maximum.
+    static func collapsedHeight(forInputHeight inputHeight: CGFloat) -> CGFloat {
+        let delta = max(0, inputHeight - ChatInput.defaultHeight)
+        return min(max(Self.collapsedHeight + delta, Self.minimumCollapsedHeight),
+                   Self.maximumCollapsedHeight)
+    }
+
+    private func setPanelHeight(_ target: CGFloat, animated: Bool) {
+        guard let panel else { return }
         var frame = panel.frame
         guard abs(frame.height - target) > 0.5 else { return }
         // 底边不动，向上展开。输入框位置保持稳定，内容从上方长出来。
@@ -171,7 +195,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         isApplyingProgrammaticFrame = true
         if animated {
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.18
+                context.duration = 0.14
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 panel.animator().setFrame(frame, display: true)
             } completionHandler: { [weak self] in
@@ -290,8 +314,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         storedWidth = rect.width
         storedOrigin = rect.origin
         if rect.height <= Self.maximumCollapsedHeight {
-            storedCollapsedHeight = min(max(rect.height, Self.minimumCollapsedHeight),
-                                        Self.maximumCollapsedHeight)
+            // 180pt was the old default while the standalone mode row was present.
+            // Treat that exact legacy default as a migration value so existing users
+            // do not keep a large blank strip after the row is removed.
+            storedCollapsedHeight = abs(rect.height - Self.legacyCollapsedHeight) < 1
+                ? Self.collapsedHeight
+                : min(max(rect.height, Self.minimumCollapsedHeight), Self.maximumCollapsedHeight)
         } else if rect.height >= Self.minimumExpandedHeight {
             storedExpandedHeight = min(rect.height, Self.maximumExpandedHeight)
         }

@@ -68,6 +68,26 @@ final class ListeningTests: XCTestCase {
         XCTAssertFalse(model.isCollapsed)
     }
 
+    @MainActor
+    func testOpeningHistoryExpandsCollapsedPanel() {
+        let model = AssistantModel.shared
+        let collapsed = model.isCollapsed, list = model.showsConversationList, transcript = model.showsTranscript
+        defer {
+            model.setCollapsedSilently(collapsed)
+            model.showsConversationList = list
+            model.showsTranscript = transcript
+        }
+        model.setCollapsedSilently(true)
+        model.showsConversationList = false
+        model.showsTranscript = false
+
+        model.toggleConversationList()
+
+        XCTAssertTrue(model.showsConversationList)
+        XCTAssertFalse(model.showsTranscript)
+        XCTAssertFalse(model.isCollapsed)
+    }
+
     func testPartialRevisionDoesNotDuplicateAndLatePartialCannotUndoFinal() {
         var transcript = transcript()
         let id = UUID()
@@ -492,7 +512,7 @@ final class ListeningTests: XCTestCase {
         model.setCollapsedSilently(true)
         defer { model.setCollapsedSilently(collapsed) }
         try render(ChatView().environmentObject(model).environmentObject(model.store),
-                   filename: "wisp-integrated-chat.png", height: 180)
+                   filename: "wisp-integrated-chat.png", height: PanelController.collapsedHeight)
     }
 
     @MainActor

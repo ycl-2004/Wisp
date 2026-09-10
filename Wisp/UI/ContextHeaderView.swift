@@ -31,7 +31,7 @@ struct ContextHeaderView: View {
     private var titleRow: some View {
         HStack(spacing: 6) {
             Button {
-                model.showsConversationList.toggle()
+                model.toggleConversationList()
             } label: {
                 Image(systemName: model.showsConversationList
                       ? "chevron.left"

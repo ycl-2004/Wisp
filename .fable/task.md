@@ -16,6 +16,7 @@ Make Wisp responses faster with explicit accuracy tradeoffs, selectable Quick/De
 59. Remove existing rollback copies and make successful local replacements clean temporary backups while retaining the stable team signature workflow.
 60. Remove Standard from the customer-facing mode picker, use Quick as the default, and present only two compact rows pairing each mode with its shortcut and model.
 61. Move current connection, CLI, endpoint, and model details behind one information button at the end of the Response mode row, and keep the mode/table labels localized in English and Simplified Chinese.
+62. Keep the compact panel tight after removing the standalone mode row, grow it with multiline input, and expand it to the saved expanded height when conversation history opens.
 
 ## Decisions
 - Existing context/history and prior outstanding hardware/privacy limitations are preserved verbatim in history.md. Previous installed voice work is commit 36c39c3 on origin/feat/add_voice_detect.
@@ -25,6 +26,8 @@ Make Wisp responses faster with explicit accuracy tradeoffs, selectable Quick/De
 - Fast is independent of effort. Retry once without priority only on an explicit tier rejection before any answer; do not retry auth/rate/transport/unrelated failures.
 - A connection profile is keyed by provider kind plus normalized API scheme/host/port/path, or CLI provider plus normalized executable path. Cosmetic URL case, whitespace and trailing slashes share a profile; different endpoints and CLIs do not.
 - No Claude CLI invoked and no live model API calls. Installation was explicitly requested after the build; no commit or push was requested in this follow-up.
+- Quick and Deep are now icon-only controls on the Voice input row; when voice input is disabled the same controls stay beside the composer. The CLI/model picker remains in the header.
+- The collapsed default is 140pt, old exact 180pt saved frames migrate to 140pt, measured multiline input adds height up to 240pt, and opening conversation history expands the panel while preserving its saved expanded height.
 
 ## Evidence
 - Initial full Debug run: 88 tests, zero failures; /private/tmp/wisp-response-modes-tests.xcresult.
@@ -43,6 +46,7 @@ Make Wisp responses faster with explicit accuracy tradeoffs, selectable Quick/De
 - Final test rerun with the project's non-signing test configuration also passes 92 tests with zero failures: `/private/tmp/wisp-two-modes-tests-final3.xcresult` and `/private/tmp/wisp-two-modes-tests-final3.log`. A signed Release build remains the installed customer artifact.
 - Final connection-info verification: `/private/tmp/wisp-response-info-tests.xcresult` passes 92 tests with zero failures. The installed Model settings accessibility tree shows the trailing `ⓘ` popover with the active connection, CLI executable, Quick model, and Deep model; the visible table header is `Mode` in English and the popover is reachable without an always-visible connection line.
 - The final installed executable SHA-256 is `766b9d3fbfc4a414a1a89597a44eb1b828f82687f93b5dbc7c65a9d8d850c72c` in both `Build/Release/Wisp.app` and `/Applications/Wisp.app`; the working tree is clean after commits `516f93d` and `5d4db94`, both pushed to `origin/feat/add_voice_detect`.
+- Focused panel-layout verification: `/private/tmp/wisp-panel-layout-tests2.xcresult` passes 54 tests with zero failures, including collapsed-height bounds and history expansion. `/private/tmp/wisp-integrated-chat.png` renders at the 140pt default with no extra bottom strip; `/private/tmp/wisp-listening-bar-idle-620.png` shows the icon-only Quick/Deep toggle sharing the Voice input row.
 
 ## Delivery status
-Requirements 50–61 implemented and locally verified (12/12). Live provider benchmarking and physical shortcut delivery remain explicit limitations, not established accuracy or speed claims. Final UI changes are committed and pushed.
+Requirements 50–62 implemented and locally verified (13/13). Live provider benchmarking and physical shortcut delivery remain explicit limitations, not established accuracy or speed claims. Final UI changes are ready for signed installation, commit, and push.

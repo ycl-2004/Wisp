@@ -18,6 +18,15 @@ final class ResponseModeTests: XCTestCase {
         XCTAssertEqual(AppSettings.shared.responseMode, .deep)
     }
 
+    @MainActor
+    func testCollapsedPanelHeightTracksMultilineComposerWithoutExtraDefaultSpace() {
+        XCTAssertEqual(PanelController.collapsedHeight, 140)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight), 140)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight - 10), 140)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 80), 200)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 400), 240)
+    }
+
     func testSelectionFreezesRequestAndIsolatesConnections() {
         let baseline = ProviderConfig(baseURL: "https://example.com/v1", apiKey: "fixture", model: "original")
         let sent = baseline.selecting(.quick, model: "  fast-model  ")
