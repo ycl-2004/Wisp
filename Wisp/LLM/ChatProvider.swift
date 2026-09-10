@@ -85,16 +85,64 @@ struct ProviderConfig: Sendable {
     var cliProvider: CLIProvider = .codex
     var cliPath: String = ""
 
-    static func current() throws -> ProviderConfig {
+    var responseMode: ResponseMode = .standard
+
+    var responseConnectionKey: String {
+        if kind == .codexCLI {
+            // The path is part of the identity: two locally installed CLIs can
+            // expose different accounts and model namespaces.
+            return "cli|" + cliProvider.rawValue + "|" + normalizedPath(cliPath)
+        }
+        // Include the complete endpoint path: gateways may use distinct model
+        // namespaces on one host. Normalize cosmetic URL differences so adding
+        // a trailing slash does not create a second profile.
+        return kind.rawValue + "|" + normalizedEndpoint(baseURL)
+    }
+
+    private func normalizedPath(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        return URL(fileURLWithPath: trimmed).standardizedFileURL.path
+    }
+
+    private func normalizedEndpoint(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), let scheme = url.scheme,
+              let host = url.host else {
+            return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+        var path = url.path
+        while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
+        let port = url.port.map { ":\($0)" } ?? ""
+        return "\(scheme.lowercased())://\(host.lowercased())\(port)\(path)"
+    }
+
+    func selecting(_ mode: ResponseMode, model override: String) -> ProviderConfig {
+        var result = self
+        result.responseMode = mode
+        if mode != .standard, !override.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            result.model = override.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return result
+    }
+
+    static func current(mode: ResponseMode? = nil) throws -> ProviderConfig {
         let settings = AppSettings.shared
-        switch ProviderKind.current {
+        let baseline = selection(settings: settings)
+        let mode = mode ?? settings.responseMode
+        var config = baseline.selecting(mode, model: settings.responseModel(for: mode, connection: baseline.responseConnectionKey))
+        if config.kind == .openAICompatible {
+            guard let key = KeychainStore.load(for: settings.cloudProvider) else { throw ProviderError.missingKey }
+            config.apiKey = key
+        }
+        return config
+    }
+
+    static func selection(settings: AppSettings = .shared) -> ProviderConfig {
+        switch ProviderKind(rawValue: settings.providerKind) ?? .openAICompatible {
         case .openAICompatible:
-            guard let key = KeychainStore.load(for: settings.cloudProvider) else {
-                throw ProviderError.missingKey
-            }
             return ProviderConfig(kind: .openAICompatible,
                                   baseURL: settings.baseURL,
-                                  apiKey: key,
                                   model: settings.model)
         case .ollama:
             return ProviderConfig(kind: .ollama,

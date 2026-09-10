@@ -160,10 +160,11 @@ struct ChatView: View {
                     .font(DS.meta).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            ResponseModeBar()
             HStack(alignment: .bottom, spacing: 6) {
                 ChatInput(text: $model.input,
                           placeholder: String(localized: "问点什么…  Return 发送，Shift+Return 换行"),
-                          isEnabled: !inputDisabled,
+                          isEnabled: !inputDisabled && !model.isPreparingResponse,
                           onSubmit: { model.send() },
                           onEscape: { PanelController.shared.hide() },
                           focusRequest: $focusRequest,
@@ -194,27 +195,15 @@ struct ChatView: View {
 
     /// 当前在用哪家、哪个模型。放在发送键的提示里，不占版面。
     private var providerLabel: String {
-        let settings = AppSettings.shared
-        switch ProviderKind.current {
-        case .openAICompatible:
-            return settings.model.isEmpty ? "云端接口" : settings.model
-        case .ollama:
-            return settings.ollamaModel.isEmpty ? String(localized: "Ollama（未选模型）") : "Ollama · \(settings.ollamaModel)"
-        case .codexCLI:
-            let cli = settings.cliProvider.title
-            let model: String
-            switch settings.cliProvider {
-            case .codex:      model = settings.codexModel
-            case .agy:        model = settings.agyModel
-            case .claudeCode: model = settings.claudeCodeModel
-            }
-            return model.isEmpty ? cli : "\(cli) · \(model)"
-        }
+        let baseline = ProviderConfig.selection()
+        let selected = baseline.selecting(settings.responseMode,
+            model: settings.responseModel(for: settings.responseMode, connection: baseline.responseConnectionKey))
+        return settings.responseMode.title + " · " + (selected.model.isEmpty ? selected.kind.title : selected.model)
     }
 
     @ViewBuilder
     private var sendButton: some View {
-        if model.isStreaming {
+        if model.isStreaming || model.isPreparingResponse {
             Button { model.stopStreaming() } label: {
                 Image(systemName: "stop.fill").font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white)

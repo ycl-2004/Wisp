@@ -86,9 +86,10 @@ final class ListeningModel: ObservableObject {
     /// When the current session began, for the elapsed-time readout.
     var startedAt: Date? { transcript?.startedAt }
 
-    /// Transfer and analysis both write into the draft, so a streaming answer blocks both.
+    /// Preparation and streaming both own the draft until the send finishes.
     var canTransfer: Bool {
-        transcript?.hasUnstagedText(excluding: stagedSegmentIDs) == true && !AssistantModel.shared.isStreaming
+        transcript?.hasUnstagedText(excluding: stagedSegmentIDs) == true
+            && !AssistantModel.shared.isStreaming && !AssistantModel.shared.isPreparingResponse
     }
 
     func clearError() { error = nil }

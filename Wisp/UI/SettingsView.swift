@@ -42,7 +42,7 @@ private struct SettingsSectionHeader: View {
 }
 
 /// 常驻说明收进这里：悬停看 tooltip，点击给键盘用户一个可读的 popover。
-private struct InfoButton: View {
+struct InfoButton: View {
     let message: String
     @State private var isPresented = false
 
@@ -160,6 +160,8 @@ struct ModelSettingsView: View {
             picker
             Divider()
             fields
+            Divider()
+            ResponseModeSettings()
             Divider()
             testRow
             Spacer(minLength: 0)
@@ -556,6 +558,8 @@ struct ModelSettingsView: View {
                                         cliProvider: .claudeCode, cliPath: settings.claudeCodePath)
             }
         }
+        config = config.selecting(settings.responseMode, model: settings.responseModel(
+            for: settings.responseMode, connection: config.responseConnectionKey))
         Task {
             do {
                 try await ProviderConfig.provider(for: config).validate(config: config)

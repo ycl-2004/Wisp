@@ -2,6 +2,8 @@ import AppKit
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
+    static let responseQuick = Self("responseQuick")
+    static let responseDeep = Self("responseDeep")
     static let toggleListening = Self("toggleListening", default: .init(.r, modifiers: [.control, .option]))
     static let stageListening = Self("stageListening", default: .init(.d, modifiers: [.control, .option]))
     static let analyzeListening = Self("analyzeListening", default: .init(.a, modifiers: [.control, .option]))
@@ -130,6 +132,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard AppSettings.shared.shortcutTrigger == .standard else { return }
             Task { @MainActor in
                 PanelController.shared.toggle()
+            }
+        }
+
+        for (name, mode) in [(KeyboardShortcuts.Name.responseQuick, ResponseMode.quick),
+                             (.responseDeep, .deep)] {
+            KeyboardShortcuts.onKeyUp(for: name) {
+                Task { @MainActor in AppSettings.shared.responseMode = mode }
             }
         }
 

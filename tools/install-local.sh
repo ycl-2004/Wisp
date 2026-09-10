@@ -14,6 +14,7 @@
 # 用法：
 #   tools/install-local.sh              构建、签名、装到 /Applications
 #   tools/install-local.sh --no-install 只构建和签名，不动 /Applications
+#   tools/install-local.sh --keep-backup 替换后保留旧包（默认成功后清理）
 #
 # 对外分发仍然用 README 里的 ad-hoc 命令，不要用这个脚本产出的包：
 # 别人的机器上没有你的开发证书，Gatekeeper 会直接拒绝。
@@ -72,6 +73,11 @@ if [[ "${1:-}" == "--no-install" ]]; then
     exit 0
 fi
 
+if [[ "${1:-}" != "" && "${1:-}" != "--keep-backup" ]]; then
+    echo "未知参数：${1}" >&2
+    exit 2
+fi
+
 # 正在运行的 app 被换掉会留下一个坏掉的 bundle。启停 Wisp 由你自己来，脚本只拦一下。
 # 模式必须锚在安装路径开头：`-f` 比对的是整条命令行，写宽了会匹配到任何命令行里
 # 碰巧带着这串路径的进程（跑检测的 shell 自己就是一个），于是永远说「正在运行」。
@@ -110,5 +116,12 @@ mv "$staging/Wisp.app" "$APP"
 codesign --verify --deep --strict "$APP"
 trap - ERR
 rmdir "$staging"
-echo "已安装：${APP}；旧版本备份：$backup"
+if [[ "${1:-}" == "--keep-backup" ]]; then
+    echo "已安装：${APP}；旧版本备份：$backup"
+else
+    # Keep the old bundle only until the move and signature checks pass. The
+    # stable team signature preserves macOS permissions across replacements.
+    rm -rf "$backup"
+    echo "已安装：${APP}；临时回滚备份已清理"
+fi
 echo "证书签名有助于保持授权；macOS 仍可能要求重新确认屏幕录制／麦克风／语音识别权限。"

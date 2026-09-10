@@ -4,6 +4,13 @@
 
 ### Added
 
+- **Selectable response modes.** Standard preserves defaults; Quick skips new page-text
+  capture, while Deep uses configured capture and higher supported reasoning. Per-connection
+  model overrides and configurable shortcuts remain editable during answers and apply to
+  the next question. In-memory timing, explicit evidence/uncertainty instructions, and a
+  single standard-tier fallback for explicit priority rejection. Fast remains preferred
+  across modes where supported; actual model accuracy has not been benchmarked.
+
 - **SenseVoice Small recognition engine.** Audio settings can reuse the shared local
   ONNX model with automatic language detection, alongside Apple on-device Speech.
   Background CPU inference, persisted engine/language options, missing-model feedback;

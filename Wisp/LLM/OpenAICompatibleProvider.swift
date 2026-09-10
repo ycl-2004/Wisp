@@ -58,14 +58,16 @@ struct OpenAICompatibleProvider: ChatProvider {
         return url
     }
 
-    private func request(config: ProviderConfig, body: [String: Any]) throws -> URLRequest {
+    private func request(config: ProviderConfig, body: [String: Any], allowPriority: Bool = true) throws -> URLRequest {
         guard let url = Self.endpoint(config.baseURL) else { throw ProviderError.badBaseURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("Wisp/0.1", forHTTPHeaderField: "User-Agent")
-        request.httpBody = try JSONSerialization.data(withJSONObject: Self.speedPreferredBody(body, endpoint: url))
+        var payload = ResponsePolicy.applying(config.responseMode, to: Self.speedPreferredBody(body, endpoint: url), endpoint: url)
+        if !allowPriority { payload.removeValue(forKey: "service_tier") }
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         return request
     }
 
@@ -93,6 +95,22 @@ struct OpenAICompatibleProvider: ChatProvider {
         return result
     }
 
+    /// Retry only explicit tier rejection before receiving any answer, never auth,
+    /// rate limits, transport failures or unrelated model/capability errors.
+    static func rejectsPriority(status: Int, data: Data, request: URLRequest) -> Bool {
+        guard [400, 403, 422].contains(status),
+              let body = request.httpBody,
+              let payload = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              payload["service_tier"] as? String == "priority" else { return false }
+        let message = SSEParser.errorMessage(from: data).lowercased()
+        let identifiesTier = message.contains("service_tier") || message.contains("service tier")
+            || message.contains("priority tier") || message.contains("priority processing")
+        let rejectsTier = ["not supported", "unsupported", "not available", "unavailable",
+                           "not allowed", "not enabled", "not eligible", "invalid", "not permitted"]
+            .contains { message.contains($0) }
+        return identifiesTier && rejectsTier
+    }
+
     // MARK: - 流式
 
     func stream(messages: [[String: Any]], config: ProviderConfig) -> AsyncThrowingStream<String, Error> {
@@ -104,27 +122,37 @@ struct OpenAICompatibleProvider: ChatProvider {
                         "messages": messages,
                         "stream": true,
                     ]
-                    let urlRequest = try request(config: config, body: body)
-                    let (bytes, response) = try await session.bytes(for: urlRequest)
+                    var allowPriority = true
+                    while true {
+                        try Task.checkCancellation()
+                        let urlRequest = try request(config: config, body: body, allowPriority: allowPriority)
+                        let (bytes, response) = try await session.bytes(for: urlRequest)
 
-                    guard let http = response as? HTTPURLResponse else {
-                        throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
-                    }
-                    guard (200..<300).contains(http.statusCode) else {
-                        var data = Data()
-                        for try await byte in bytes { data.append(byte) }
-                        throw Self.mapError(status: http.statusCode, data: data, response: http)
-                    }
-
-                    for try await line in bytes.lines {
-                        if Task.isCancelled { break }
-                        switch SSEParser.parse(line: line) {
-                        case .delta(let text): continuation.yield(text)
-                        case .done: continuation.finish(); return
-                        case .ignored: continue
+                        guard let http = response as? HTTPURLResponse else {
+                            throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
                         }
+                        guard (200..<300).contains(http.statusCode) else {
+                            var data = Data()
+                            for try await byte in bytes { data.append(byte) }
+                            if Self.rejectsPriority(status: http.statusCode, data: data, request: urlRequest) {
+                                allowPriority = false
+                                continue
+                            }
+                            throw Self.mapError(status: http.statusCode, data: data, response: http)
+                        }
+
+                        for try await line in bytes.lines {
+                            if Task.isCancelled { break }
+                            switch SSEParser.parse(line: line) {
+                            case .delta(let text): continuation.yield(text)
+                            case .done: continuation.finish(); return
+                            case .ignored: continue
+                            }
+                        }
+                        try Task.checkCancellation()
+                        continuation.finish()
+                        return
                     }
-                    continuation.finish()
                 } catch is CancellationError {
                     continuation.finish(throwing: ProviderError.cancelled)
                 } catch let error as ProviderError {
@@ -159,19 +187,28 @@ struct OpenAICompatibleProvider: ChatProvider {
                 ],
             ]],
         ]
-        let urlRequest = try request(config: config, body: body)
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: urlRequest)
-        } catch let error as URLError {
-            throw Self.mapTransport(error, kind: config.kind)
-        }
-        guard let http = response as? HTTPURLResponse else {
-            throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw Self.mapError(status: http.statusCode, data: data, response: http)
+        var allowPriority = true
+        while true {
+            try Task.checkCancellation()
+            let urlRequest = try request(config: config, body: body, allowPriority: allowPriority)
+            let data: Data
+            let response: URLResponse
+            do {
+                (data, response) = try await session.data(for: urlRequest)
+            } catch let error as URLError {
+                throw Self.mapTransport(error, kind: config.kind)
+            }
+            guard let http = response as? HTTPURLResponse else {
+                throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                if Self.rejectsPriority(status: http.statusCode, data: data, request: urlRequest) {
+                    allowPriority = false
+                    continue
+                }
+                throw Self.mapError(status: http.statusCode, data: data, response: http)
+            }
+            return
         }
     }
 

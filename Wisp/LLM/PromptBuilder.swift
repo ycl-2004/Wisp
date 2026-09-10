@@ -18,7 +18,7 @@ enum PromptBuilder {
         1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。
         2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。
         3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。
-        4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。
+        4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。
         5. 用用户提问所使用的语言回答，默认简体中文。
         6. 回答简洁直接，先给结论。
         """)
@@ -27,10 +27,11 @@ enum PromptBuilder {
     /// - Parameters:
     ///   - messages: 当前对话的全部消息，最后一条应为本轮用户消息。
     ///   - liveScreenshot: 本轮要发送的截图；nil 表示不发图。
-    static func build(messages: [Message], liveScreenshot: Data?) -> [[String: Any]] {
-        var payload: [[String: Any]] = [
-            ["role": "system", "content": systemPrompt]
-        ]
+    static func build(messages: [Message], liveScreenshot: Data?, mode: ResponseMode = .quick, skippedPageCapture: Bool = false) -> [[String: Any]] {
+        let instructions = [systemPrompt, ResponsePolicy.evidenceInstructions, mode.prompt,
+                            skippedPageCapture ? ResponsePolicy.skippedContextNotice : ""]
+            .filter { !$0.isEmpty }.joined(separator: "\n\n")
+        var payload: [[String: Any]] = [["role": "system", "content": instructions]]
 
         let userIndexes = messages.enumerated()
             .filter { $0.element.role == .user }

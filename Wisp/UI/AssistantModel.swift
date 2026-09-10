@@ -19,6 +19,11 @@ final class AssistantModel: ObservableObject {
             PanelController.shared.refreshIdleTimer()
         }
     }
+    @Published private(set) var isPreparingResponse = false
+    @Published private(set) var lastResponseTiming: ResponseTiming?
+    @Published private(set) var lastResponseSkippedPage = false
+    private var preparationTask: Task<Void, Never>?
+    private var responseGeneration = UUID()
     @Published var errorText: String?
     @Published var showsConversationList = false
     @Published var showsNotes = false
@@ -268,7 +273,7 @@ final class AssistantModel: ObservableObject {
     /// 除「输入框里有东西」以外的发送前置条件。空状态里那几个建议自带问题文本，
     /// 不该被空输入框挡住，所以单独拆出来一份。
     var canStartQuestion: Bool {
-        guard !isStreaming else { return false }
+        guard !isStreaming, !isPreparingResponse, !isCapturing else { return false }
         guard let conversation = store.active else { return store.canCreateNew }
         return !store.isAtTurnLimit(conversation)
     }
@@ -327,18 +332,41 @@ final class AssistantModel: ObservableObject {
     func send() {
         let question = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, canStartQuestion else { return }
-
-        if isCollapsed {
-            withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) }
-        }
-        Task {
-            // 截图过期了先补一张，然后读正文——滑动采集就发生在这一步。
-            // 不再按「超过 N 秒就重来」：那会在用户慢慢打字的时候突然翻动页面。
-            if packet == nil || contextIsStale {
-                await captureShot()
+        let config: ProviderConfig
+        do { config = try ProviderConfig.current() }
+        catch { errorText = error.localizedDescription; return }
+        let conversationID = store.active?.id
+        let sendScreenshot = settings.sendScreenshot
+        let mode = config.responseMode
+        let generation = UUID()
+        responseGeneration = generation
+        lastResponseSkippedPage = false
+        lastResponseTiming = ResponseTiming(mode: mode, model: config.model,
+                                            startedAt: ProcessInfo.processInfo.systemUptime)
+        errorText = nil
+        isPreparingResponse = true
+        if isCollapsed { withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) } }
+        preparationTask = Task {
+            defer {
+                if responseGeneration == generation {
+                    isPreparingResponse = false
+                    preparationTask = nil
+                }
             }
-            await captureText()
-            performSend(question: question)
+            if packet == nil || contextIsStale { await captureShot() }
+            guard !Task.isCancelled, responseGeneration == generation else { return }
+            let skippedPage = !mode.capturesPageText && pendingText != nil
+            if mode.capturesPageText { await captureText() }
+            guard !Task.isCancelled, responseGeneration == generation else { return }
+            guard store.active?.id == conversationID else {
+                errorText = String(localized: "准备期间切换了对话，请重新发送。")
+                lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
+                lastResponseTiming?.outcome = "cancelled"
+                return
+            }
+            lastResponseSkippedPage = skippedPage
+            performSend(question: question, config: config, sendScreenshot: sendScreenshot,
+                        skippedPage: skippedPage, generation: generation)
         }
     }
 
@@ -354,7 +382,7 @@ final class AssistantModel: ObservableObject {
     func stageSpeechDraft(_ text: String, fallbackQuestion: String? = nil) -> Bool {
         let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let existing = typed.isEmpty ? (fallbackQuestion ?? "") : input
-        guard !text.isEmpty, !isStreaming,
+        guard !text.isEmpty, !isStreaming, !isPreparingResponse,
               let draft = ListeningTranscript.appendingToDraft(text, existing: existing) else { return false }
         input = draft
         isSpeechDraft = true
@@ -365,7 +393,8 @@ final class AssistantModel: ObservableObject {
         return true
     }
 
-    private func performSend(question: String, includeScreen: Bool = true) {
+    private func performSend(question: String, config: ProviderConfig, sendScreenshot: Bool,
+                             skippedPage: Bool, generation: UUID) {
         // A previous asynchronous screen read may finish after another send started.
         guard !isStreaming else { return }
         guard let conversation = store.ensureActive() else {
@@ -382,12 +411,15 @@ final class AssistantModel: ObservableObject {
         input = ""
 
         var screenshotToSend: Data?
-        if includeScreen, settings.sendScreenshot, let packet, packet.hasScreenshot, lastSentPacketID != packet.id {
+        if sendScreenshot, let packet, packet.hasScreenshot,
+           (config.responseMode != .standard || lastSentPacketID != packet.id) {
             screenshotToSend = packet.screenshotJPEG
             lastSentPacketID = packet.id
         }
 
-        let snapshot = (!includeScreen || packet?.isExcluded == true) ? nil : packet?.snapshot()
+        var snapshot = packet?.isExcluded == true ? nil : packet?.snapshot()
+        // History never stores screenshot bytes; report only the image actually sent this turn.
+        snapshot?.hadScreenshot = screenshotToSend != nil
         let userMessage = Message(role: .user,
                                   text: question,
                                   context: snapshot,
@@ -399,24 +431,28 @@ final class AssistantModel: ObservableObject {
 
         let history = store.conversations.first { $0.id == conversationID }?.messages ?? []
         let payloadMessages = Array(history.dropLast())
-        let payload = PromptBuilder.build(messages: payloadMessages, liveScreenshot: screenshotToSend)
+        let payload = PromptBuilder.build(messages: payloadMessages, liveScreenshot: screenshotToSend,
+                                          mode: config.responseMode, skippedPageCapture: skippedPage)
 
+        lastResponseTiming?.requestStartedAt = ProcessInfo.processInfo.systemUptime
         isStreaming = true
         streamTask = Task { [weak self] in
             guard let self else { return }
             var accumulated = ""
             var counter = 0
             do {
-                let config = try ProviderConfig.current()
                 let provider = ProviderConfig.provider(for: config)
                 for try await chunk in provider.stream(messages: payload, config: config) {
-                    if Task.isCancelled { break }
+                    if Task.isCancelled || self.responseGeneration != generation { throw CancellationError() }
+                    self.lastResponseTiming?.receive(chunk, at: ProcessInfo.processInfo.systemUptime)
                     accumulated += chunk
                     counter += 1
                     self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: false)
                     if counter % 40 == 0 { self.store.flush() }
                 }
+                try Task.checkCancellation()
+                self.lastResponseTiming?.outcome = accumulated.isEmpty ? "empty" : "completed"
                 if accumulated.isEmpty {
                     self.store.removeMessage(assistantMessage.id, from: conversationID)
                     self.errorText = String(localized: "模型没有返回任何内容。可以换个模型名再试。")
@@ -425,6 +461,8 @@ final class AssistantModel: ObservableObject {
                                                in: conversationID, persistNow: true)
                 }
             } catch {
+                guard self.responseGeneration == generation else { return }
+                self.lastResponseTiming?.outcome = Task.isCancelled || error is CancellationError ? "cancelled" : "failed"
                 if accumulated.isEmpty {
                     self.store.removeMessage(assistantMessage.id, from: conversationID)
                 } else {
@@ -432,22 +470,30 @@ final class AssistantModel: ObservableObject {
                     self.store.updateStreaming(text: incomplete, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
-                if let providerError = error as? ProviderError {
+                if error is CancellationError { self.errorText = nil }
+                else if let providerError = error as? ProviderError {
                     if case .cancelled = providerError { self.errorText = nil }
                     else { self.errorText = providerError.errorDescription }
                 } else {
                     self.errorText = error.localizedDescription
                 }
             }
+            guard self.responseGeneration == generation else { return }
+            self.lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
             self.isStreaming = false
             self.streamTask = nil
         }
     }
 
     func stopStreaming() {
+        if isPreparingResponse, !isStreaming {
+            preparationTask?.cancel()
+            responseGeneration = UUID()
+            isPreparingResponse = false
+            lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
+            lastResponseTiming?.outcome = "cancelled"
+        }
         streamTask?.cancel()
-        streamTask = nil
-        isStreaming = false
         store.flush()
     }
 

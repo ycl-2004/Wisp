@@ -218,6 +218,11 @@ open "$HOME/Applications/Wisp.app"
   official OpenAI and Gemini endpoints. OpenRouter free models keep their free
   IDs and prefer throughput; unsupported gateways receive no extra parameters.
   Availability and billing depend on the service. See [speed preferences](docs/model-speed.md).
+- **Quick / Deep responses:** select a mode above the input (Quick is the default); set
+  each mode's model and shortcut in Settings → Model. Choices remain editable during an
+  answer and apply to the next question. Quick skips new full-page text capture; Deep uses
+  more supported reasoning. Both prefer available Fast tiers. The stopwatch separates
+  preparation, first-text and total latency; higher effort alone does not establish accuracy.
 
 **Startup and updates**
 
@@ -532,8 +537,9 @@ Install the copy you actually use (`/Applications/Wisp.app`) without losing syst
 permissions:
 
 ```bash
-tools/install-local.sh              # build, sign with the team certificate, install
+tools/install-local.sh              # build, sign, install; clean temporary backup after verification
 tools/install-local.sh --no-install # build and sign only
+tools/install-local.sh --keep-backup # optional: retain the rollback copy
 ```
 
 An ad-hoc signature has no certificate chain to anchor to, so its designated
@@ -546,6 +552,9 @@ yearly and their names carry an identifier that changes, so the script picks the
 certificate by team ID and signs with its fingerprint — a keychain can also hold
 development certificates belonging to other accounts, and matching by name picks the
 wrong one. The switch itself asks for permissions once more; rebuilds after that do not.
+The installer keeps the old bundle only until the new signature and move are verified,
+then removes that temporary backup by default. Use `--keep-backup` only when you need
+to retain a rollback copy.
 
 **Do not distribute that build:** other machines do not have your development
 certificate, and Gatekeeper will refuse it.

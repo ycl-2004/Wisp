@@ -11,8 +11,8 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
-    static let collapsedHeight: CGFloat = 152
-    private static let minimumCollapsedHeight: CGFloat = 144
+    static let collapsedHeight: CGFloat = 180
+    private static let minimumCollapsedHeight: CGFloat = 180
     private static let maximumCollapsedHeight: CGFloat = 240
     private static let minimumExpandedHeight: CGFloat = 280
     private static let maximumExpandedHeight: CGFloat = 1000

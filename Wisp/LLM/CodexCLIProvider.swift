@@ -152,7 +152,7 @@ struct CodexCLIProvider: ChatProvider {
                     try box.start(process)
 
                     var session = AppServerSession(prompt: prompt, imagePaths: imagePaths,
-                                                   directory: directory.path, model: config.model)
+                                                   directory: directory.path, model: config.model, responseMode: config.responseMode)
                     func send(_ message: [String: Any]) throws {
                         var data = try JSONSerialization.data(withJSONObject: message)
                         data.append(0x0A)
@@ -233,6 +233,8 @@ struct CodexCLIProvider: ChatProvider {
         let imagePaths: [String]
         let directory: String
         let model: String
+        let responseMode: ResponseMode
+        private var reasoningEffort: String?
         private(set) var threadID: String?
         private(set) var completed = false
         private var initialized = false
@@ -241,11 +243,12 @@ struct CodexCLIProvider: ChatProvider {
         private var textByItem: [String: String] = [:]
         var hasText: Bool { textByItem.values.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
 
-        init(prompt: String, imagePaths: [String], directory: String, model: String) {
+        init(prompt: String, imagePaths: [String], directory: String, model: String, responseMode: ResponseMode = .standard) {
             self.prompt = prompt
             self.imagePaths = imagePaths
             self.directory = directory
             self.model = model
+            self.responseMode = responseMode
         }
 
         static var initializeRequest: [String: Any] {
@@ -322,6 +325,10 @@ struct CodexCLIProvider: ChatProvider {
                 if selected == nil, let cursor = result["nextCursor"] as? String, !cursor.isEmpty {
                     return ([["id": 3, "method": "model/list", "params": ["includeHidden": true, "cursor": cursor]]], [])
                 }
+                let efforts = (selected?["supportedReasoningEfforts"] as? [[String: Any]] ?? [])
+                    .compactMap { $0["reasoningEffort"] as? String }
+                let requested = responseMode == .quick ? "low" : "high"
+                if responseMode != .standard, efforts.contains(requested) { reasoningEffort = requested }
                 let tiers = selected?["serviceTiers"] as? [[String: Any]] ?? []
                 if let fast = tiers.first(where: { ($0["name"] as? String)?.lowercased() == "fast" }),
                    let tier = fast["id"] as? String {
@@ -337,7 +344,9 @@ struct CodexCLIProvider: ChatProvider {
                 threadID = id
                 var input: [[String: Any]] = [["type": "text", "text": prompt]]
                 input += imagePaths.map { ["type": "localImage", "path": $0] }
-                return ([["id": 2, "method": "turn/start", "params": ["threadId": id, "input": input]]], [])
+                var params: [String: Any] = ["threadId": id, "input": input]
+                if let reasoningEffort { params["effort"] = reasoningEffort }
+                return ([["id": 2, "method": "turn/start", "params": params]], [])
             }
             return ([], [])
         }

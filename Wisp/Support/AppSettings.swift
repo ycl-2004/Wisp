@@ -299,6 +299,32 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.debugDumpEnabled); objectWillChange.send() }
     }
 
+    var responseMode: ResponseMode {
+        get {
+            // Older releases stored Standard. Treat it as the new balanced
+            // default rather than exposing a removed third mode after upgrade.
+            guard let raw = d.string(forKey: "responseMode"), raw != ResponseMode.standard.rawValue,
+                  let mode = ResponseMode(rawValue: raw) else { return .quick }
+            return mode
+        }
+        set { objectWillChange.send(); d.set(newValue.rawValue, forKey: "responseMode") }
+    }
+
+    func responseModel(for mode: ResponseMode, connection: String) -> String {
+        let models = d.dictionary(forKey: "responseModels") as? [String: String] ?? [:]
+        return models[connection + "|" + mode.rawValue] ?? ""
+    }
+
+    func setResponseModel(_ model: String, for mode: ResponseMode, connection: String) {
+        guard mode != .standard else { return }
+        var models = d.dictionary(forKey: "responseModels") as? [String: String] ?? [:]
+        let key = connection + "|" + mode.rawValue
+        let value = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { models.removeValue(forKey: key) } else { models[key] = value }
+        objectWillChange.send()
+        d.set(models, forKey: "responseModels")
+    }
+
     /// 语音功能的总开关。关掉之后面板上不再留那一行，快捷键也不响应。
     var listeningEnabled: Bool {
         get { d.bool(forKey: K.listeningEnabled) }

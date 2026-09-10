@@ -9,6 +9,11 @@ struct ModelSwitcher: View {
 
     var body: some View {
         Menu {
+            Text(settings.responseMode.title)
+            Button("使用默认模型") {
+                settings.setResponseModel("", for: settings.responseMode,
+                                          connection: ProviderConfig.selection().responseConnectionKey)
+            }
             Section("接法") {
                 ForEach(ProviderKind.allCases) { kind in
                     Button {
@@ -72,7 +77,7 @@ struct ModelSwitcher: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: currentKind.symbol).font(.system(size: 9))
-                Text(shortLabel)
+                Text(connectionShortLabel)
                     .font(DS.meta)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -100,19 +105,17 @@ struct ModelSwitcher: View {
     private var currentKind: ProviderKind { ProviderKind.current }
 
     private var currentModel: String {
-        switch currentKind {
-        case .openAICompatible: return settings.model
-        case .ollama:           return settings.ollamaModel
-        case .codexCLI:
-            switch settings.cliProvider {
-            case .codex:      return settings.codexModel
-            case .agy:        return settings.agyModel
-            case .claudeCode: return settings.claudeCodeModel
-            }
-        }
+        let baseline = ProviderConfig.selection()
+        return baseline.selecting(settings.responseMode,
+            model: settings.responseModel(for: settings.responseMode, connection: baseline.responseConnectionKey)).model
     }
 
     private func setModel(_ slug: String) {
+        if settings.responseMode != .standard {
+            settings.setResponseModel(slug, for: settings.responseMode,
+                                      connection: ProviderConfig.selection().responseConnectionKey)
+            return
+        }
         switch currentKind {
         case .openAICompatible: settings.model = slug
         case .ollama:           settings.ollamaModel = slug
@@ -143,8 +146,8 @@ struct ModelSwitcher: View {
         case .openAICompatible:
             var list = ModelCatalog.cloudPresets(provider: settings.cloudProvider,
                                                 baseURL: settings.baseURL)
-            if ModelCatalog.isCustom(settings.model, in: list) {
-                list.append(.init(slug: settings.model, title: settings.model, note: String(localized: "自定义")))
+            if ModelCatalog.isCustom(currentModel, in: list) {
+                list.append(.init(slug: currentModel, title: currentModel, note: String(localized: "自定义")))
             }
             return list
         case .ollama:
@@ -178,6 +181,18 @@ struct ModelSwitcher: View {
         var name = model.components(separatedBy: "/").last ?? model
         if name.hasSuffix(":free") { name = String(name.dropLast(5)) }
         return name
+    }
+
+    /// Keep the active software visible in the compact header; the model alone is
+    /// ambiguous when the same model name exists in an API and a local CLI.
+    private var connectionShortLabel: String {
+        let source: String
+        switch currentKind {
+        case .openAICompatible: source = settings.cloudProvider.title
+        case .ollama: source = "Ollama"
+        case .codexCLI: source = settings.cliProvider.title
+        }
+        return shortLabel.isEmpty ? source : "\(source) · \(shortLabel)"
     }
 
     private var fullLabel: String {
