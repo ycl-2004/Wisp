@@ -11080,6 +11080,48 @@
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前连接" } }
       }
     },
+    "当前连接：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Current connection: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前连接：%@" } }
+      }
+    },
+    "接口：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Endpoint: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "接口：%@" } }
+      }
+    },
+    "本地模型：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Local model: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本地模型：%@" } }
+      }
+    },
+    "可执行文件：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Executable: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "可执行文件：%@" } }
+      }
+    },
+    "快速模型：": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Quick model: " } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "快速模型：" } }
+      }
+    },
+    "深入模型：": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Deep model: " } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "深入模型：" } }
+      }
+    },
+    "模式": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Mode" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "模式" } }
+      }
+    },
     "未选择模型": {
       "localizations": {
         "en": { "stringUnit": { "state": "translated", "value": "No model selected" } },

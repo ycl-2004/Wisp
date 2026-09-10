@@ -15,6 +15,7 @@ Make Wisp responses faster with explicit accuracy tradeoffs, selectable Quick/De
 58. Keep explanatory copy behind an information button so the customer-facing settings page stays compact.
 59. Remove existing rollback copies and make successful local replacements clean temporary backups while retaining the stable team signature workflow.
 60. Remove Standard from the customer-facing mode picker, use Quick as the default, and present only two compact rows pairing each mode with its shortcut and model.
+61. Move current connection, CLI, endpoint, and model details behind one information button at the end of the Response mode row, and keep the mode/table labels localized in English and Simplified Chinese.
 
 ## Decisions
 - Existing context/history and prior outstanding hardware/privacy limitations are preserved verbatim in history.md. Previous installed voice work is commit 36c39c3 on origin/feat/add_voice_detect.
@@ -40,6 +41,7 @@ Make Wisp responses faster with explicit accuracy tradeoffs, selectable Quick/De
 - Final signed replacement after the UI cleanup succeeded. `/Applications/Wisp.app` is running from the newly installed build; its SHA-256 matches `Build/Release/Wisp.app/Contents/MacOS/Wisp` (`e6e02ccdf2495c87881b72346360e9d835ff3b3017a5f6acbf75b7dbbc4c8457`), the certificate-anchored signature and `x86_64 arm64` slices verify, and no `wisp-install-backup.*` directory remains.
 - Quick/Deep-only verification: `/private/tmp/wisp-two-modes-tests.xcresult` passes 92 tests with zero failures. The installed Model settings accessibility tree shows Quick as the selected default, Deep as the only other mode, one shortcut/model pair per mode, current connection/model text, and explanatory copy available through `ⓘ` buttons rather than always-visible paragraphs.
 - Final test rerun with the project's non-signing test configuration also passes 92 tests with zero failures: `/private/tmp/wisp-two-modes-tests-final3.xcresult` and `/private/tmp/wisp-two-modes-tests-final3.log`. A signed Release build remains the installed customer artifact.
+- Final connection-info verification: `/private/tmp/wisp-response-info-tests.xcresult` passes 92 tests with zero failures. The installed Model settings accessibility tree shows the trailing `ⓘ` popover with the active connection, CLI executable, Quick model, and Deep model; the visible table header is `Mode` in English and the popover is reachable without an always-visible connection line.
 
 ## Delivery status
-Requirements 50–60 implemented and locally verified (11/11). Live provider benchmarking and physical shortcut delivery remain explicit limitations, not established accuracy or speed claims. Changes are uncommitted.
+Requirements 50–61 implemented and locally verified (12/12). Live provider benchmarking and physical shortcut delivery remain explicit limitations, not established accuracy or speed claims. Final UI changes are ready to commit and push.

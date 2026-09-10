@@ -75,10 +75,41 @@ struct ResponseModeSettings: View {
         }
     }
 
-    private var connectionModel: String {
-        let mode = settings.responseMode
-        return baseline.selecting(mode,
+    private func effectiveModel(for mode: ResponseMode) -> String {
+        baseline.selecting(mode,
             model: settings.responseModel(for: mode, connection: baseline.responseConnectionKey)).model
+    }
+
+    private var cliPath: String {
+        switch settings.cliProvider {
+        case .codex: return settings.codexPath
+        case .agy: return settings.agyPath
+        case .claudeCode: return settings.claudeCodePath
+        }
+    }
+
+    private var responseInfo: String {
+        var lines = [String(localized: "当前连接：\(connectionName)")]
+        switch baseline.kind {
+        case .openAICompatible:
+            lines.append(String(localized: "接口：\(settings.baseURL)"))
+        case .ollama:
+            let model = settings.ollamaModel.isEmpty ? String(localized: "未选择模型") : settings.ollamaModel
+            lines.append(String(localized: "本地模型：\(model)"))
+        case .codexCLI:
+            let path = cliPath.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !path.isEmpty { lines.append(String(localized: "可执行文件：\(path)")) }
+        }
+
+        for mode in ResponseMode.allCases {
+            let model = effectiveModel(for: mode)
+            let title = mode == .quick ? String(localized: "快速模型：") : String(localized: "深入模型：")
+            lines.append(title + (model.isEmpty ? String(localized: "未选择模型") : model))
+            if let note = modelPresets.first(where: { $0.slug == model })?.note, !note.isEmpty {
+                lines.append(note)
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     private var modelPresets: [ModelCatalog.Preset] {
@@ -116,16 +147,8 @@ struct ResponseModeSettings: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
                 Spacer(minLength: 0)
+                InfoButton(message: responseInfo)
             }
-            HStack(spacing: 4) {
-            Text("当前连接")
-                Text("·")
-                Text(connectionName)
-                Text("·")
-                Text(connectionModel.isEmpty ? String(localized: "未选择模型") : connectionModel)
-            }
-            .font(DS.meta).foregroundStyle(.secondary)
-            .lineLimit(1).truncationMode(.middle)
             HStack(spacing: 10) {
                 Text("模式").frame(width: 100, alignment: .leading)
                 Text("快捷键").frame(width: 150, alignment: .leading)
