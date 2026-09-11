@@ -2,12 +2,14 @@
 
 
 
-Last updated: 2026-09-09. Applies to Wisp for macOS.
+Last updated: 2026-09-10. Applies to Wisp for macOS.
 
 ## The short version
 
-Wisp captures on invocation, refresh, or preparing a question. It prefers the
-target window, but falls back to a display capture if no window matches.
+Wisp captures on invocation, refresh, or preparing a question. By default it
+captures the target window. With Capture range set to Entire screen, or if no
+window matches, it captures the whole display instead, minus Wisp's own
+windows, excluded apps, and apps you hid from entire-screen captures.
 It has no account system, no analytics SDK, no crash-reporting
 SDK, and no automatic background recording. An explicitly started Live listening
 session continuously captures the selected microphone/application audio until stopped.
@@ -148,8 +150,11 @@ sync service, no account.
 
 - The frontmost application's name and bundle identifier, to decide what to
   capture and whether it is excluded.
-- The target window's image, or a fallback display image, held in memory until
-  replaced/released; optional debug output and CLI images are described above.
+- The target window's image, or an image of the display that window (or the
+  pointer) is on when Capture range is Entire screen or no window matches. The
+  display image leaves out Wisp, excluded apps, and apps hidden from
+  entire-screen captures. Either image is held in memory until replaced/released;
+  optional debug output and CLI images are described above.
 - In a supported browser: the current tab's URL, title, selected text, and full
   page body, via Apple Events and an injected extraction script.
 
@@ -173,9 +178,17 @@ requires the additional `WISP_DIAGNOSTICS` compilation flag.
 
 ## Excluding things
 
-Settings → Screen & Permissions → Excluded apps takes bundle identifiers.
+Settings → Capture → Excluded apps takes bundle identifiers.
 Excluded apps are never captured and never scripted. Three password managers
 are excluded out of the box.
+
+An entire-screen capture includes every other window on that display. Excluded
+apps are always cut out of it. When Capture range is Entire screen, Settings →
+Capture also lists running apps you can check to cut out of entire-screen
+captures. That list only affects entire-screen captures. With Current window, a
+checked app is still captured when it is the app in front; exclude it instead
+if it must never be read. The choice is per app rather than per window, because
+window identifiers change whenever a window is reopened.
 
 **This exclusion is per application, not per site.** There is currently no way
 to exclude a particular URL or domain while still using Wisp in that browser.
@@ -199,7 +212,8 @@ for the tested configurations and remaining gaps.
 
 ## Permissions Wisp asks for
 
-- **Screen Recording** — to capture the frontmost window. Without it Wisp still
+- **Screen Recording** — to capture the frontmost window, or the display it is
+  on when Capture range is Entire screen. Without it Wisp still
   works, but sends no screenshot. Live listening also needs screen/system audio
   authorization to capture a selected application.
 - **Microphone** — only for listening modes that include your microphone.

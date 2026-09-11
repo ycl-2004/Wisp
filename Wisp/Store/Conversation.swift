@@ -55,6 +55,8 @@ struct ContextSnapshot: Codable, Hashable {
     var selectedText: String?
     var iframeURLs: [String]
     var hadScreenshot: Bool
+    /// 截图是单个窗口还是整块屏幕。旧记录没有这个字段，按单窗口读。
+    var screenshotScope: CaptureScope = .window
     var capturedAt: Date
 
     var summaryLine: String {
@@ -67,7 +69,7 @@ struct ContextSnapshot: Codable, Hashable {
     init(appName: String, bundleID: String?, windowTitle: String?, url: String?, pageTitle: String?,
          pageText: String?, pageTextTotalChars: Int?, pageTextIsPartial: Bool = false,
          selectedText: String?, iframeURLs: [String],
-         hadScreenshot: Bool, capturedAt: Date) {
+         hadScreenshot: Bool, screenshotScope: CaptureScope = .window, capturedAt: Date) {
         self.appName = appName
         self.bundleID = bundleID
         self.windowTitle = windowTitle
@@ -79,6 +81,7 @@ struct ContextSnapshot: Codable, Hashable {
         self.selectedText = selectedText
         self.iframeURLs = iframeURLs
         self.hadScreenshot = hadScreenshot
+        self.screenshotScope = screenshotScope
         self.capturedAt = capturedAt
     }
 
@@ -96,6 +99,7 @@ struct ContextSnapshot: Codable, Hashable {
         selectedText = c.optional(String.self, .selectedText)
         iframeURLs = c.value(.iframeURLs, or: [])
         hadScreenshot = c.value(.hadScreenshot, or: false)
+        screenshotScope = c.value(.screenshotScope, or: .window)
         capturedAt = c.value(.capturedAt, or: Date())
     }
 }

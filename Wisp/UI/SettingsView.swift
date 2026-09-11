@@ -733,8 +733,18 @@ private struct Field<Content: View>: View {
     }
 }
 
-private struct CaptureModeOption: View {
-    let mode: CaptureMode
+/// 采集设置里「几选一」卡片要的三样东西。采集模式和截图范围都是这种卡片。
+private protocol CaptureChoice {
+    var title: String { get }
+    var symbol: String { get }
+    var detail: String { get }
+}
+
+extension CaptureMode: CaptureChoice {}
+extension CaptureScope: CaptureChoice {}
+
+private struct CaptureOptionCard: View {
+    let option: any CaptureChoice
     let selected: Bool
     let action: () -> Void
     @State private var hovering = false
@@ -742,10 +752,10 @@ private struct CaptureModeOption: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: mode.symbol)
+                Image(systemName: option.symbol)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-                Text(mode.title)
+                Text(option.title)
                     .font(.system(size: 11.5, weight: .medium))
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
@@ -775,7 +785,7 @@ private struct CaptureModeOption: View {
                               lineWidth: selected ? 1.2 : 0.5)
         )
         .overlay(alignment: .topTrailing) {
-            InfoButton(message: mode.detail)
+            InfoButton(message: option.detail)
                 .padding(.top, 7)
                 .padding(.trailing, 7)
         }
@@ -1046,7 +1056,7 @@ private struct CaptureSettingsView: View {
             Section {
                 HStack(spacing: 8) {
                     ForEach(CaptureMode.allCases) { mode in
-                        CaptureModeOption(mode: mode, selected: settings.captureMode == mode) {
+                        CaptureOptionCard(option: mode, selected: settings.captureMode == mode) {
                             settings.captureMode = mode
                         }
                     }
@@ -1064,6 +1074,22 @@ private struct CaptureSettingsView: View {
                 }
             } header: {
                 SettingsSectionHeader("采集模式")
+            }
+
+            Section {
+                HStack(spacing: 8) {
+                    ForEach(CaptureScope.allCases) { scope in
+                        CaptureOptionCard(option: scope, selected: settings.captureScope == scope) {
+                            settings.captureScope = scope
+                        }
+                    }
+                }
+
+                if settings.captureScope == .screen {
+                    ScreenHiddenAppsPicker()
+                }
+            } header: {
+                SettingsSectionHeader("截图范围")
             }
 
             Section {
@@ -1103,7 +1129,7 @@ private struct CaptureSettingsView: View {
                 Button("排除当前应用") { model.excludeCurrentApp() }
                     .disabled(model.packet?.bundleID == nil)
             } header: {
-                SettingsSectionHeader("排除的应用", info: String(localized: "排除后不截图，也不读取浏览器页面。"))
+                SettingsSectionHeader("排除的应用", info: String(localized: "排除后不截图，也不读取浏览器页面；整屏截图时也会被挖掉。"))
             }
         }
         .formStyle(.grouped)
@@ -1134,6 +1160,86 @@ private struct CaptureSettingsView: View {
             return bundleID
         }
         return "\(url.deletingPathExtension().lastPathComponent)  (\(bundleID))"
+    }
+}
+
+/// 整屏截图时挖掉哪些应用。按应用勾而不是按窗口：窗口编号每次开关都会变，记不住。
+/// 列出正在运行的普通应用，再加上勾过但此刻没开的，方便取消勾选。
+private struct ScreenHiddenAppsPicker: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @State private var apps: [Entry] = []
+
+    struct Entry: Identifiable {
+        let bundleID: String
+        let name: String
+        let icon: NSImage?
+        var id: String { bundleID }
+    }
+
+    private let columns = [GridItem(.flexible(), alignment: .leading),
+                           GridItem(.flexible(), alignment: .leading)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 5) {
+                Text("整屏时不截的应用")
+                    .font(.system(size: 12, weight: .medium))
+                InfoButton(message: String(localized: "勾选的应用不会出现在整屏截图里。「排除的应用」任何时候都不截，在这里显示为已勾选。"))
+            }
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                ForEach(apps) { app in
+                    let excluded = settings.isExcluded(bundleID: app.bundleID)
+                    Toggle(isOn: hidden(app.bundleID, alwaysHidden: excluded)) {
+                        HStack(spacing: 5) {
+                            if let icon = app.icon {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .frame(width: 16, height: 16)
+                            }
+                            Text(app.name)
+                                .font(.system(size: 11))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                    .toggleStyle(.checkbox)
+                    .disabled(excluded)
+                    .help(excluded ? String(localized: "已在「排除的应用」里，任何时候都不截。") : app.bundleID)
+                }
+            }
+        }
+        .onAppear(perform: reload)
+        .onReceive(NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didLaunchApplicationNotification)) { _ in reload() }
+        .onReceive(NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didTerminateApplicationNotification)) { _ in reload() }
+    }
+
+    private func hidden(_ bundleID: String, alwaysHidden: Bool) -> Binding<Bool> {
+        Binding(
+            get: { alwaysHidden || settings.screenHiddenBundleIDs.contains(bundleID) },
+            set: { hide in
+                var list = settings.screenHiddenBundleIDs.filter { $0 != bundleID }
+                if hide { list.append(bundleID) }
+                settings.screenHiddenBundleIDs = list
+            }
+        )
+    }
+
+    private func reload() {
+        let ownBundleID = Bundle.main.bundleIdentifier
+        var entries: [String: Entry] = [:]
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            guard let bundleID = app.bundleIdentifier, bundleID != ownBundleID else { continue }
+            entries[bundleID] = Entry(bundleID: bundleID, name: app.localizedName ?? bundleID, icon: app.icon)
+        }
+        for bundleID in settings.screenHiddenBundleIDs where entries[bundleID] == nil {
+            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+            entries[bundleID] = Entry(bundleID: bundleID,
+                                      name: url?.deletingPathExtension().lastPathComponent ?? bundleID,
+                                      icon: url.map { NSWorkspace.shared.icon(forFile: $0.path) })
+        }
+        apps = entries.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }
 

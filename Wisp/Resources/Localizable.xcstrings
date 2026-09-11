@@ -1506,18 +1506,18 @@
         }
       }
     },
-    "只发当前窗口截图和网址。不读页面，最快。": {
+    "只发截图和网址。不读页面，最快。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sends the current window and URL only. Fastest."
+            "value": "Sends the screenshot and URL only. Fastest."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "只发当前窗口截图和网址。不读页面，最快。"
+            "value": "只发截图和网址。不读页面，最快。"
           }
         }
       }
@@ -1714,18 +1714,18 @@
         }
       }
     },
-    "排除后不截图，也不读取浏览器页面。": {
+    "排除后不截图，也不读取浏览器页面；整屏截图时也会被挖掉。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Excluded apps are not captured or read."
+            "value": "Excluded apps are not captured or read, and are left out of entire-screen captures."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "排除后不截图，也不读取浏览器页面。"
+            "value": "排除后不截图，也不读取浏览器页面；整屏截图时也会被挖掉。"
           }
         }
       }
@@ -7010,18 +7010,18 @@
         }
       }
     },
-    "Wisp 会在发送时读取当前窗口的截图与正文上下文，直接提问即可。": {
+    "Wisp 会在发送时读取屏幕截图与正文上下文，直接提问即可。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wisp reads the current window’s screenshot and text when you send. Just ask."
+            "value": "Wisp reads a screenshot and page text when you send. Just ask."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wisp 会在发送时读取当前窗口的截图与正文上下文，直接提问即可。"
+            "value": "Wisp 会在发送时读取屏幕截图与正文上下文，直接提问即可。"
           }
         }
       }
@@ -10662,18 +10662,18 @@
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "自定义…" } }
       }
     },
-    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。": {
+    "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张截图（当前窗口，或整个屏幕）。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches the context of their current screen.\n\nThat context may include: the current app name and window title, the URL and title of the current web page, the full page text, the user's selected text, and a screenshot of the current window.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, may not have been collected all the way to the end, and cross-origin embedded frames may be unreadable. The context states whether the text is \"complete\" or incomplete and why. Trust that label; never assume what you were given is the whole document.\n3. If the information an answer needs is not in the text you were given, say so plainly, and point out which sentence the text stops at, which part of the screenshot to look at, or where the user needs to scroll.\n4. Screenshots cover only the visible area; page text may also be incomplete or stale. Explain conflicts without assuming either source is correct.\n5. Answer in the language the user asked in; default to English.\n6. Be concise and direct. Lead with the conclusion."
+            "value": "You are a macOS desktop assistant. The user summons you with a keyboard shortcut and attaches the context of their current screen.\n\nThat context may include: the current app name and window title, the URL and title of the current web page, the full page text, the user's selected text, and a screenshot of either the current window or the entire screen.\n\nRules:\n1. Answer from the provided context first. Do not invent content that is not on the page.\n2. The page text may be truncated, may not have been collected all the way to the end, and cross-origin embedded frames may be unreadable. The context states whether the text is \"complete\" or incomplete and why. Trust that label; never assume what you were given is the whole document.\n3. If the information an answer needs is not in the text you were given, say so plainly, and point out which sentence the text stops at, which part of the screenshot to look at, or where the user needs to scroll.\n4. Screenshots cover only the visible area; page text may also be incomplete or stale. Explain conflicts without assuming either source is correct.\n5. Answer in the language the user asked in; default to English.\n6. Be concise and direct. Lead with the conclusion."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。"
+            "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张截图（当前窗口，或整个屏幕）。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。"
           }
         }
       }
@@ -11090,6 +11090,78 @@
       "localizations": {
         "en": { "stringUnit": { "state": "translated", "value": " (default model, High level)" } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "（默认模型的 High 档）" } }
+      }
+    },
+    "截图范围": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Capture range" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "截图范围" } }
+      }
+    },
+    "当前窗口": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Current window" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前窗口" } }
+      }
+    },
+    "整个屏幕": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Entire screen" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整个屏幕" } }
+      }
+    },
+    "只截焦点应用最前面的窗口，旁边的窗口不会进画面。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Captures only the focused app’s front window. Nothing beside it is included." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "只截焦点应用最前面的窗口，旁边的窗口不会进画面。" } }
+      }
+    },
+    "截焦点窗口所在的整块屏幕，旁边的窗口也在画面里。显示器越大，每个窗口里的字越小。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Captures the entire display the focused window is on, including the windows beside it. The larger the display, the smaller the text in each window." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "截焦点窗口所在的整块屏幕，旁边的窗口也在画面里。显示器越大，每个窗口里的字越小。" } }
+      }
+    },
+    "整屏时不截的应用": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Apps hidden from entire-screen captures" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整屏时不截的应用" } }
+      }
+    },
+    "勾选的应用不会出现在整屏截图里。「排除的应用」任何时候都不截，在这里显示为已勾选。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Checked apps are left out of entire-screen captures. Excluded apps are never captured and appear checked here." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "勾选的应用不会出现在整屏截图里。「排除的应用」任何时候都不截，在这里显示为已勾选。" } }
+      }
+    },
+    "已在「排除的应用」里，任何时候都不截。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Listed in Excluded apps, so it is never captured." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已在「排除的应用」里，任何时候都不截。" } }
+      }
+    },
+    "「%@」在整屏隐藏名单里，截图里没有它的窗口。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "“%@” is hidden from entire-screen captures, so its windows are not in the screenshot." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "「%@」在整屏隐藏名单里，截图里没有它的窗口。" } }
+      }
+    },
+    "[整屏截图，焦点：%@]": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "[Entire-screen screenshot; focus: %@]" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "[整屏截图，焦点：%@]" } }
+      }
+    },
+    "有，覆盖整个屏幕的可视区域；「%@」是焦点应用，其他可见窗口也在图里": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "yes, covering the entire visible screen; “%@” is the focused app, and other visible windows are included" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "有，覆盖整个屏幕的可视区域；「%@」是焦点应用，其他可见窗口也在图里" } }
+      }
+    },
+    "截图 · 整个屏幕": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Screenshot · Entire screen" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "截图 · 整个屏幕" } }
       }
     }
   }

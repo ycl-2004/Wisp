@@ -12,7 +12,7 @@ enum PromptBuilder {
         String(localized: """
         你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。
 
-        上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。
+        上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张截图（当前窗口，或整个屏幕）。
 
         要求：
         1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。
@@ -51,7 +51,7 @@ enum PromptBuilder {
 
                 if let context = message.context {
                     let full = mode != .quick && fullContextIndexes.contains(index)
-                    let text = mode == .quick ? "[\(context.summaryLine)]" : contextBlock(context, full: full)
+                    let text = mode == .quick ? quickLine(context) : contextBlock(context, full: full)
                     blocks.append(["type": "text", "text": text])
                 }
 
@@ -71,6 +71,12 @@ enum PromptBuilder {
         return payload
     }
 
+    /// 快速模式每轮只带一行上下文。整屏截图要点明，不然模型会把整张图都当成焦点应用。
+    static func quickLine(_ context: ContextSnapshot) -> String {
+        guard context.hadScreenshot, context.screenshotScope == .screen else { return "[\(context.summaryLine)]" }
+        return String(localized: "[整屏截图，焦点：\(context.summaryLine)]")
+    }
+
     static func contextBlock(_ context: ContextSnapshot, full: Bool) -> String {
         guard full else {
             var line = String(localized: "[较早一轮的屏幕上下文，已折叠] \(context.summaryLine)")
@@ -86,7 +92,7 @@ enum PromptBuilder {
         if let url = context.url, !url.isEmpty { lines.append(String(localized: "网址：\(url)")) }
         if let pageTitle = context.pageTitle, !pageTitle.isEmpty { lines.append(String(localized: "页面标题：\(pageTitle)")) }
         lines.append(String(localized: "截取时间：\(Self.timeFormatter.string(from: context.capturedAt))"))
-        lines.append(String(localized: "截图：\(context.hadScreenshot ? String(localized: "有，只覆盖当前可视区域") : String(localized: "无"))"))
+        lines.append(String(localized: "截图：\(screenshotDescription(context))"))
 
         if !context.iframeURLs.isEmpty {
             lines.append(String(localized: "读不到内容的嵌入框架（\(context.iframeURLs.count) 个）："))
@@ -125,6 +131,16 @@ enum PromptBuilder {
 
         lines.append(String(localized: "</屏幕上下文>"))
         return lines.joined(separator: "\n")
+    }
+
+    private static func screenshotDescription(_ context: ContextSnapshot) -> String {
+        guard context.hadScreenshot else { return String(localized: "无") }
+        switch context.screenshotScope {
+        case .window:
+            return String(localized: "有，只覆盖当前可视区域")
+        case .screen:
+            return String(localized: "有，覆盖整个屏幕的可视区域；「\(context.appName)」是焦点应用，其他可见窗口也在图里")
+        }
     }
 
     private static let timeFormatter: DateFormatter = {

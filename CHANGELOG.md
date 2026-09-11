@@ -33,6 +33,15 @@
 
 ### Added
 
+- **Capture range.** Settings → Capture adds Current window (the default) and Entire screen
+  below the capture modes. Entire screen captures the display holding most of the focused
+  window, or the one under the pointer, with a 2048-pixel long-edge limit instead of 1600.
+  Wisp's own windows and excluded apps are always cut out. Choosing Entire screen shows a
+  checklist of running apps to hide from entire-screen captures; excluded apps appear checked
+  and locked. The prompt tells the model when an image covers the whole screen and names
+  the focused app. The fallback used when no window matches now follows these rules too,
+  instead of capturing the first display with only Wisp removed.
+
 - **Selectable response modes.** Quick is the default; legacy Standard values migrate to Quick
   and are no longer customer-facing. Quick skips new page-text capture, while Deep uses configured capture and higher supported reasoning. Per-connection
   model overrides and configurable shortcuts remain editable during answers and apply to

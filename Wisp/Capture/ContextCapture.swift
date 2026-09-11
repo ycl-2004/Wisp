@@ -120,11 +120,18 @@ enum ContextCapture {
 
         switch await ScreenCapturer.capture(pid: app.processIdentifier,
                                             excludingWindowIDs: excludingWindowIDs,
-                                            titleHint: browser?.pageTitle) {
+                                            titleHint: browser?.pageTitle,
+                                            scope: settings.captureScope,
+                                            hiddenBundleIDs: settings.screenCaptureHiddenBundleIDs) {
         case .success(let shot):
             packet.screenshotJPEG = shot.jpeg
             packet.screenshotPixelSize = shot.pixelSize
             packet.windowTitle = shot.windowTitle
+            packet.screenshotScope = shot.scope
+            // 焦点应用自己被勾成整屏隐藏时，画面里恰好缺了用户在看的那个窗口，得说一声。
+            if shot.scope == .screen, let bundleID, settings.screenHiddenBundleIDs.contains(bundleID) {
+                packet.notes.append(.info(String(localized: "「\(appName)」在整屏隐藏名单里，截图里没有它的窗口。")))
+            }
         case .failure(let error):
             switch error {
             case .noPermission:

@@ -31,7 +31,7 @@ enum CaptureMode: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .screenshotOnly:
-            return String(localized: "只发当前窗口截图和网址。不读页面，最快。")
+            return String(localized: "只发截图和网址。不读页面，最快。")
         case .pageText:
             return String(localized: "读取页面正文。动态页面可能只包含当前可见内容。")
         case .scrollCollect:
@@ -41,6 +41,39 @@ enum CaptureMode: String, CaseIterable, Identifiable {
 
     /// 要不要注入 JS 读正文。
     var readsPageText: Bool { self != .screenshotOnly }
+}
+
+/// 截图截多大一块。和 `CaptureMode`（正文读到什么程度）是两根轴：三种采集模式都会截图。
+enum CaptureScope: String, CaseIterable, Identifiable, Codable {
+    /// 焦点应用最前面的那个窗口。旁边的东西一概不进画面。
+    case window
+    /// 焦点窗口所在的整块屏幕。排除的应用和整屏隐藏的应用会被挖掉。
+    case screen
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .window: return String(localized: "当前窗口")
+        case .screen: return String(localized: "整个屏幕")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .window: return "macwindow"
+        case .screen: return "display"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .window:
+            return String(localized: "只截焦点应用最前面的窗口，旁边的窗口不会进画面。")
+        case .screen:
+            return String(localized: "截焦点窗口所在的整块屏幕，旁边的窗口也在画面里。显示器越大，每个窗口里的字越小。")
+        }
+    }
 }
 
 /// UserDefaults 包装。不存 API Key（Key 在 Keychain）。
@@ -67,6 +100,8 @@ final class AppSettings: ObservableObject {
         static let excludedBundleIDs = "excludedBundleIDs"
         static let pageTextLimit = "pageTextLimit"
         static let captureMode = "captureMode"
+        static let captureScope = "captureScope"
+        static let screenHiddenBundleIDs = "screenHiddenBundleIDs"
         static let maxConversations = "maxConversations"
         static let maxUserTurns = "maxUserTurns"
         static let sendScreenshot = "sendScreenshot"
@@ -111,6 +146,7 @@ final class AppSettings: ObservableObject {
             ],
             K.pageTextLimit: 60_000,
             K.captureMode: CaptureMode.pageText.rawValue,
+            K.captureScope: CaptureScope.window.rawValue,
             K.maxConversations: 10,
             K.maxUserTurns: 30,
             K.sendScreenshot: true,
@@ -255,6 +291,23 @@ final class AppSettings: ObservableObject {
     var captureMode: CaptureMode {
         get { CaptureMode(rawValue: d.string(forKey: K.captureMode) ?? "") ?? .pageText }
         set { d.set(newValue.rawValue, forKey: K.captureMode); objectWillChange.send() }
+    }
+
+    /// 截图范围。默认只截当前窗口：画面最清楚，也不会顺带把旁边的东西发出去。
+    var captureScope: CaptureScope {
+        get { CaptureScope(rawValue: d.string(forKey: K.captureScope) ?? "") ?? .window }
+        set { d.set(newValue.rawValue, forKey: K.captureScope); objectWillChange.send() }
+    }
+
+    /// 整屏截图时额外挖掉的应用。只管整屏；要让一个应用任何时候都不被读，放进 `excludedBundleIDs`。
+    var screenHiddenBundleIDs: [String] {
+        get { d.stringArray(forKey: K.screenHiddenBundleIDs) ?? [] }
+        set { d.set(newValue, forKey: K.screenHiddenBundleIDs); objectWillChange.send() }
+    }
+
+    /// 整屏截图里要挖掉的全部应用。排除的应用任何时候都不截，所以一并算进来。
+    var screenCaptureHiddenBundleIDs: Set<String> {
+        Set(screenHiddenBundleIDs).union(excludedBundleIDs)
     }
 
     var maxConversations: Int {

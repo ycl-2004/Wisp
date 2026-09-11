@@ -49,6 +49,7 @@
 		7DCEEF8AC2612C67CD85E109 /* ChatInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921FC48F6E412CFE0F79A064 /* ChatInput.swift */; };
 		7E2A014F55A2936A22723B59 /* QuickCommandSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BB162B35F36465E2DF4CC29 /* QuickCommandSettingsView.swift */; };
 		82626971596C37002D276D84 /* THIRD-PARTY-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = C9F5C744F223290FE83398A0 /* THIRD-PARTY-NOTICES.txt */; };
+		84FD3D751BB0FA4148D81168 /* CaptureScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85BF5B7D14F92BF79D87F4CF /* CaptureScopeTests.swift */; };
 		8553C64098C136A75A112B1D /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4219DA62267C232EC8178C3 /* AppSettings.swift */; };
 		8583C047D922BAAD1805E184 /* IslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C6386D864008ED3EFC7AF19 /* IslandView.swift */; };
 		87AC3E73ADEAC04BF8961EBF /* ModelSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB3B03DE39F1B2913316699 /* ModelSwitcher.swift */; };
@@ -125,6 +126,7 @@
 		7C6386D864008ED3EFC7AF19 /* IslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandView.swift; sourceTree = "<group>"; };
 		7F749591135B3236A301EBD9 /* ContextHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextHeaderView.swift; sourceTree = "<group>"; };
 		7FE99F66B4BC50B28C45F248 /* PageTextScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTextScript.swift; sourceTree = "<group>"; };
+		85BF5B7D14F92BF79D87F4CF /* CaptureScopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureScopeTests.swift; sourceTree = "<group>"; };
 		85FF8C396007A624B07DA1AB /* PanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelController.swift; sourceTree = "<group>"; };
 		88267410F97B7816F3ADFA08 /* LocalSpeechFamilies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSpeechFamilies.swift; sourceTree = "<group>"; };
 		88957DADAC382AD2177D8D35 /* ONNXModelInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ONNXModelInfo.swift; sourceTree = "<group>"; };
@@ -273,6 +275,7 @@
 		ABC0E6A7E8DDC852703C1393 /* WispTests */ = {
 			isa = PBXGroup;
 			children = (
+				85BF5B7D14F92BF79D87F4CF /* CaptureScopeTests.swift */,
 				F04C405D7EF4536131CB4C88 /* ClaudeCodeCLIProviderTests.swift */,
 				FD4CDA7D3A5DF6C7DBF1C200 /* ListeningTests.swift */,
 				7B9636321D0545DB4292CD47 /* LocalSpeechTests.swift */,
@@ -448,6 +451,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				84FD3D751BB0FA4148D81168 /* CaptureScopeTests.swift in Sources */,
 				AC4AD3B1BD8DDD7307DE059D /* ClaudeCodeCLIProviderTests.swift in Sources */,
 				1B3757DFE976EE2E3E247BF2 /* ListeningTests.swift in Sources */,
 				59A840B15944DEAB21ADD6B7 /* LocalSpeechTests.swift in Sources */,

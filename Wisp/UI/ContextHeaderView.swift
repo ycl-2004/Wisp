@@ -212,7 +212,8 @@ struct ContextHeaderView: View {
         guard let packet = model.packet else { return String(localized: "截图") }
         if packet.isExcluded { return String(localized: "已停用") }
         guard packet.hasScreenshot else { return String(localized: "无截图") }
-        return settings.sendScreenshot ? String(localized: "截图") : String(localized: "截图 关")
+        guard settings.sendScreenshot else { return String(localized: "截图 关") }
+        return packet.screenshotScope == .screen ? String(localized: "截图 · 整个屏幕") : String(localized: "截图")
     }
 
     private var pageTextChipText: String {

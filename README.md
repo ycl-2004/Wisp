@@ -34,8 +34,8 @@
 </p>
 
 Wisp lives in the menu bar. Press `⌃⌥Space`, and it remembers the frontmost
-app before its panel appears. It can then capture the current window and, when
-the frontmost app is a supported browser, read the URL, title, selected text,
+app before its panel appears. It can then capture the current window (or, if
+you choose, the whole screen) and, when the frontmost app is a supported browser, read the URL, title, selected text,
 and page body. Ask a question without copying context between apps.
 
 It is a local-first desktop shell around the model provider you choose:
@@ -52,8 +52,8 @@ Simplified Chinese and follows your system language.
 > **Open**.
 
 > **What gets sent:** when you use a cloud provider, the full text of the page
-> you are looking at and a screenshot of the current window go to the endpoint
-> you configured. Exclusions are per application, not per site — see
+> you are looking at and a screenshot of the current window (or the whole screen,
+> if you choose Entire screen) go to the endpoint you configured. Exclusions are per application, not per site — see
 > [PRIVACY.md](PRIVACY.md).
 
 ## Live listening (unreleased)
@@ -121,7 +121,7 @@ open "$HOME/Applications/Wisp.app"
 
 - macOS 14.0 or later.
 - An Apple Silicon or Intel Mac. The published app is a Universal 2 binary.
-- **Screen Recording** permission for current-window screenshots.
+- **Screen Recording** permission for current-window or entire-screen screenshots.
 - **Automation** permission and the browser's `Allow JavaScript from Apple
   Events` setting for full-page browser text.
 - Network access and your own API key for cloud endpoints.
@@ -150,6 +150,8 @@ open "$HOME/Applications/Wisp.app"
 
 - Capture the current frontmost application's window; screenshots are normally
   kept in memory only.
+- Or capture the entire display that window is on, to ask about several windows
+  at once. Excluded apps, and any running apps you check, are cut out of it.
 - Supports Chrome, Brave, Edge, Vivaldi, Yandex Browser, Opera, Safari, Arc,
   and selected stable or beta bundle identifiers.
 - Read the current URL, page title, selected text, and page body from supported
@@ -396,13 +398,14 @@ specific localization.
 
 **Exclusions are per app, not per site.** The exclusion list takes bundle
 identifiers, so there is currently no way to exempt one URL or domain while
-still using Wisp in that browser.
+still using Wisp in that browser. Entire-screen captures always cut out excluded
+apps, plus any apps you check under Settings → Capture → Capture range.
 
 The full policy is in [PRIVACY.md](PRIVACY.md).
 
 **Permissions**
 
-- **Screen Recording:** current-window screenshots.
+- **Screen Recording:** current-window or entire-screen screenshots.
 - **Automation / Apple Events:** browser URL and title access, plus page
   JavaScript execution for supported browsers.
 - **Accessibility:** only for the enhanced shortcut mode, to observe Shift,

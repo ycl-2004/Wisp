@@ -288,7 +288,7 @@ struct ChatEmptyStateView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("问点关于「\(appName)」的事")
                         .font(.system(size: 13, weight: .medium))
-                    Text("Wisp 会在发送时读取当前窗口的截图与正文上下文，直接提问即可。")
+                    Text("Wisp 会在发送时读取屏幕截图与正文上下文，直接提问即可。")
                         .font(DS.meta)
                         .foregroundStyle(.secondary)
                 }
