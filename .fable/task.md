@@ -9,20 +9,22 @@ Test whether hiding the system cursor and drawing it inside Wisp preserves mouse
 3. Validate in independent capture processes with cursor inclusion ON and positive controls; report unsupported/untested sharing paths honestly.
 4. Build and install the tested version at /Applications/Wisp.app for user evaluation.
 5. General sharing/recording compatibility is the target, not a guarantee inferred from a single recorder.
+6. Keep the visible Wisp cursor as an arrow everywhere while preserving resize and drag gestures.
 
 ## Decisions
 - User approved testing the local cursor proposal; no whole-window duplicate or mouse position warping in production.
 - AppKit/SwiftUI, macOS 14 minimum. Use NSCursor hide/unhide with balanced ownership and a click-through local drawing view.
+- Resize hit-testing remains unchanged; all cursor artwork now resolves to `NSCursor.arrow`.
 - Experiments use synthetic content, local capture only, no meeting transmission or model calls.
 - Commit and push the verified experiment together with its tests, probe, and user-facing documentation.
 
 ## Evidence
-- `xcodebuild test` passed 126 tests in `/private/tmp/wisp-local-cursor-tests/Logs/Test/Test-Wisp-2026.09.11_06-47-09--0700.xcresult`.
+- `xcodebuild test` passed 127 tests in `/private/tmp/wisp-local-cursor-tests/Logs/Test/Test-Wisp-2026.09.11_07-21-20--0700.xcresult`, including the arrow-only resize regression check.
 - `/private/tmp/wisp-local-cursor-capture-2/result.json` has off/on/restored groups with cursor-including ScreenCaptureKit, system screenshot and system video captures. Dark cursor pixels were 49/0/49 in the SCK shots and 234/0/234 in system screenshots; native interaction recorded clicks=1, text=`cursor test`, selectionLength=11, scrollY=140.
-- Release build and signed replacement completed with `tools/install-local.sh`; `/Applications/Wisp.app` now contains version 0.3.0 build 5.
+- Release build and signing completed with `tools/install-local.sh`; replacing `/Applications/Wisp.app` is pending because the installed app is currently running. The existing installed bundle remains version 0.3.0 build 5 until it is quit and replaced.
 - Browser `getDisplayMedia` probe was prepared and opened, but the OS screen-picker was not counted as completed because no user selection was made.
 
 ## Delivery / outstanding items
-Requirements 1–4 are implemented and locally verified. Requirement 5 is intentionally bounded: third-party sharing tools remain unverified. User-facing docs and changelog describe the mode as experimental and off by default.
+Requirements 1–3, 5 and 6 are implemented and locally verified. Requirement 4 is built and signed but installation of this latest arrow-only revision is waiting for the currently running app to quit. Third-party sharing tools remain unverified; user-facing docs and changelog describe the mode as experimental and off by default.
 
 Outstanding: verify the browser picker with the user's explicit screen selection; test Zoom, Meet, Teams, Feishu, OBS, Screen Studio and remote desktop; decide whether to keep the experiment after those results. No universal capture guarantee is claimed.

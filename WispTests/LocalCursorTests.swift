@@ -28,6 +28,7 @@ final class LocalCursorTests: XCTestCase {
         controller.update(window: window, screenPoint: point, applicationActive: true)
         let firstHide = hides
         XCTAssertTrue(controller.isReplacingCursor)
+        XCTAssertTrue(controller.overlay.displayedCursor === NSCursor.arrow)
         XCTAssertTrue(controller.overlay.superview === content)
         XCTAssertTrue(content.hitTest(NSPoint(x: 50, y: 45)) === originalHit)
         XCTAssertNil(controller.overlay.hitTest(.zero))

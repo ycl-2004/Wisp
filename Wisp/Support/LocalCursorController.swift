@@ -38,7 +38,7 @@ final class LocalCursorController {
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
         // Observe only our events, without consuming or rewriting them. Refresh
-        // after dispatch so AppKit has selected the arrow/I-beam/resize cursor.
+        // after dispatch so the local arrow follows the native hit target.
         // https://developer.apple.com/documentation/appkit/nsevent/addlocalmonitorforevents(matching:handler:)
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [
             .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged,
@@ -110,7 +110,10 @@ final class LocalCursorController {
             overlay.removeFromSuperview()
             content.addSubview(overlay, positioned: .above, relativeTo: nil)
         }
-        let cursor = NSCursor.current
+        // Keep the visible pointer stable. Resize and text-edit gestures still use
+        // their native hit targets; only the pointer artwork is intentionally an arrow.
+        let cursor = NSCursor.arrow
+        cursor.set()
         overlay.setCursor(cursor)
         let size = cursor.image.size
         overlay.frame = NSRect(x: point.x - cursor.hotSpot.x,
@@ -139,7 +142,7 @@ final class LocalCursorController {
 /// Lives in the same excluded window as the content, never a second shared window.
 /// A small click-through view avoids invalidating the entire chat on every mouse move.
 final class LocalCursorView: NSView {
-    private var cursor: NSCursor?
+    private(set) var displayedCursor: NSCursor?
     override var isFlipped: Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
@@ -151,13 +154,13 @@ final class LocalCursorView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func setCursor(_ cursor: NSCursor) {
-        guard self.cursor !== cursor else { return }
-        self.cursor = cursor
+        guard displayedCursor !== cursor else { return }
+        displayedCursor = cursor
         needsDisplay = true
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        cursor?.image.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1,
-                           respectFlipped: true, hints: nil)
+        displayedCursor?.image.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1,
+                                    respectFlipped: true, hints: nil)
     }
 }

@@ -13,6 +13,10 @@ enum PanelResize {
     /// 右下角把手的边长，四角同样按这个尺寸放宽命中区。
     static let cornerSize: CGFloat = 16
 
+    /// Resizing is still handled by the overlay, but its pointer stays an arrow.
+    /// This keeps the local-cursor experiment and ordinary Wisp use visually stable.
+    static func cursor(for _: Edges) -> NSCursor { .arrow }
+
     struct Edges: OptionSet {
         let rawValue: Int
         static let left = Edges(rawValue: 1 << 0)
@@ -139,7 +143,7 @@ final class PanelResizeOverlay: NSView {
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let edges = PanelResize.edges(at: point, in: bounds.size)
-        cursor(for: edges).set()
+        PanelResize.cursor(for: edges).set()
         let corner = edges.contains(.right) && edges.contains(.bottom)
         if corner != hoveringCorner {
             hoveringCorner = corner
@@ -153,27 +157,6 @@ final class PanelResizeOverlay: NSView {
             hoveringCorner = false
             needsDisplay = true
         }
-    }
-
-    private func cursor(for edges: PanelResize.Edges) -> NSCursor {
-        if edges.isEmpty { return .arrow }
-        if #available(macOS 15.0, *) {
-            var position: NSCursor.FrameResizePosition?
-            switch (edges.contains(.left), edges.contains(.right), edges.contains(.top), edges.contains(.bottom)) {
-            case (true, _, true, _):  position = .topLeft
-            case (_, true, true, _):  position = .topRight
-            case (true, _, _, true):  position = .bottomLeft
-            case (_, true, _, true):  position = .bottomRight
-            case (true, _, _, _):     position = .left
-            case (_, true, _, _):     position = .right
-            case (_, _, true, _):     position = .top
-            case (_, _, _, true):     position = .bottom
-            default:                  position = nil
-            }
-            if let position { return .frameResize(position: position, directions: .all) }
-        }
-        let horizontal = edges.contains(.left) || edges.contains(.right)
-        return horizontal ? .resizeLeftRight : .resizeUpDown
     }
 
     /// 右下角三条斜线。平时几乎看不见，鼠标靠近才亮一点——面板是拿来看别的东西的，

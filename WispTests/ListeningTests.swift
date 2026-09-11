@@ -828,6 +828,16 @@ final class ListeningTests: XCTestCase {
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 0, y: 0), in: .zero), [])
     }
 
+    func testPanelResizeAlwaysUsesArrowCursor() {
+        let edgeCombinations: [PanelResize.Edges] = [
+            [], .left, .right, .top, .bottom,
+            [.left, .top], [.right, .top], [.left, .bottom], [.right, .bottom]
+        ]
+        for edges in edgeCombinations {
+            XCTAssertTrue(PanelResize.cursor(for: edges) === NSCursor.arrow)
+        }
+    }
+
     func testResizeKeepsTheOppositeEdgeFixedAndObeysWindowLimits() {
         let start = NSRect(x: 200, y: 400, width: 620, height: 180)
         let minSize = NSSize(width: 380, height: 144)
