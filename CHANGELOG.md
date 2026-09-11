@@ -1,6 +1,6 @@
 # Wisp release notes
 
-## Unreleased
+## 0.4.0 — 2026-09-11
 
 ### Changed
 

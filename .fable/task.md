@@ -31,3 +31,13 @@ Test whether hiding the system cursor and drawing it inside Wisp preserves mouse
 Requirements 1–7 are implemented and locally verified. Third-party sharing tools remain unverified; user-facing docs and changelog describe the mode as experimental and off by default.
 
 Outstanding: verify the browser picker with the user's explicit screen selection; test Zoom, Meet, Teams, Feishu, OBS, Screen Studio and remote desktop; decide whether to keep the experiment after those results. No universal capture guarantee is claimed.
+
+## Release follow-up — 2026-09-11
+
+### Added requirement
+8. Fast-forward local `main` to the already merged remote PR, update Wisp to `0.4.0`, build and verify the Universal 2 release, push `main` and the `v0.4.0` tag, and leave the worktree on `main`.
+
+### Decisions
+- Remote `main` already contains the feature branch as squash commit `a474a3c`; use a fast-forward locally rather than creating a duplicate merge commit.
+- Use build number 6 for the new marketing version 0.4.0, keeping `project.yml` as the version source of truth.
+- Produce the public artifact with the documented ad-hoc Universal 2 build and keep the local app team-signed for permission testing.

@@ -46,7 +46,7 @@ that Wisp removes when the command ends. The interface ships in English and
 Simplified Chinese and follows your system language.
 
 > **Current distribution status:** the latest release is
-> `v0.3.0 (build 5)`, a Universal 2 build with `arm64` and `x86_64` slices.
+> `v0.4.0 (build 6)`, a Universal 2 build with `arm64` and `x86_64` slices.
 > Releases are ad-hoc signed and
 > not Apple-notarized, so the first launch may require Control-click →
 > **Open**.
@@ -56,7 +56,7 @@ Simplified Chinese and follows your system language.
 > if you choose Entire screen) go to the endpoint you configured. Exclusions are per application, not per site — see
 > [PRIVACY.md](PRIVACY.md).
 
-## Live listening (unreleased)
+## Live listening
 
 Voice input shares the main chat panel: a single live caption line with the elapsed
 time, the microphone/stop button, Stop & analyze, and the rest under a ⋯ menu.
@@ -431,8 +431,8 @@ The full policy is in [PRIVACY.md](PRIVACY.md).
 
 ## Current release
 
-The current release is `0.3.0 (build 5)`; see
-[CHANGELOG.md](CHANGELOG.md). It corresponds to Git tag `v0.3.0`.
+The current release is `0.4.0 (build 6)`; see
+[CHANGELOG.md](CHANGELOG.md). It corresponds to Git tag `v0.4.0`.
 
 | Artifact | Purpose |
 | --- | --- |

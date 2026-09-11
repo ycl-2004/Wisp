@@ -253,7 +253,7 @@ struct CodexCLIProvider: ChatProvider {
 
         static var initializeRequest: [String: Any] {
             ["id": 0, "method": "initialize", "params": [
-                "clientInfo": ["name": "wisp", "title": "Wisp", "version": "0.3.0"]
+                "clientInfo": ["name": "wisp", "title": "Wisp", "version": "0.4.0"]
             ]]
         }
 
