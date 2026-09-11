@@ -82,7 +82,8 @@ enum ContextCapture {
     /// `excludingWindowIDs` 传入 Wisp 自己的窗口，双保险防止把浮窗截进去。
     /// `fallbackApp` 用于浮窗已经抢到焦点后再次刷新的情况：此时前台应用是 Wisp 自己。
     static func captureShot(excludingWindowIDs: [CGWindowID] = [],
-                            fallbackApp: NSRunningApplication? = nil) async -> (ContextPacket, PendingText?) {
+                            fallbackApp: NSRunningApplication? = nil,
+                            screenshotOnly: Bool = false) async -> (ContextPacket, PendingText?) {
         let settings = AppSettings.shared
         let ownBundleID = Bundle.main.bundleIdentifier
 
@@ -109,7 +110,7 @@ enum ContextCapture {
         // 先问浏览器当前分页是什么。快，而且能给截图指出该截哪个窗口。
         let family = BrowserTextExtractor.family(for: bundleID)
         let browser: BrowserTextExtractor.Result?
-        if let bundleID, let family {
+        if !screenshotOnly, let bundleID, let family {
             browser = await runOffMain {
                 BrowserTextExtractor.basicInfo(bundleID: bundleID, family: family, appName: appName)
             }
@@ -134,6 +135,9 @@ enum ContextCapture {
                 packet.notes.append(.info(String(localized: "截图失败：\(message)")))
             }
         }
+
+        // Quick never starts browser automation, even for URL/title metadata.
+        if screenshotOnly { return (packet, nil) }
 
         if let browser {
             packet.url = browser.url

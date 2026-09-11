@@ -10428,18 +10428,18 @@
         }
       }
     },
-    "优先尽快回答；使用当前截图、已有正文和转写，不等待新的整页采集。复杂问题请切换深入。": {
+    "截图后直接发送；不读取网页正文、不滚动，也不附带历史页面正文。只判断当前可视区域，复杂问题请切换深入。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prioritizes a quick answer using the current screenshot, existing text and transcript, without waiting for new full-page capture. Use Deep for complex questions."
+            "value": "Captures a screenshot and sends immediately, without reading or scrolling pages or attaching historical page text. Uses the visible area only; switch to Deep for complex questions."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "优先尽快回答；使用当前截图、已有正文和转写，不等待新的整页采集。复杂问题请切换深入。"
+            "value": "截图后直接发送；不读取网页正文、不滚动，也不附带历史页面正文。只判断当前可视区域，复杂问题请切换深入。"
           }
         }
       }

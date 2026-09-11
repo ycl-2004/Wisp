@@ -20,10 +20,10 @@ final class ResponseModeTests: XCTestCase {
 
     @MainActor
     func testCollapsedPanelHeightTracksMultilineComposerWithoutExtraDefaultSpace() {
-        XCTAssertEqual(PanelController.collapsedHeight, 140)
-        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight), 140)
-        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight - 10), 140)
-        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 80), 200)
+        XCTAssertEqual(PanelController.collapsedHeight, 110)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight), 110)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight - 10), 110)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 80), 170)
         XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 400), 240)
     }
 
@@ -125,6 +125,73 @@ final class ResponseModeTests: XCTestCase {
         XCTAssertTrue(system.contains(ResponsePolicy.evidenceInstructions))
         XCTAssertTrue(system.contains(ResponsePolicy.skippedContextNotice))
         XCTAssertTrue(system.contains(ResponseMode.quick.prompt))
+    }
+
+    func testQuickOmitsHistoricalPageTextAndKeepsImageAndConversation() throws {
+        var packet = ContextPacket(appName: "Browser", bundleID: "test.browser")
+        packet.pageText = String(repeating: "PAGE_BODY_SENTINEL ", count: 6000)
+        packet.pageTextTotalChars = packet.pageText?.count
+        let image = try XCTUnwrap(ScreenCapturer.tinyTestJPEG())
+        let messages = [
+            Message(role: .user, text: "Previous question", context: packet.snapshot()),
+            Message(role: .assistant, text: "Previous answer"),
+            Message(role: .user, text: "What is visible now?", context: packet.snapshot())
+        ]
+        let quick = PromptBuilder.build(messages: messages, liveScreenshot: image, mode: .quick, skippedPageCapture: true)
+        let deep = PromptBuilder.build(messages: messages, liveScreenshot: image, mode: .deep)
+        let quickData = try JSONSerialization.data(withJSONObject: quick)
+        let deepData = try JSONSerialization.data(withJSONObject: deep)
+        let quickText = String(decoding: quickData, as: UTF8.self)
+        XCTAssertFalse(quickText.contains("PAGE_BODY_SENTINEL"))
+        XCTAssertTrue(quickText.contains("Previous answer"))
+        XCTAssertTrue(quickText.contains("What is visible now?"))
+        let blocks = try XCTUnwrap(quick.last?["content"] as? [[String: Any]])
+        XCTAssertEqual(blocks.filter { $0["type"] as? String == "image_url" }.count, 1)
+        XCTAssertLessThan(quickData.count, deepData.count)
+
+        // Same history/image, only page-context policy differs. This measures local
+        // payload preparation, not capture latency or provider time to first token.
+        for mode in [ResponseMode.quick, .deep] {
+            let start = ProcessInfo.processInfo.systemUptime
+            for _ in 0..<100 {
+                _ = try JSONSerialization.data(withJSONObject: PromptBuilder.build(
+                    messages: messages, liveScreenshot: image, mode: mode))
+            }
+            let milliseconds = (ProcessInfo.processInfo.systemUptime - start) * 10
+            print("QUICK_BENCH \(mode.rawValue): \(mode == .quick ? quickData.count : deepData.count) bytes, \(milliseconds) ms/request")
+        }
+    }
+
+    @MainActor
+    func testScreenshotOnlyDeepRetryRequiresMatchingWindowTitle() {
+        var packet = ContextPacket(appName: "Browser", bundleID: "test.browser")
+        packet.windowTitle = "Original page"
+        let quickContext = packet.snapshot()
+        packet.url = "https://example.com/original"
+        XCTAssertTrue(AssistantModel.isSamePage(packet, quickContext))
+        packet.windowTitle = "Different page"
+        XCTAssertFalse(AssistantModel.isSamePage(packet, quickContext))
+    }
+
+    @MainActor
+    func testCameraOffQuickSkipsCaptureAndPreservesChatHistory() async throws {
+        let model = AssistantModel.shared
+        let previous = model.packet
+        defer { model.packet = previous }
+        let fixture = ContextPacket(appName: "Capture must not run", bundleID: "test.fixture")
+        model.packet = fixture
+        await model.captureShot(screenshotOnly: true, attachScreenshot: false)
+        XCTAssertEqual(model.packet?.id, fixture.id)
+        XCTAssertFalse(model.isCapturing)
+        let messages = [Message(role: .user, text: "Meeting topic one"),
+                        Message(role: .assistant, text: "Agreed on option A"),
+                        Message(role: .user, text: "What about the next topic?")]
+        let payload = PromptBuilder.build(messages: messages, liveScreenshot: nil, mode: .quick)
+        let text = String(decoding: try JSONSerialization.data(withJSONObject: payload), as: UTF8.self)
+        XCTAssertTrue(text.contains("Meeting topic one"))
+        XCTAssertTrue(text.contains("Agreed on option A"))
+        XCTAssertTrue(text.contains("What about the next topic?"))
+        XCTAssertFalse(text.contains("image_url"))
     }
 }
 

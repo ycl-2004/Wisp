@@ -67,7 +67,6 @@ struct ChatView: View {
     private var content: some View {
         VStack(spacing: 0) {
             ContextHeaderView()
-            ListeningView()
 
             if !model.isCollapsed {
                 Group {
@@ -189,9 +188,7 @@ struct ChatView: View {
                             .strokeBorder(DS.hairline, lineWidth: 0.5)
                     )
 
-                if !settings.listeningEnabled {
-                    ResponseModeToggle()
-                }
+                ResponseModeToggle()
                 commandsMenu
                 sendButton
             }

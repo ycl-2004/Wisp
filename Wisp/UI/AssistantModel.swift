@@ -90,15 +90,20 @@ final class AssistantModel: ObservableObject {
 
     /// 第二阶段还没跑的那份活。
     private var pendingText: ContextCapture.PendingText?
+    private var capturedScreenshotOnly = false
 
     /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
     /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
-    func captureShot() async {
+    func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
         guard !isCapturing else { return }
+        let screenshotOnly = screenshotOnly ?? (settings.responseMode == .quick)
+        // Opening/refocusing Quick with the camera off must not capture either.
+        if screenshotOnly && !(attachScreenshot ?? settings.sendScreenshot) { return }
         isCapturing = true
         errorText = nil
         let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: ownWindowIDs,
-                                                                 fallbackApp: targetApp)
+                                                                 fallbackApp: targetApp,
+                                                                 screenshotOnly: screenshotOnly)
         if let bundleID = result.bundleID,
            bundleID != Bundle.main.bundleIdentifier,
            let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
@@ -114,6 +119,7 @@ final class AssistantModel: ObservableObject {
 
         packet = result
         pendingText = pending
+        capturedScreenshotOnly = screenshotOnly
         isCapturing = false
         // 截图是新的了，过期标记就该清掉。正文还欠着的话由 `pendingText` 记着，
         // 不要用 contextIsStale 兼职表示这件事——否则发送时会白截一次图。
@@ -142,7 +148,7 @@ final class AssistantModel: ObservableObject {
 
     /// 两个阶段一次跑完。手动刷新走这条。
     func captureContext() async {
-        await captureShot()
+        await captureShot(screenshotOnly: false)
         await captureText()
     }
 
@@ -352,9 +358,13 @@ final class AssistantModel: ObservableObject {
         let generation = beginResponse(config)
         preparationTask = Task {
             defer { endPreparation(generation) }
-            if packet == nil || contextIsStale { await captureShot() }
+            if mode == .quick {
+                if sendScreenshot { await captureShot(screenshotOnly: true, attachScreenshot: true) }
+            } else if packet == nil || contextIsStale || capturedScreenshotOnly {
+                await captureShot(screenshotOnly: false)
+            }
             guard !Task.isCancelled, responseGeneration == generation else { return }
-            let skippedPage = !mode.capturesPageText && pendingText != nil
+            let skippedPage = !mode.capturesPageText
             if mode.capturesPageText { await captureText() }
             guard !Task.isCancelled, responseGeneration == generation else { return }
             guard store.active?.id == conversationID else { return cancelPreparation() }
@@ -395,7 +405,9 @@ final class AssistantModel: ObservableObject {
         let generation = beginResponse(config)
         preparationTask = Task {
             defer { endPreparation(generation) }
-            if packet == nil || contextIsStale { await captureShot() }
+            if packet == nil || contextIsStale || capturedScreenshotOnly {
+                await captureShot(screenshotOnly: false)
+            }
             guard !Task.isCancelled, responseGeneration == generation else { return }
             let samePage = Self.isSamePage(packet, question.context)
             // 换了页面就不去读（更不去滚动）一个跟这个问题无关的页面。
@@ -419,7 +431,11 @@ final class AssistantModel: ObservableObject {
     /// 同一个应用、同一个网址。不是浏览器时网址都是空的，就按应用算。
     nonisolated static func isSamePage(_ packet: ContextPacket?, _ context: ContextSnapshot?) -> Bool {
         guard let packet, let context, !packet.isExcluded else { return false }
-        return packet.bundleID == context.bundleID && packet.url == context.url
+        guard packet.bundleID == context.bundleID else { return false }
+        if context.url == nil, let title = context.windowTitle, !title.isEmpty {
+            return packet.windowTitle == title
+        }
+        return packet.url == context.url
     }
 
     /// 这一次要发出去的配置。模型由 `ActiveModels` 决定，界面上显示的就是这一个。
@@ -507,6 +523,9 @@ final class AssistantModel: ObservableObject {
 
     /// 这一轮附哪张截图、问题记下哪份上下文。
     private func contextForSend(config: ProviderConfig, sendScreenshot: Bool) -> (ContextSnapshot?, Data?) {
+        // Conversation history remains in PromptBuilder; stale screen context does not
+        // belong to a camera-off Quick question.
+        if config.responseMode == .quick && !sendScreenshot { return (nil, nil) }
         var screenshotToSend: Data?
         if sendScreenshot, let packet, packet.hasScreenshot,
            (config.responseMode != .standard || lastSentPacketID != packet.id) {

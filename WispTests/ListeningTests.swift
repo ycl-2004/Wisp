@@ -509,10 +509,17 @@ final class ListeningTests: XCTestCase {
     func testIntegratedCompactChatRenders() throws {
         let model = AssistantModel.shared
         let collapsed = model.isCollapsed
+        let enabled = ListeningModel.shared.isEnabled
         model.setCollapsedSilently(true)
-        defer { model.setCollapsedSilently(collapsed) }
-        try render(ChatView().environmentObject(model).environmentObject(model.store),
-                   filename: "wisp-integrated-chat.png", height: PanelController.collapsedHeight)
+        defer {
+            model.setCollapsedSilently(collapsed)
+            ListeningModel.shared.isEnabled = enabled
+        }
+        for voiceEnabled in [true, false] {
+            ListeningModel.shared.isEnabled = voiceEnabled
+            try render(ChatView().environmentObject(model).environmentObject(model.store),
+                       filename: "wisp-integrated-chat-\(voiceEnabled).png", height: PanelController.collapsedHeight)
+        }
     }
 
     @MainActor

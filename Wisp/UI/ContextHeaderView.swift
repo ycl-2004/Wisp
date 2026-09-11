@@ -1,20 +1,20 @@
 import AppKit
 import SwiftUI
 
-/// 两行头部：第一行是当前在读哪个页面，第二行是这次会发送什么 + 轮次计数。
-/// 目标是把原来那一大块信息压到 52pt 以内，并且不用手动点刷新。
+/// 标题与共享快捷控制两行；录音时第二行让位给语音，采集详情使用弹窗。
 struct ContextHeaderView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var listening = ListeningModel.shared
+    @ObservedObject private var pushToTalk = PushToTalk.shared
+    @AppStorage("settingsTab") private var settingsTab: SettingsView.Tab = .model
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(spacing: 0) {
             titleRow
             metaRow
-            if model.showsNotes, !notes.isEmpty {
-                notesBlock
-            }
         }
         .padding(.horizontal, DS.gutter)
         .padding(.top, 7)
@@ -47,7 +47,7 @@ struct ContextHeaderView: View {
                 appIcon
                     .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
 
-                Text(model.packet?.appName ?? String(localized: "读取中…"))
+                Text(model.packet?.appName ?? model.targetApp?.localizedName ?? "Wisp")
                     .font(DS.title)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -133,54 +133,73 @@ struct ContextHeaderView: View {
 
     private var metaRow: some View {
         GeometryReader { geometry in
-            metaContent(modelWidth: min(200, max(60, geometry.size.width - 300)))
+            if listening.isActive || pushToTalk.isActive {
+                ListeningView()
+            } else {
+                metaContent(modelWidth: min(200, max(60, geometry.size.width - 250)))
+            }
         }
-        .frame(height: DS.metaHeight)
+        .frame(height: 30)
     }
 
     private func metaContent(modelWidth: CGFloat) -> some View {
         HStack(spacing: DS.tightGap) {
-            Chip(icon: "camera.viewfinder",
-                 text: screenshotChipText,
-                 active: model.packet?.hasScreenshot == true && settings.sendScreenshot,
-                 enabled: model.packet?.hasScreenshot == true) {
+            ListeningView()
+                .fixedSize()
+
+            Button {
                 model.toggleScreenshot()
+            } label: {
+                Image(systemName: settings.sendScreenshot ? "camera.fill" : "camera")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(settings.sendScreenshot ? Color.blue : Color.secondary)
+                    .frame(width: 26, height: 24)
+                    .background(RoundedRectangle(cornerRadius: DS.chipCorner)
+                        .fill(settings.sendScreenshot ? Color.blue.opacity(0.14) : .clear))
             }
-            .help("附带截图")
+            .buttonStyle(.plain)
+            .help(screenshotChipText)
+            .accessibilityLabel("附带截图")
+            .accessibilityValue(settings.sendScreenshot ? "On" : "Off")
             .fixedSize()
 
-            Chip(icon: "doc.plaintext",
-                 text: pageTextChipLabel,
-                 active: model.packet?.hasPageText == true,
-                 enabled: false)
-                .help(pageTextChipText)
-                .accessibilityLabel(Text(pageTextChipText))
-
-            if !notes.isEmpty {
-                Chip(icon: hasBlockingNote ? "exclamationmark.triangle" : "info.circle",
-                     text: "\(notes.count)",
-                     active: hasBlockingNote) {
-                    withAnimation(.easeOut(duration: 0.14)) { model.showsNotes.toggle() }
+            if !notes.isEmpty || model.packet?.hasPageText == true {
+                Button { model.showsNotes.toggle() } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(hasBlockingNote ? Color.orange : Color.secondary)
                 }
+                .buttonStyle(IconButtonStyle())
                 .help("采集详情")
+                .accessibilityLabel("采集详情")
+                .popover(isPresented: $model.showsNotes) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if model.packet?.hasPageText == true { Text(pageTextChipText) }
+                        if !notes.isEmpty { notesBlock }
+                    }
+                    .font(DS.meta)
+                    .padding(12)
+                    .frame(width: 300, alignment: .leading)
+                }
             }
 
             Spacer(minLength: 4)
 
             ModelSwitcher(width: modelWidth)
-
             Text(counters)
-                .font(DS.meta)
-                .fixedSize()
+                .font(DS.meta.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .monospacedDigit()
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(
-                    RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
-                        .fill(Color.primary.opacity(0.04))
-                )
-                .help("本对话 \(store.active?.userTurnCount ?? 0)/\(store.maxUserTurns) 轮 · 共 \(store.conversations.count)/\(store.maxConversations) 个对话")
+                .fixedSize()
+            if listening.isEnabled {
+                Button {
+                    settingsTab = .audio
+                    openSettings()
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .buttonStyle(IconButtonStyle())
+                .help("音频设置…")
+                .accessibilityLabel("音频设置…")
+            }
         }
     }
 
@@ -207,13 +226,6 @@ struct ContextHeaderView: View {
         return packet.isTruncated
             ? String(localized: "正文 \(text.count) 字 · 截断")
             : String(localized: "正文 \(text.count) 字")
-    }
-
-    private var pageTextChipLabel: String {
-        guard let packet = model.packet, !packet.isExcluded,
-              let text = packet.pageText, !text.isEmpty else { return pageTextChipText }
-        // The document icon supplies the category; the full unit/status stays in help and VoiceOver.
-        return "\(text.count)" + (packet.isTruncated ? "…" : "")
     }
 
     // MARK: - 说明

@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Changed
+
+- Quick with the camera off now skips capture when opening, refocusing, and sending.
+  Follow-up questions retain chat history without attaching stale screen context.
+  The shared toolbar shows turn counts and an Audio Settings shortcut; a single
+  Quick/Deep toggle sits beside the composer. Voice-disabled panels hide voice controls.
+
+- Quick now captures a fresh screenshot at send time without browser URL/title scripts,
+  page-text extraction, or scrolling. Requests omit historical page bodies while preserving
+  questions and answers. The selected model and camera attachment preference still apply.
+  Deep reacquires browser context after Quick; retrying an older screenshot question requires
+  matching window metadata before using the current page.
+
+- The compact panel has three rows: title, shared controls, and text input. The camera
+  icon toggles sending the captured image (blue means enabled); capture itself is unchanged.
+  The information popover contains only available page-text details and capture notes;
+  it hides when empty. Camera state and conversation counts appear only in the toolbar.
+  The idle microphone shares the model and Quick/Deep row; recording replaces those controls
+  with speech status and actions. Previous transcript actions remain in the microphone's
+  context menu. The default compact height is now 110pt.
+
 ### Fixed
 
 - Long model names now yield space to capture status and conversation counters in the

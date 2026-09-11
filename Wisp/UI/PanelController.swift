@@ -11,8 +11,8 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
-    static let collapsedHeight: CGFloat = 140
-    private static let minimumCollapsedHeight: CGFloat = 140
+    static let collapsedHeight: CGFloat = 110
+    private static let minimumCollapsedHeight: CGFloat = 110
     private static let legacyCollapsedHeight: CGFloat = 180
     private static let maximumCollapsedHeight: CGFloat = 240
     private static let minimumExpandedHeight: CGFloat = 280
@@ -317,7 +317,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             // 180pt was the old default while the standalone mode row was present.
             // Treat that exact legacy default as a migration value so existing users
             // do not keep a large blank strip after the row is removed.
-            storedCollapsedHeight = abs(rect.height - Self.legacyCollapsedHeight) < 1
+            storedCollapsedHeight = (abs(rect.height - Self.legacyCollapsedHeight) < 1 || abs(rect.height - 140) < 1)
                 ? Self.collapsedHeight
                 : min(max(rect.height, Self.minimumCollapsedHeight), Self.maximumCollapsedHeight)
         } else if rect.height >= Self.minimumExpandedHeight {

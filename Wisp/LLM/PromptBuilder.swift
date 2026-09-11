@@ -50,8 +50,9 @@ enum PromptBuilder {
                 var blocks: [[String: Any]] = []
 
                 if let context = message.context {
-                    let full = fullContextIndexes.contains(index)
-                    blocks.append(["type": "text", "text": contextBlock(context, full: full)])
+                    let full = mode != .quick && fullContextIndexes.contains(index)
+                    let text = mode == .quick ? "[\(context.summaryLine)]" : contextBlock(context, full: full)
+                    blocks.append(["type": "text", "text": text])
                 }
 
                 if index == lastIndex, let jpeg = liveScreenshot, !jpeg.isEmpty {

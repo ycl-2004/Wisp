@@ -27,7 +27,7 @@ enum ResponseMode: String, Codable, CaseIterable, Identifiable {
     var explanation: String {
         switch self {
         case .standard: return String(localized: "沿用原有模型、正文采集和推理默认值。")
-        case .quick: return String(localized: "优先尽快回答；使用当前截图、已有正文和转写，不等待新的整页采集。复杂问题请切换深入。")
+        case .quick: return String(localized: "截图后直接发送；不读取网页正文、不滚动，也不附带历史页面正文。只判断当前可视区域，复杂问题请切换深入。")
         case .deep: return String(localized: "等待所选采集方式完成，在支持时提高推理力度；更慢，也可能更贵。")
         }
     }

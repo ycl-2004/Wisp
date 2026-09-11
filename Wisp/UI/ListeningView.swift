@@ -84,14 +84,17 @@ struct ListeningBar: View {
     var body: some View {
         HStack(spacing: 6) {
             micButton
-            if isRecording, let startedAt { ElapsedLabel(startedAt: startedAt) }
-            message
-            Spacer(minLength: 2)
-            ResponseModeToggle()
-            actions
+            if state != .idle {
+                if isRecording, let startedAt { ElapsedLabel(startedAt: startedAt) }
+                message
+                Spacer(minLength: 2)
+                actions
+            } else if error != nil {
+                Image(systemName: "exclamationmark.circle")
+                    .foregroundStyle(.orange)
+                    .help(error ?? "")
+            }
         }
-        .padding(.horizontal, DS.gutter)
-        .padding(.vertical, 5)
         .frame(minHeight: 30)
         .background(background)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: isRecording)
@@ -119,6 +122,14 @@ struct ListeningBar: View {
         .disabled(state == .stopping)
         .help(micHelp)
         .accessibilityLabel(micHelp)
+        .contextMenu {
+            Button("看转写原文") { perform(.toggleTranscript) }.disabled(!hasTranscript)
+            Button("放入输入框") { perform(.stage) }.disabled(!canTransfer)
+            Button("复制转写") { perform(.copy) }.disabled(!hasTranscript)
+            Button("打开记录文件夹") { perform(.openFiles) }
+            if error != nil { Button("知道了") { perform(.dismissError) } }
+            SettingsLink { Text("音频设置…") }
+        }
     }
 
     private var micHelp: String {
