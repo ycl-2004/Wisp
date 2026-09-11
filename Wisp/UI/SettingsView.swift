@@ -1272,6 +1272,16 @@ private struct PrivacySettingsView: View {
                     }
                 }
                 Toggle(isOn: Binding(
+                    get: { settings.localCursorEnabled },
+                    set: { settings.localCursorEnabled = $0 }
+                )) {
+                    HStack(spacing: 5) {
+                        Text("本地光标（实验）")
+                        InfoButton(message: String(localized: "Wisp 活跃时，在窗口内绘制光标并隐藏系统指针，点击照常进行。离开窗口或打开原生菜单时恢复。需要开启窗口隐藏；不同共享工具仍可能显示鼠标或点击标记，请先检查接收端。"))
+                    }
+                }
+                .disabled(!settings.hideFromScreenCapture)
+                Toggle(isOn: Binding(
                     get: { settings.showsMenuBarIcon },
                     // 关掉之前先问一句：这是没有 Dock 图标的应用唯一看得见的入口。
                     set: { if $0 { settings.showsMenuBarIcon = true } else { confirmHidingMenuBarIcon = true } }

@@ -1,36 +1,28 @@
-# Screen privacy research and hardening — 2026-09-10
+# Wisp local cursor experiment — 2026-09-11
 
 ## Goal
-Prioritize preventing capture of Wisp over availability. Research macOS boundaries and comparable apps, exercise independent local capture paths, implement evidence-backed improvements, and report unresolved guarantees honestly.
+Test whether hiding the system cursor and drawing it inside Wisp preserves mouse interaction while omitting the pointer from compatible capture paths.
 
 ## Acceptance criteria / append-only requirements
-1. Find methods to validate without a second physical device.
-2. Research native APIs and comparable apps using primary sources.
-3. Treat hiding as the primary requirement; explicitly distinguish local visibility, software captures, system surfaces, and physical capture.
-4. Extend tests to expose false-positive privacy results, including live filter changes.
-5. Make justified production changes with regression validation.
-6. Deliver a cited research report, test evidence, and next steps; do not claim universal invisibility.
+1. Optional local cursor mode, default off, with existing screen privacy required.
+2. Keep native mouse clicks, selection, scrolling, dragging and resizing; restore the cursor on exit, deactivation, menus, disable and termination.
+3. Validate in independent capture processes with cursor inclusion ON and positive controls; report unsupported/untested sharing paths honestly.
+4. Build and install the tested version at /Applications/Wisp.app for user evaluation.
+5. General sharing/recording compatibility is the target, not a guarantee inferred from a single recorder.
 
 ## Decisions
-- User asked to prefer hiding even at the cost of functionality. Optional clarification on stopping local display received no answer; preserve current operation and document strict-mode behavior as a pending product choice.
-- No new commit/push/install requested in this research turn. Prior installed version is 8828c76.
-- No model CLI or model requests required.
-- Existing prior reports contain a known settings/Mission Control exposure and a VNC login-session false control; new evidence must not erase these limitations.
+- User approved testing the local cursor proposal; no whole-window duplicate or mouse position warping in production.
+- AppKit/SwiftUI, macOS 14 minimum. Use NSCursor hide/unhide with balanced ownership and a click-through local drawing view.
+- Experiments use synthetic content, local capture only, no meeting transmission or model calls.
+- Commit and push the verified experiment together with its tests, probe, and user-facing documentation.
 
 ## Evidence
-- Final evidence and scope are recorded below.
-
-## Decision log / evidence updates
-- Apple online documentation explicitly disclaims NSWindowSharingNone as a prevention guarantee; SDK comments are older. Native AVSampleBufferDisplayLayer.preventsCapture is available on macOS and was tested independently of window sharingType.
-- A transient Space policy was initially considered for Mission Control. Reading the complete older evidence showed it had already failed pixel validation. Reverted that trial; no Mission Control fix claimed or shipped.
-- Production change: attach ScreenPrivacyWindow to InfoButton, context notes, response timing and notices sheet; correct misleading AppSettings comment. No capture detectors, private production APIs or window-type changes.
-- Research report: docs/screen-privacy-research-20260910.md; raw non-image metrics and summary in docs/evidence/screen-privacy-20260910/.
-- 114 A/B sample groups passed across 4 SCK filter configurations, live updates, direct window screenshots and 5 native movie samples per mode. Windows still enumerated.
-- Validator rejects blank controls and missing frames as INCONCLUSIVE, and an injected 0.000001 marker fraction as LEAK.
-- Surface A/B covers SCK and two legacy capture APIs. Hidden target fractions zero with positive counterparts; an alert lacked a positive marker and remains inconclusive. Popover and sheet attachment sharingType was 0 hidden / 1 visible.
-- Nine production lifecycle checks pass; final XCTest 69/69 pass in /private/tmp/wisp-privacy-popover-final.xcresult.
-- No model CLI invoked, no network screen transmission, no commit, push or install. Installed version remains 8828c76.
+- `xcodebuild test` passed 126 tests in `/private/tmp/wisp-local-cursor-tests/Logs/Test/Test-Wisp-2026.09.11_06-47-09--0700.xcresult`.
+- `/private/tmp/wisp-local-cursor-capture-2/result.json` has off/on/restored groups with cursor-including ScreenCaptureKit, system screenshot and system video captures. Dark cursor pixels were 49/0/49 in the SCK shots and 234/0/234 in system screenshots; native interaction recorded clicks=1, text=`cursor test`, selectionLength=11, scrollY=140.
+- Release build and signed replacement completed with `tools/install-local.sh`; `/Applications/Wisp.app` now contains version 0.3.0 build 5.
+- Browser `getDisplayMedia` probe was prepared and opened, but the OS screen-picker was not counted as completed because no user selection was made.
 
 ## Delivery / outstanding items
-Research, reproducible tests, bounded hardening and documentation requirements 1–6 delivered. The universal-invisibility objective is not achieved and cannot be represented as a supported macOS guarantee.
-Outstanding: strict-mode product choice; real Wisp lifecycle/Space animations and multi-display testing; Mission Control leak remediation with positive pixel evidence; other meeting receivers and current-session remote desktop; protected video interaction prototype. These are not marked as passed by the matrix.
+Requirements 1–4 are implemented and locally verified. Requirement 5 is intentionally bounded: third-party sharing tools remain unverified. User-facing docs and changelog describe the mode as experimental and off by default.
+
+Outstanding: verify the browser picker with the user's explicit screen selection; test Zoom, Meet, Teams, Feishu, OBS, Screen Studio and remote desktop; decide whether to keep the experiment after those results. No universal capture guarantee is claimed.

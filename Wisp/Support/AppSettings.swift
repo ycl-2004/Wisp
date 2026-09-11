@@ -113,6 +113,7 @@ final class AppSettings: ObservableObject {
         static let showIsland = "showIsland"
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let hideFromScreenCapture = "hideFromScreenCapture"
+        static let localCursorEnabled = "localCursorEnabled"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
         static let panelBackgroundOpacity = "panelBackgroundOpacity"
@@ -155,6 +156,7 @@ final class AppSettings: ObservableObject {
             K.showIsland: true,
             K.showsMenuBarIcon: true,
             K.hideFromScreenCapture: true,
+            K.localCursorEnabled: false,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
             K.panelBackgroundOpacity: 1.0,
@@ -404,6 +406,12 @@ final class AppSettings: ObservableObject {
     var hideFromScreenCapture: Bool {
         get { d.bool(forKey: K.hideFromScreenCapture) }
         set { d.set(newValue, forKey: K.hideFromScreenCapture); objectWillChange.send() }
+    }
+
+    /// Opt-in experiment; effective only while screen privacy is enabled.
+    var localCursorEnabled: Bool {
+        get { d.bool(forKey: K.localCursorEnabled) }
+        set { d.set(newValue, forKey: K.localCursorEnabled); objectWillChange.send() }
     }
 
     var islandPosition: String {

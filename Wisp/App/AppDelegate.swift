@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
@@ -16,6 +17,7 @@ extension KeyboardShortcuts.Name {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var cursorSettingsObservation: AnyCancellable?
 
 #if DEBUG && WISP_DIAGNOSTICS
     static let remoteShowNotification = Notification.Name("com.yichenlin.Wisp.show")
@@ -113,6 +115,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
             ScreenPrivacy.start()
+            configureLocalCursor()
+            cursorSettingsObservation = AppSettings.shared.objectWillChange.sink { [weak self] _ in
+                Task { @MainActor in self?.configureLocalCursor() }
+            }
             PanelController.shared.restoreStoredFrame()
             IslandController.shared.start()
             // 菜单栏图标关着的时候，启动完成后什么都不显示等于「打开了但找不到」。
@@ -234,9 +240,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
+            LocalCursorController.shared.stop()
             ListeningModel.shared.terminate()
             ConversationStore.shared.flush()
         }
+    }
+
+    @MainActor private func configureLocalCursor() {
+        let settings = AppSettings.shared
+        LocalCursorController.shared.setEnabled(settings.localCursorEnabled && settings.hideFromScreenCapture)
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }

@@ -11163,6 +11163,8 @@
         "en": { "stringUnit": { "state": "translated", "value": "Screenshot · Entire screen" } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "截图 · 整个屏幕" } }
       }
-    }
+    },
+    "本地光标（实验）": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Local cursor (experimental)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "本地光标（实验）"}}}},
+    "Wisp 活跃时，在窗口内绘制光标并隐藏系统指针，点击照常进行。离开窗口或打开原生菜单时恢复。需要开启窗口隐藏；不同共享工具仍可能显示鼠标或点击标记，请先检查接收端。": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "While Wisp is active, draw the cursor inside its window and hide the system pointer. Clicks work normally. Restore it when leaving or opening native menus. Requires window hiding; sharing tools may still show pointers or click indicators. Check the receiving screen first."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "Wisp 活跃时，在窗口内绘制光标并隐藏系统指针，点击照常进行。离开窗口或打开原生菜单时恢复。需要开启窗口隐藏；不同共享工具仍可能显示鼠标或点击标记，请先检查接收端。"}}}}
   }
 }

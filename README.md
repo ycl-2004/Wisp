@@ -202,6 +202,12 @@ open "$HOME/Applications/Wisp.app"
   setting does not conceal application identity, focus changes, clipboard
   events, or third-party activity records. Cameras and hardware capture are
   unaffected. Verify the actual receiving-side view before relying on it.
+- **Local cursor (experimental).** Settings → Permissions → Screen sharing can draw the
+  cursor inside Wisp while hiding the system cursor. Wisp remains clickable, selectable,
+  scrollable and draggable locally. The option is off by default and only works with Wisp's
+  window-hiding request enabled. ScreenCaptureKit, system screenshots and local video tests
+  showed no cursor pixels while it was enabled and restored them after disabling it; this does
+  not establish behavior for every browser, meeting app, recorder or remote desktop tool.
 
 **Shortcuts**
 

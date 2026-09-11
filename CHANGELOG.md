@@ -38,6 +38,12 @@
 
 ### Added
 
+- **Local cursor experiment.** Settings → Privacy adds an opt-in local cursor mode. While
+  Wisp is active and hidden from capture, it draws the current cursor inside its own window,
+  hides the system cursor, and restores it when leaving, deactivating, opening menus, disabling
+  the option, or quitting. Native clicks, text selection, scrolling, window dragging and resizing
+  remain native. This is a capture-path experiment, not a guarantee for third-party sharing tools.
+
 - **Capture range.** Settings → Capture adds Current window (the default) and Entire screen
   below the capture modes. Entire screen captures the display holding most of the focused
   window, or the one under the pointer, with a 2048-pixel long-edge limit instead of 1600.
