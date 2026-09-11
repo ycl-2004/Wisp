@@ -41,3 +41,9 @@ Outstanding: verify the browser picker with the user's explicit screen selection
 - Remote `main` already contains the feature branch as squash commit `a474a3c`; use a fast-forward locally rather than creating a duplicate merge commit.
 - Use build number 6 for the new marketing version 0.4.0, keeping `project.yml` as the version source of truth.
 - Produce the public artifact with the documented ad-hoc Universal 2 build and keep the local app team-signed for permission testing.
+
+### Evidence
+- Local `main` fast-forwarded from `d83d15a` to remote squash commit `a474a3c`; release metadata is committed in `3d7d61a`.
+- `xcodegen generate` completed, and `xcodebuild test ... CODE_SIGNING_ALLOWED=NO` passed 127/127 tests. The local privacy preference used for the synthetic cursor test was restored afterward.
+- The ad-hoc Release build passed Universal 2 (`arm64` and `x86_64`), strict code-signature validation, no `com.apple.security.get-task-allow`, and bundle version 0.4.0/build 6. The packaged checksum is recorded in `dist/Wisp-macOS-universal.zip.sha256`.
+- `tools/install-local.sh` installed the team-signed 0.4.0/build 6 app at `/Applications/Wisp.app`; its Universal 2 slices and strict signature validation pass with system trust access.
