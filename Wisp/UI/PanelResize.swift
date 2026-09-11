@@ -82,20 +82,21 @@ final class PanelResizeOverlay: NSView {
         // The title drag view lives below this overlay. Let it win when the user
         // starts a drag on the title's top edge; otherwise that same gesture is
         // interpreted as a resize and never reaches `performDrag(with:)`.
-        if let dragFrame = dragAreaFrame(), dragFrame.contains(local) { return nil }
+        if dragAreaFrames().contains(where: { $0.contains(local) }) { return nil }
         return PanelResize.edges(at: local, in: bounds.size).isEmpty ? nil : self
     }
 
-    private func dragAreaFrame() -> NSRect? {
-        guard let superview else { return nil }
+    private func dragAreaFrames() -> [NSRect] {
+        guard let superview else { return [] }
+        var frames: [NSRect] = []
         var pending = superview.subviews
         while let candidate = pending.popLast() {
             if candidate is WindowDragArea.DragView {
-                return convert(candidate.bounds, from: candidate)
+                frames.append(convert(candidate.bounds, from: candidate))
             }
             pending.append(contentsOf: candidate.subviews)
         }
-        return nil
+        return frames
     }
 
     override func mouseDown(with event: NSEvent) {
