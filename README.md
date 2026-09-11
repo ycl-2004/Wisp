@@ -209,7 +209,7 @@ open "$HOME/Applications/Wisp.app"
   window-hiding request enabled. ScreenCaptureKit, system screenshots and local video tests
   showed no cursor pixels while it was enabled and restored them after disabling it; this does
   not establish behavior for every browser, meeting app, recorder or remote desktop tool.
-- **Resize guide.** A thin pale-blue line and small corner/edge markers inside the panel show
+- **Resize guide.** A thin pale-blue rounded line and small edge markers inside the panel show
   where the custom resize gesture can start. They are visual hints only; the panel remains
   clickable and the pointer stays an arrow.
 

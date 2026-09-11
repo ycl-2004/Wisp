@@ -159,7 +159,7 @@ final class PanelResizeOverlay: NSView {
         }
     }
 
-    /// 画在内容内侧的轻量缩放提示：整圈细线标出可抓的边，四角和边中间的小标记
+    /// 画在内容内侧的轻量缩放提示：整圈圆角细线标出可抓的边，边中间的小标记
     /// 让用户一眼知道拖哪里。提示不改变 hitTest，也不会挡住 SwiftUI 控件。
     override func draw(_ dirtyRect: NSRect) {
         guard bounds.width > PanelResize.guideInset * 2,
@@ -169,7 +169,8 @@ final class PanelResizeOverlay: NSView {
         let active = !hoveringEdges.isEmpty
         let lineColor = NSColor.systemBlue.withAlphaComponent(active ? 0.48 : 0.22)
         lineColor.setStroke()
-        let border = NSBezierPath(roundedRect: guide, xRadius: 6, yRadius: 6)
+        let radius = max(0, DS.windowCorner - PanelResize.guideInset)
+        let border = NSBezierPath(roundedRect: guide, xRadius: radius, yRadius: radius)
         border.lineWidth = active ? 1.0 : 0.7
         border.lineCapStyle = .round
         border.stroke()
@@ -192,19 +193,6 @@ final class PanelResizeOverlay: NSView {
         marker.move(to: NSPoint(x: guide.maxX, y: guide.midY - halfMarker))
         marker.line(to: NSPoint(x: guide.maxX, y: guide.midY + halfMarker))
 
-        // A short L at every corner makes diagonal resizing discoverable without
-        // using the system's diagonal resize cursor.
-        let cornerLength: CGFloat = 9
-        for (x, y, dx, dy) in [
-            (guide.minX, guide.minY, CGFloat(1), CGFloat(1)),
-            (guide.maxX, guide.minY, CGFloat(-1), CGFloat(1)),
-            (guide.minX, guide.maxY, CGFloat(1), CGFloat(-1)),
-            (guide.maxX, guide.maxY, CGFloat(-1), CGFloat(-1))
-        ] {
-            marker.move(to: NSPoint(x: x, y: y + dy * cornerLength))
-            marker.line(to: NSPoint(x: x, y: y))
-            marker.line(to: NSPoint(x: x + dx * cornerLength, y: y))
-        }
         marker.stroke()
     }
 }

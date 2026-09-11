@@ -10,7 +10,7 @@ Test whether hiding the system cursor and drawing it inside Wisp preserves mouse
 4. Build and install the tested version at /Applications/Wisp.app for user evaluation.
 5. General sharing/recording compatibility is the target, not a guarantee inferred from a single recorder.
 6. Keep the visible Wisp cursor as an arrow everywhere while preserving resize and drag gestures.
-7. Show a thin, pale-blue inner guide with edge and corner markers so the resize area is discoverable.
+7. Show a thin, pale-blue rounded inner guide with edge markers so the resize area is discoverable.
 
 ## Decisions
 - User approved testing the local cursor proposal; no whole-window duplicate or mouse position warping in production.
