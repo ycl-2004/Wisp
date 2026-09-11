@@ -832,6 +832,7 @@ final class ListeningTests: XCTestCase {
     func testPanelResizeAlwaysUsesArrowCursor() {
         XCTAssertFalse(PanelController.panelStyleMask.contains(.resizable),
                        "The AppKit resizable style would reinstall the system resize cursor")
+        XCTAssertEqual(PanelResize.guideInset, 4)
         let edgeCombinations: [PanelResize.Edges] = [
             [], .left, .right, .top, .bottom,
             [.left, .top], [.right, .top], [.left, .bottom], [.right, .bottom]

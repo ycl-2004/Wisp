@@ -11,6 +11,8 @@ enum PanelResize {
     static let grabInset: CGFloat = 6
     /// 右下角把手的边长，四角同样按这个尺寸放宽命中区。
     static let cornerSize: CGFloat = 16
+    /// 内层提示线与面板边缘的距离，不占用实际内容的命中区域。
+    static let guideInset: CGFloat = 4
 
     /// Resizing is still handled by the overlay, but its pointer stays an arrow.
     /// This keeps the local-cursor experiment and ordinary Wisp use visually stable.
@@ -70,7 +72,7 @@ final class PanelResizeOverlay: NSView {
     private var startFrame = NSRect.zero
     private var startMouse = NSPoint.zero
     private var activeEdges: PanelResize.Edges = []
-    private var hoveringCorner = false
+    private var hoveringEdges: PanelResize.Edges = []
     private var trackingArea: NSTrackingArea?
 
     override var isFlipped: Bool { false }
@@ -143,35 +145,67 @@ final class PanelResizeOverlay: NSView {
         let point = convert(event.locationInWindow, from: nil)
         let edges = PanelResize.edges(at: point, in: bounds.size)
         PanelResize.cursor(for: edges).set()
-        let corner = edges.contains(.right) && edges.contains(.bottom)
-        if corner != hoveringCorner {
-            hoveringCorner = corner
+        if edges != hoveringEdges {
+            hoveringEdges = edges
             needsDisplay = true
         }
     }
 
     override func mouseExited(with event: NSEvent) {
         NSCursor.arrow.set()
-        if hoveringCorner {
-            hoveringCorner = false
+        if !hoveringEdges.isEmpty {
+            hoveringEdges = []
             needsDisplay = true
         }
     }
 
-    /// 右下角三条斜线。平时几乎看不见，鼠标靠近才亮一点——面板是拿来看别的东西的，
-    /// 一个常年发亮的把手会一直在余光里晃。
+    /// 画在内容内侧的轻量缩放提示：整圈细线标出可抓的边，四角和边中间的小标记
+    /// 让用户一眼知道拖哪里。提示不改变 hitTest，也不会挡住 SwiftUI 控件。
     override func draw(_ dirtyRect: NSRect) {
-        let alpha: CGFloat = hoveringCorner ? 0.45 : 0.16
-        NSColor.secondaryLabelColor.withAlphaComponent(alpha).setStroke()
-        let path = NSBezierPath()
-        path.lineWidth = 1
-        path.lineCapStyle = .round
-        // 端点都留在窗口圆角以内，否则三条线会悬在圆弧外面。
-        for offset in stride(from: CGFloat(12), through: 20, by: 4) {
-            path.move(to: NSPoint(x: bounds.maxX - offset, y: bounds.minY + 6))
-            path.line(to: NSPoint(x: bounds.maxX - 6, y: bounds.minY + offset))
+        guard bounds.width > PanelResize.guideInset * 2,
+              bounds.height > PanelResize.guideInset * 2 else { return }
+
+        let guide = bounds.insetBy(dx: PanelResize.guideInset, dy: PanelResize.guideInset)
+        let active = !hoveringEdges.isEmpty
+        let lineColor = NSColor.systemBlue.withAlphaComponent(active ? 0.48 : 0.22)
+        lineColor.setStroke()
+        let border = NSBezierPath(roundedRect: guide, xRadius: 6, yRadius: 6)
+        border.lineWidth = active ? 1.0 : 0.7
+        border.lineCapStyle = .round
+        border.stroke()
+
+        let markerColor = NSColor.systemBlue.withAlphaComponent(active ? 0.60 : 0.28)
+        markerColor.setStroke()
+        let marker = NSBezierPath()
+        marker.lineWidth = active ? 1.6 : 1.2
+        marker.lineCapStyle = .round
+
+        // Each edge gets a short centered dash. The dashes stay inside the panel,
+        // so they describe the gesture without creating a second outer frame.
+        let halfMarker: CGFloat = 11
+        marker.move(to: NSPoint(x: guide.midX - halfMarker, y: guide.minY))
+        marker.line(to: NSPoint(x: guide.midX + halfMarker, y: guide.minY))
+        marker.move(to: NSPoint(x: guide.midX - halfMarker, y: guide.maxY))
+        marker.line(to: NSPoint(x: guide.midX + halfMarker, y: guide.maxY))
+        marker.move(to: NSPoint(x: guide.minX, y: guide.midY - halfMarker))
+        marker.line(to: NSPoint(x: guide.minX, y: guide.midY + halfMarker))
+        marker.move(to: NSPoint(x: guide.maxX, y: guide.midY - halfMarker))
+        marker.line(to: NSPoint(x: guide.maxX, y: guide.midY + halfMarker))
+
+        // A short L at every corner makes diagonal resizing discoverable without
+        // using the system's diagonal resize cursor.
+        let cornerLength: CGFloat = 9
+        for (x, y, dx, dy) in [
+            (guide.minX, guide.minY, CGFloat(1), CGFloat(1)),
+            (guide.maxX, guide.minY, CGFloat(-1), CGFloat(1)),
+            (guide.minX, guide.maxY, CGFloat(1), CGFloat(-1)),
+            (guide.maxX, guide.maxY, CGFloat(-1), CGFloat(-1))
+        ] {
+            marker.move(to: NSPoint(x: x, y: y + dy * cornerLength))
+            marker.line(to: NSPoint(x: x, y: y))
+            marker.line(to: NSPoint(x: x + dx * cornerLength, y: y))
         }
-        path.stroke()
+        marker.stroke()
     }
 }
 

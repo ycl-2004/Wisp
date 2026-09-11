@@ -45,6 +45,10 @@
   text selection, scrolling, window dragging and resizing remain native. This is a capture-path
   experiment, not a guarantee for third-party sharing tools.
 
+- **Resize guide.** The panel now shows a thin pale-blue guide just inside its bounds, with small
+  edge and corner markers for the custom resize area. The guide is visual only and does not take
+  over clicks or change the arrow cursor.
+
 - **Capture range.** Settings → Capture adds Current window (the default) and Entire screen
   below the capture modes. Entire screen captures the display holding most of the focused
   window, or the one under the pointer, with a 2048-pixel long-edge limit instead of 1600.
