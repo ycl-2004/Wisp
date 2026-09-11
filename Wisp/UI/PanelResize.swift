@@ -74,9 +74,28 @@ final class PanelResizeOverlay: NSView {
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let superview else { return nil }
-        let local = convert(point, from: superview)
+        guard superview != nil else { return nil }
+        // `hitTest` already receives a point in this view's coordinate system.
+        // Converting it from the superview shifts the edge hit box whenever the
+        // overlay is not positioned at the superview's origin.
+        let local = point
+        // The title drag view lives below this overlay. Let it win when the user
+        // starts a drag on the title's top edge; otherwise that same gesture is
+        // interpreted as a resize and never reaches `performDrag(with:)`.
+        if let dragFrame = dragAreaFrame(), dragFrame.contains(local) { return nil }
         return PanelResize.edges(at: local, in: bounds.size).isEmpty ? nil : self
+    }
+
+    private func dragAreaFrame() -> NSRect? {
+        guard let superview else { return nil }
+        var pending = superview.subviews
+        while let candidate = pending.popLast() {
+            if candidate is WindowDragArea.DragView {
+                return convert(candidate.bounds, from: candidate)
+            }
+            pending.append(contentsOf: candidate.subviews)
+        }
+        return nil
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -185,6 +204,10 @@ struct WindowDragArea: NSViewRepresentable {
 
     final class DragView: NSView {
         override var mouseDownCanMoveWindow: Bool { true }
+
+        // The panel is intentionally non-activating. Accept the first press so a
+        // drag works from another app or Space instead of requiring a click first.
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
         override func mouseDown(with event: NSEvent) {
             // performDrag 自己接管这一次拖动，窗口移完会照常发 windowDidMove，位置就存下来了。

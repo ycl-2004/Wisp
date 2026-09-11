@@ -804,6 +804,7 @@ final class ListeningTests: XCTestCase {
         let title = try XCTUnwrap(host.hitTest(NSPoint(x: 200, y: 38)))
         XCTAssertTrue(title is WindowDragArea.DragView, "标题区应该命中拖动层，实际是 \(type(of: title))")
         XCTAssertTrue(title.mouseDownCanMoveWindow)
+        XCTAssertTrue(title.acceptsFirstMouse(for: nil), "非活跃面板的第一次按下也应该开始拖动")
         // 最左边是对话记录按钮，它不能被拖动层盖住。
         let button = host.hitTest(NSPoint(x: 22, y: 38))
         XCTAssertFalse(button is WindowDragArea.DragView)
@@ -874,5 +875,19 @@ final class ListeningTests: XCTestCase {
         XCTAssertFalse(host.hitTest(NSPoint(x: 310, y: 90)) is PanelResizeOverlay)
         // 发送键在右下角，离边 12 点：它的位置不能被缩放层吞掉。
         XCTAssertFalse(host.hitTest(NSPoint(x: 620 - 25, y: 22)) is PanelResizeOverlay)
+    }
+
+    @MainActor
+    func testResizeOverlayDoesNotStealTitleEdgeDrags() {
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 180))
+        let drag = WindowDragArea.DragView(frame: NSRect(x: 100, y: 174, width: 420, height: 6))
+        root.addSubview(drag)
+        let overlay = PanelResizeOverlay(frame: root.bounds)
+        root.addSubview(overlay)
+
+        // The title drag strip is allowed to overlap the top resize edge without
+        // being converted into a resize gesture.
+        XCTAssertTrue(root.hitTest(NSPoint(x: 200, y: 178)) === drag)
+        XCTAssertTrue(root.hitTest(NSPoint(x: 20, y: 178)) === overlay)
     }
 }

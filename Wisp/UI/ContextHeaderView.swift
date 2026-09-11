@@ -66,7 +66,10 @@ struct ContextHeaderView: View {
 
                 Spacer(minLength: 2)
             }
-            .background(WindowDragArea())
+            // Put the drag view above the non-interactive title content. With a
+            // background view, the text and icon can win hit-testing, leaving only
+            // the small gap beside them draggable.
+            .overlay(WindowDragArea())
             .help("拖这里可以移动面板")
 
             if model.isCapturing {
@@ -77,6 +80,7 @@ struct ContextHeaderView: View {
                         .font(.system(size: 9.5))
                         .foregroundStyle(.tertiary)
                 }
+                .overlay(WindowDragArea())
             }
 
             Button { model.refreshContext() } label: { Image(systemName: "arrow.clockwise") }
@@ -183,7 +187,13 @@ struct ContextHeaderView: View {
                 }
             }
 
-            Spacer(minLength: 4)
+            // Keep a generous, stable drag lane between the left status controls
+            // and the model picker. It remains available while the content above
+            // changes, but does not cover any button or text field.
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(WindowDragArea())
+                .accessibilityHidden(true)
 
             ModelSwitcher(width: modelWidth)
             Text(counters)

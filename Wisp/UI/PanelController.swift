@@ -66,6 +66,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         guard let panel else { return }
         cancelIdleTimer()
         saveFrame(panel)
+        flushFrameSave()
         panel.orderOut(nil)
         isPointerInside = false
         broadcastActivity()
@@ -78,6 +79,8 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// 鼠标是否停在面板上。悬停也算「还在用」，不计时。
     private var isPointerInside = false
     private var idleTimer: Timer?
+    private var frameSaveTimer: Timer?
+    private var pendingFrameString: String?
 
     func setPointerInside(_ inside: Bool) {
         guard isPointerInside != inside else { return }
@@ -294,16 +297,32 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func saveFrame(_ panel: NSPanel) {
         guard !isApplyingProgrammaticFrame else { return }
-        AppSettings.shared.panelFrame = NSStringFromRect(panel.frame)
-        storedWidth = panel.frame.width
-        storedOrigin = panel.frame.origin
+        let frame = panel.frame
+        pendingFrameString = NSStringFromRect(frame)
+        storedWidth = frame.width
+        storedOrigin = frame.origin
         if AssistantModel.shared.isCollapsed {
-            storedCollapsedHeight = min(max(panel.frame.height, Self.minimumCollapsedHeight),
+            storedCollapsedHeight = min(max(frame.height, Self.minimumCollapsedHeight),
                                         Self.maximumCollapsedHeight)
         } else {
-            storedExpandedHeight = min(max(panel.frame.height, Self.minimumExpandedHeight),
+            storedExpandedHeight = min(max(frame.height, Self.minimumExpandedHeight),
                                        Self.maximumExpandedHeight)
         }
+
+        // Moving and custom resizing can emit a callback for every mouse event.
+        // Keep the live frame in memory and persist only after the gesture pauses.
+        frameSaveTimer?.invalidate()
+        frameSaveTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.flushFrameSave() }
+        }
+    }
+
+    private func flushFrameSave() {
+        frameSaveTimer?.invalidate()
+        frameSaveTimer = nil
+        guard let pendingFrameString else { return }
+        AppSettings.shared.panelFrame = pendingFrameString
+        self.pendingFrameString = nil
     }
 
     /// 启动时把上次的尺寸读回来。
@@ -339,6 +358,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         guard let panel else { return }
         AssistantModel.shared.setCollapsedSilently(panel.frame.height < Self.minimumExpandedHeight)
         saveFrame(panel)
+        flushFrameSave()
     }
 
     func windowDidResignKey(_ notification: Notification) {
