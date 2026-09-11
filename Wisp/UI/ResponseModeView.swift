@@ -48,6 +48,7 @@ struct ResponseModeToggle: View {
                     .font(DS.meta)
                     .padding(12)
                     .frame(width: 280, alignment: .leading)
+                    .background(ScreenPrivacyWindow())
                 }
             }
         }

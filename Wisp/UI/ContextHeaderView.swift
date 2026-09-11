@@ -179,6 +179,7 @@ struct ContextHeaderView: View {
                     .font(DS.meta)
                     .padding(12)
                     .frame(width: 300, alignment: .leading)
+                    .background(ScreenPrivacyWindow())
                 }
             }
 

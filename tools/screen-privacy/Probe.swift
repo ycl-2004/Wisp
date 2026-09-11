@@ -165,6 +165,13 @@ struct CaptureProbe {
         early.contentView = ScreenPrivacyWindow.WindowView()
         check(early.sharingType == .none && !early.isVisible,
               "attachment applies before window is ordered on screen")
+        let moved = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: false)
+        moved.isReleasedWhenClosed = false
+        let privacyView = ScreenPrivacyWindow.WindowView(frame: .zero)
+        early.contentView?.addSubview(privacyView)
+        moved.contentView = privacyView
+        check(moved.sharingType == .none && !moved.isVisible,
+              "reparented privacy content protects its new window before display")
         let late = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: false)
         late.isReleasedWhenClosed = false
         NotificationCenter.default.post(name: NSWindow.didUpdateNotification, object: late)
@@ -172,11 +179,11 @@ struct CaptureProbe {
         check(field.stringValue == "input survives toggle" && window.frame == originalFrame
               && window.isVisible == originalVisibility, "toggle preserves input, frame and visibility")
         ScreenPrivacy.setEnabled(false)
-        check([window, attached, early, late].allSatisfy { $0.sharingType == .readOnly },
+        check([window, attached, early, late, moved].allSatisfy { $0.sharingType == .readOnly },
               "disable includes windows attached after startup")
         for name in passed { print("PASS: \(name)") }
         print("\(passed.count) lifecycle checks passed (not a screen-capture verdict)")
-        for item in [window, attached, early, late] { item.close() }
+        for item in [window, attached, early, late, moved] { item.close() }
     }
 
     @MainActor static func runFixture(hidden: Bool) {

@@ -181,6 +181,11 @@ open "$HOME/Applications/Wisp.app"
 
 **Screen-sharing visibility (best effort)**
 
+- The [macOS privacy research and expanded capture matrix](docs/screen-privacy-research-20260910.md)
+  covers independent-process capture, live filter changes, native video recording,
+  and alternatives such as protected video layers and a separate filtered share window.
+  Information popovers and the notices sheet apply the hiding preference when
+  their content attaches to a window. This reduces a timing gap, not the OS-level limits below.
 - Enabled by default, this setting requests window hiding through
   `NSWindow.sharingType = .none`, while leaving Wisp usable on your own screen.
   Apple treats this as a legacy mechanism and explicitly says not to rely on it

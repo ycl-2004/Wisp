@@ -1,0 +1,128 @@
+{
+  "appWindows" : [
+    {
+      "number" : 4294967296,
+      "sharingType" : 1,
+      "title" : "Item-0",
+      "visible" : true
+    },
+    {
+      "number" : 20301,
+      "sharingType" : 0,
+      "title" : "WispSurfaceProbe-host",
+      "visible" : true
+    },
+    {
+      "number" : 20302,
+      "sharingType" : 0,
+      "title" : "",
+      "visible" : true
+    },
+    {
+      "number" : 20303,
+      "sharingType" : 0,
+      "title" : "",
+      "visible" : true
+    },
+    {
+      "number" : 20306,
+      "sharingType" : 0,
+      "title" : "",
+      "visible" : true
+    },
+    {
+      "number" : 8589934592,
+      "sharingType" : 1,
+      "title" : "",
+      "visible" : true
+    }
+  ],
+  "capturePaths" : {
+    "cgDisplayCreateImage" : true,
+    "cgWindowListCreateImage" : true,
+    "screenCaptureKit" : true
+  },
+  "fixturePid" : 2171,
+  "fixtureUsesProductionScreenPrivacy" : true,
+  "menuBarStripMarkerFraction" : 0,
+  "mode" : "hidden",
+  "onScreenWindowsOwnedByFixture" : 5,
+  "os" : "Version 26.6.1 (Build 25G76)",
+  "surfaces" : [
+    {
+      "bounds" : {
+        "h" : 80,
+        "w" : 200,
+        "x" : 876,
+        "y" : 406
+      },
+      "layer" : 101,
+      "markerFraction" : 0,
+      "markerFractionDisplayImage" : 0,
+      "markerFractionWindowListImage" : 0,
+      "name" : "",
+      "reachableByAppKitProtection" : false,
+      "windowNumber" : 20307
+    },
+    {
+      "bounds" : {
+        "h" : 172,
+        "w" : 260,
+        "x" : 526,
+        "y" : 389
+      },
+      "layer" : 3,
+      "markerFraction" : 0,
+      "markerFractionDisplayImage" : 0,
+      "markerFractionWindowListImage" : 0,
+      "name" : "",
+      "reachableByAppKitProtection" : true,
+      "windowNumber" : 20306
+    },
+    {
+      "bounds" : {
+        "h" : 120,
+        "w" : 280,
+        "x" : 516,
+        "y" : 415
+      },
+      "layer" : 3,
+      "markerFraction" : 0,
+      "markerFractionDisplayImage" : 0,
+      "markerFractionWindowListImage" : 0,
+      "name" : "",
+      "reachableByAppKitProtection" : true,
+      "windowNumber" : 20303
+    },
+    {
+      "bounds" : {
+        "h" : 116,
+        "w" : 226,
+        "x" : 546,
+        "y" : 523
+      },
+      "layer" : 3,
+      "markerFraction" : 0,
+      "markerFractionDisplayImage" : 0,
+      "markerFractionWindowListImage" : 0,
+      "name" : "",
+      "reachableByAppKitProtection" : true,
+      "windowNumber" : 20302
+    },
+    {
+      "bounds" : {
+        "h" : 272,
+        "w" : 320,
+        "x" : 496,
+        "y" : 339
+      },
+      "layer" : 3,
+      "markerFraction" : 0,
+      "markerFractionDisplayImage" : 0,
+      "markerFractionWindowListImage" : 0,
+      "name" : "WispSurfaceProbe-host",
+      "reachableByAppKitProtection" : true,
+      "windowNumber" : 20301
+    }
+  ]
+}

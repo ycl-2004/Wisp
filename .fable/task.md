@@ -1,53 +1,36 @@
-# Response modes — 2026-09-09
+# Screen privacy research and hardening — 2026-09-10
 
-## Goal and acceptance criteria
-Make Wisp responses faster with explicit accuracy tradeoffs, selectable Quick/Deep models, editable shortcuts and supported acceleration for API/CLI. Keep legacy Standard data decodable for migration while exposing only Quick and Deep to customers, with Quick as the default. Preserve existing voice behavior. Compile and test the actual integration; do not claim model accuracy without a benchmark.
+## Goal
+Prioritize preventing capture of Wisp over availability. Research macOS boundaries and comparable apps, exercise independent local capture paths, implement evidence-backed improvements, and report unresolved guarantees honestly.
 
-## Append-only requirements
-50. Add Standard/Quick/Deep response behavior, explicit context/accuracy guardrails and observable latency measurements.
-51. Allow mode and model selection while answering; provide configurable mode shortcuts.
-52. Persist a manually chosen model for each Quick/Deep mode for each connection, including API and CLI.
-53. Prefer supported Fast/priority in every mode; fall back conservatively when acceleration is rejected. Keep the same model and free-model status.
-54. Validate regressions and document usage, limitations and a representative accuracy/latency comparison procedure.
-55. Replace the installed `/Applications/Wisp.app` with the newest signed build and preserve a rollback copy.
-56. Keep response accuracy/model choices associated with the exact API endpoint or CLI connection, and restore the matching choices when switching connections.
-57. Present these choices with compact dropdowns and clearly show the active software/connection and effective model.
-58. Keep explanatory copy behind an information button so the customer-facing settings page stays compact.
-59. Remove existing rollback copies and make successful local replacements clean temporary backups while retaining the stable team signature workflow.
-60. Remove Standard from the customer-facing mode picker, use Quick as the default, and present only two compact rows pairing each mode with its shortcut and model.
-61. Move current connection, CLI, endpoint, and model details behind one information button at the end of the Response mode row, and keep the mode/table labels localized in English and Simplified Chinese.
-62. Keep the compact panel tight after removing the standalone mode row, grow it with multiline input, and expand it to the saved expanded height when conversation history opens.
+## Acceptance criteria / append-only requirements
+1. Find methods to validate without a second physical device.
+2. Research native APIs and comparable apps using primary sources.
+3. Treat hiding as the primary requirement; explicitly distinguish local visibility, software captures, system surfaces, and physical capture.
+4. Extend tests to expose false-positive privacy results, including live filter changes.
+5. Make justified production changes with regression validation.
+6. Deliver a cited research report, test evidence, and next steps; do not claim universal invisibility.
 
 ## Decisions
-- Existing context/history and prior outstanding hardware/privacy limitations are preserved verbatim in history.md. Previous installed voice work is commit 36c39c3 on origin/feat/add_voice_detect.
-- A send snapshots configuration before preparation; changes during a response affect the next send without restarting the active request.
-- Mode shortcuts are unassigned until the user records them; no takeover of existing keys.
-- Quick skips new page-text collection, retains existing evidence, and uses low supported reasoning. Deep waits for configured capture and requests high supported reasoning. Legacy Standard remains only for decoding and migration, and maps to Quick in current settings.
-- Fast is independent of effort. Retry once without priority only on an explicit tier rejection before any answer; do not retry auth/rate/transport/unrelated failures.
-- A connection profile is keyed by provider kind plus normalized API scheme/host/port/path, or CLI provider plus normalized executable path. Cosmetic URL case, whitespace and trailing slashes share a profile; different endpoints and CLIs do not.
-- No Claude CLI invoked and no live model API calls. Installation, commit, and push were explicitly requested after the build.
-- Quick and Deep are now icon-only controls on the Voice input row; when voice input is disabled the same controls stay beside the composer. The CLI/model picker remains in the header.
-- The collapsed default is 140pt, old exact 180pt saved frames migrate to 140pt, measured multiline input adds height up to 240pt, and opening conversation history expands the panel while preserving its saved expanded height.
+- User asked to prefer hiding even at the cost of functionality. Optional clarification on stopping local display received no answer; preserve current operation and document strict-mode behavior as a pending product choice.
+- No new commit/push/install requested in this research turn. Prior installed version is 8828c76.
+- No model CLI or model requests required.
+- Existing prior reports contain a known settings/Mission Control exposure and a VNC login-session false control; new evidence must not erase these limitations.
 
 ## Evidence
-- Initial full Debug run: 88 tests, zero failures; /private/tmp/wisp-response-modes-tests.xcresult.
-- Final full Debug suite: 91 tests, zero failures; /private/tmp/wisp-response-modes-layout.xcresult and /private/tmp/wisp-response-modes-layout.log. Includes real streaming-transport fixture for single priority fallback, per-mode effort/fast routing, persisted overrides, immutable selections and UI rendering.
-- Inspected opaque settings render /private/tmp/wisp-response-settings.png and 380-point collapsed panel /private/tmp/wisp-response-narrow.png. Raised collapsed minimum/default to 180 points so the voice and mode rows fit; prior saved shorter frames are clamped.
-- Localization JSON and git diff --check pass. Universal unsigned Release build succeeded: /private/tmp/wisp-response-modes-release.log. lipo confirms arm64 + x86_64 in Build/Release/Wisp.app/Contents/MacOS/Wisp.
-- Physical shortcut keypresses, account-specific Fast eligibility and live model accuracy/latency remain unverified. No commit or push.
-- Manual benchmark procedure: docs/model-speed.md. Actual provider accuracy and latency remain unmeasured.
-- Signed installation: `/Applications/Wisp.app` replaced and reopened as PID 22495. The installed executable matches `Build/Release/Wisp.app` byte-for-byte; `codesign --verify --deep --strict` passes; designated requirement is certificate-anchored; installed binary contains `x86_64 arm64`. Previous app was retained by `tools/install-local.sh` in its generated rollback backup.
-- Connection profile regression: normalized endpoint/path identity and separate API/CLI profile behavior pass in `/private/tmp/wisp-connection-profiles-tests.xcresult`; full suite remains 91 tests with zero failures. Settings render now shows the active connection and its effective model, with menu pickers for mode and per-mode model choices.
-- Final UI/profile verification: `/private/tmp/wisp-connection-profiles-final.xcresult` passes 91 tests with zero failures. The rendered settings surface shows dropdowns for response mode and Quick/Deep model choices, concise customer-facing guidance, and the active connection label. The installed updated app is running from `/Applications/Wisp.app` as PID 43333; binary/signature checks pass. Latest rollback copy: `/var/folders/bj/_6886nzd0rd2f4vvw_2bdq7h0000gn/T/wisp-install-backup.gtZa4O/previous-Wisp.app`.
-- Information-button cleanup: long mode/Fast guidance is now behind the existing reusable `ⓘ` popover; only the mode, connection, shortcuts and model controls remain visible.
-- Backup policy: five previously identified `wisp-install-backup.*` directories were deleted after confirming each contained only an old Wisp bundle. `tools/install-local.sh` now keeps a rollback copy only until the move/signature checks pass, deletes it on success, and supports opt-in `--keep-backup`.
-- Final signed replacement after the UI cleanup succeeded. `/Applications/Wisp.app` is running from the newly installed build; its SHA-256 matches `Build/Release/Wisp.app/Contents/MacOS/Wisp` (`e6e02ccdf2495c87881b72346360e9d835ff3b3017a5f6acbf75b7dbbc4c8457`), the certificate-anchored signature and `x86_64 arm64` slices verify, and no `wisp-install-backup.*` directory remains.
-- Quick/Deep-only verification: `/private/tmp/wisp-two-modes-tests.xcresult` passes 92 tests with zero failures. The installed Model settings accessibility tree shows Quick as the selected default, Deep as the only other mode, one shortcut/model pair per mode, current connection/model text, and explanatory copy available through `ⓘ` buttons rather than always-visible paragraphs.
-- Final test rerun with the project's non-signing test configuration also passes 92 tests with zero failures: `/private/tmp/wisp-two-modes-tests-final3.xcresult` and `/private/tmp/wisp-two-modes-tests-final3.log`. A signed Release build remains the installed customer artifact.
-- Final connection-info verification: `/private/tmp/wisp-response-info-tests.xcresult` passes 92 tests with zero failures. The installed Model settings accessibility tree shows the trailing `ⓘ` popover with the active connection, CLI executable, Quick model, and Deep model; the visible table header is `Mode` in English and the popover is reachable without an always-visible connection line.
-- The final installed executable SHA-256 is `766b9d3fbfc4a414a1a89597a44eb1b828f82687f93b5dbc7c65a9d8d850c72c` in both `Build/Release/Wisp.app` and `/Applications/Wisp.app`; the working tree is clean after commits `516f93d` and `5d4db94`, both pushed to `origin/feat/add_voice_detect`.
-- Focused panel-layout verification: `/private/tmp/wisp-panel-layout-tests2.xcresult` passes 54 tests with zero failures, including collapsed-height bounds and history expansion. `/private/tmp/wisp-integrated-chat.png` renders at the 140pt default with no extra bottom strip; `/private/tmp/wisp-listening-bar-idle-620.png` shows the icon-only Quick/Deep toggle sharing the Voice input row.
-- Final full Debug suite: `/private/tmp/wisp-panel-final-tests.xcresult` passes 94 tests with zero failures. The signed installed executable matches `Build/Release/Wisp.app` (`469c9835e4b9475459a7bd1915f18b57cb9b4cc71ed22ee38ff3206e5f01772b`), has `x86_64 arm64` slices, and passes strict codesign verification; no rollback directory remains. Commit `c9583df` is pushed to `origin/feat/add_voice_detect`.
+- Final evidence and scope are recorded below.
 
-## Delivery status
-Requirements 50–62 implemented and locally verified (13/13). Live provider benchmarking and physical shortcut delivery remain explicit limitations, not established accuracy or speed claims. Final UI changes are signed, installed, committed, and pushed.
+## Decision log / evidence updates
+- Apple online documentation explicitly disclaims NSWindowSharingNone as a prevention guarantee; SDK comments are older. Native AVSampleBufferDisplayLayer.preventsCapture is available on macOS and was tested independently of window sharingType.
+- A transient Space policy was initially considered for Mission Control. Reading the complete older evidence showed it had already failed pixel validation. Reverted that trial; no Mission Control fix claimed or shipped.
+- Production change: attach ScreenPrivacyWindow to InfoButton, context notes, response timing and notices sheet; correct misleading AppSettings comment. No capture detectors, private production APIs or window-type changes.
+- Research report: docs/screen-privacy-research-20260910.md; raw non-image metrics and summary in docs/evidence/screen-privacy-20260910/.
+- 114 A/B sample groups passed across 4 SCK filter configurations, live updates, direct window screenshots and 5 native movie samples per mode. Windows still enumerated.
+- Validator rejects blank controls and missing frames as INCONCLUSIVE, and an injected 0.000001 marker fraction as LEAK.
+- Surface A/B covers SCK and two legacy capture APIs. Hidden target fractions zero with positive counterparts; an alert lacked a positive marker and remains inconclusive. Popover and sheet attachment sharingType was 0 hidden / 1 visible.
+- Nine production lifecycle checks pass; final XCTest 69/69 pass in /private/tmp/wisp-privacy-popover-final.xcresult.
+- No model CLI invoked, no network screen transmission, no commit, push or install. Installed version remains 8828c76.
+
+## Delivery / outstanding items
+Research, reproducible tests, bounded hardening and documentation requirements 1–6 delivered. The universal-invisibility objective is not achieved and cannot be represented as a supported macOS guarantee.
+Outstanding: strict-mode product choice; real Wisp lifecycle/Space animations and multi-display testing; Mission Control leak remediation with positive pixel evidence; other meeting receivers and current-session remote desktop; protected video interaction prototype. These are not marked as passed by the matrix.

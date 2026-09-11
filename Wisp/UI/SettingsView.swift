@@ -70,6 +70,7 @@ struct InfoButton: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(width: 280, alignment: .leading)
                 .padding(12)
+                .background(ScreenPrivacyWindow())
         }
     }
 }
@@ -1870,7 +1871,9 @@ private struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: $showsNotices) { NoticesSheet() }
+        .sheet(isPresented: $showsNotices) {
+            NoticesSheet().background(ScreenPrivacyWindow())
+        }
         .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
     }
 

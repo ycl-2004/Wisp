@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Apply screen-sharing privacy when information popovers and the notices sheet attach
+  to their windows. Add a paired capture matrix covering ScreenCaptureKit filter updates,
+  direct window capture, native video recording, and protected video-layer experiments;
+  missing controls or frames are inconclusive. See the [research and limits](docs/screen-privacy-research-20260910.md).
+
 - Quick with the camera off now skips capture when opening, refocusing, and sending.
   Follow-up questions retain chat history without attaching stale screen context.
   The shared toolbar shows turn counts and an Audio Settings shortcut; a single

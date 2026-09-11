@@ -400,7 +400,7 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.showsMenuBarIcon); objectWillChange.send() }
     }
 
-    /// 把 Wisp 自己的窗口标成其他进程读不到，屏幕共享和录屏里就看不见它。
+    /// 请求兼容捕获路径排除 Wisp；不代表全局防录屏保证，也不覆盖系统生成的预览。
     var hideFromScreenCapture: Bool {
         get { d.bool(forKey: K.hideFromScreenCapture) }
         set { d.set(newValue, forKey: K.hideFromScreenCapture); objectWillChange.send() }
