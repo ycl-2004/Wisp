@@ -3,10 +3,9 @@ import SwiftUI
 
 /// 无边框面板的缩放。
 ///
-/// `.resizable` 的 borderless 窗口理论上能从边缘拖，但可抓的只有一两个像素，
-/// 而且 contentView 铺满之后基本抓不到——用起来就是「这窗口不能改大小」。
-/// 这里在内容之上盖一层只吃边缘几个点的透明视图：命中边缘就自己算新 frame，
-/// 其余位置一律放行，SwiftUI 的点击、悬停、拖动窗口都不受影响。
+/// AppKit 的 borderless resize 入口可抓的只有一两个像素，而且 contentView 铺满之后
+/// 基本抓不到；它还会在窗口外沿安装系统缩放光标。这里由内容之上的透明视图接管：
+/// 命中边缘就自己算新 frame，其他位置一律放行，SwiftUI 的点击、悬停、拖动窗口都不受影响。
 enum PanelResize {
     /// 边缘可抓的宽度。太小抓不住，太大就会吃掉贴边控件的点击。
     static let grabInset: CGFloat = 6

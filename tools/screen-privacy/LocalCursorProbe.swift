@@ -192,7 +192,7 @@ private final class FixturePanel: NSPanel { override var canBecomeKey: Bool { tr
         let background = NSWindow(contentRect: NSRect(x: screen.visibleFrame.midX-330, y: screen.visibleFrame.midY-240, width: 660, height: 480), styleMask: [.borderless], backing: .buffered, defer: false)
         background.isReleasedWhenClosed = false; background.backgroundColor = .cyan; background.level = .floating
         background.orderFrontRegardless()
-        let panel = FixturePanel(contentRect: background.frame.insetBy(dx: 40, dy: 40), styleMask: [.borderless, .nonactivatingPanel, .resizable], backing: .buffered, defer: false)
+        let panel = FixturePanel(contentRect: background.frame.insetBy(dx: 40, dy: 40), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false; panel.backgroundColor = .magenta; panel.level = .floating
         panel.sharingType = .none; panel.isMovableByWindowBackground = true
         panel.minSize = NSSize(width: 320, height: 220); panel.maxSize = NSSize(width: 900, height: 700)

@@ -12,6 +12,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
     static let collapsedHeight: CGFloat = 110
+    /// AppKit's resizable style installs its own frame cursors around the window.
+    /// Resizing is handled by `PanelResizeOverlay`, so keep the system style non-resizable.
+    static let panelStyleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
     private static let minimumCollapsedHeight: CGFloat = 110
     private static let legacyCollapsedHeight: CGFloat = 180
     private static let maximumCollapsedHeight: CGFloat = 240
@@ -228,7 +231,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
         let panel = KeyablePanel(
             contentRect: NSRect(x: 0, y: 0, width: Self.width, height: Self.collapsedHeight),
-            styleMask: [.borderless, .nonactivatingPanel, .resizable],
+            styleMask: Self.panelStyleMask,
             backing: .buffered,
             defer: false
         )
