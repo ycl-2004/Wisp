@@ -1,0 +1,19 @@
+{
+  "verdict": "PASS_SAMPLED_PATHS",
+  "sampleGroups": 114,
+  "leaks": [],
+  "issues": [],
+  "scope": "Synthetic steady-state/selected filter transitions only. No universal guarantee; Mission Control excluded.",
+  "regressionTests": {
+    "passed": 69,
+    "failures": 0,
+    "xcresult": "/private/tmp/wisp-privacy-popover-final.xcresult"
+  },
+  "lifecycleChecks": 9,
+  "validatorNegativeChecks": [
+    "missing control -> INCONCLUSIVE",
+    "missing frames -> INCONCLUSIVE",
+    "0.000001 target fraction -> LEAK"
+  ],
+  "sourceBaseCommit": "8828c763a6f613209e6ae84fc5c7c02d24bd3b6a"
+}

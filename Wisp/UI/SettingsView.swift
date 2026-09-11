@@ -1,16 +1,24 @@
 import AppKit
+import AVFoundation
+import Speech
 import KeyboardShortcuts
 import SwiftUI
 
 struct SettingsView: View {
+    enum Tab: String { case model, panel, commands, capture, audio, privacy, data, general }
+    /// Remembered, and set by the panel's "Edit Commands…" before it opens Settings.
+    @AppStorage("settingsTab") private var tab: Tab = .model
+
     var body: some View {
-        TabView {
-            ModelSettingsView().tabItem { Label("模型", systemImage: "cpu") }
-            PanelSettingsView().tabItem { Label("面板", systemImage: "macwindow") }
-            CaptureSettingsView().tabItem { Label("采集", systemImage: "camera.viewfinder") }
-            PrivacySettingsView().tabItem { Label("隐私", systemImage: "hand.raised") }
-            DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }
-            GeneralSettingsView().tabItem { Label("通用", systemImage: "gearshape") }
+        TabView(selection: $tab) {
+            ModelSettingsView().tabItem { Label("模型", systemImage: "cpu") }.tag(Tab.model)
+            PanelSettingsView().tabItem { Label("面板", systemImage: "macwindow") }.tag(Tab.panel)
+            QuickCommandSettingsView().tabItem { Label("指令", systemImage: "sparkles") }.tag(Tab.commands)
+            CaptureSettingsView().tabItem { Label("采集", systemImage: "camera.viewfinder") }.tag(Tab.capture)
+            AudioSettingsView().tabItem { Label("音频", systemImage: "waveform") }.tag(Tab.audio)
+            PrivacySettingsView().tabItem { Label("隐私", systemImage: "hand.raised") }.tag(Tab.privacy)
+            DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }.tag(Tab.data)
+            GeneralSettingsView().tabItem { Label("通用", systemImage: "gearshape") }.tag(Tab.general)
         }
         .frame(width: 620, height: 520)
     }
@@ -39,7 +47,7 @@ private struct SettingsSectionHeader: View {
 }
 
 /// 常驻说明收进这里：悬停看 tooltip，点击给键盘用户一个可读的 popover。
-private struct InfoButton: View {
+struct InfoButton: View {
     let message: String
     @State private var isPresented = false
 
@@ -62,6 +70,30 @@ private struct InfoButton: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(width: 280, alignment: .leading)
                 .padding(12)
+                .background(ScreenPrivacyWindow())
+        }
+    }
+}
+
+/// 权限行：状态在前，操作在后。已经授权就不再给「请求」——系统不会再弹第二次窗，
+/// 留着那颗按钮等于把同一件事问两遍，还让人以为授权没生效。
+private struct PermissionRow: View {
+    let title: LocalizedStringKey
+    let status: String
+    let granted: Bool
+    var requestDisabled = false
+    let request: () -> Void
+    let open: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(status).foregroundStyle(granted ? Color.secondary : Color.orange)
+            if !granted {
+                Button("请求", action: request).disabled(requestDisabled)
+            }
+            Button("系统设置…", action: open)
         }
     }
 }
@@ -73,6 +105,7 @@ struct ModelSettingsView: View {
     var flat = false
 
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var modelState = ModelMenuState.shared
 
     @State private var apiKey = ""
     @State private var keyLoaded = false
@@ -80,8 +113,6 @@ struct ModelSettingsView: View {
     @State private var testResult: (ok: Bool, message: String)?
     @State private var ollamaStatus: OllamaSupport.Status?
     @State private var probing = false
-    @State private var agyModels: [ModelCatalog.Preset] = []
-    @State private var agyScanning = false
     @FocusState private var keyFieldFocused: Bool
 
     private var kind: ProviderKind {
@@ -98,7 +129,7 @@ struct ModelSettingsView: View {
         }
         .onChange(of: settings.cloudProvider) { previous, provider in
             // Key 是一家一份的。换家就得把输入框换成新那家的那份，
-            // 否则「保存并测试」会把上一家的 Key 写到新那家名下。
+            // 否则「测试连接」会把上一家的 Key 写到新那家名下。
             // 换走之前先把输入框里那份落到旧那家名下，不然它跟着输入框一起没了；
             // 药丸菜单也能换家，所以这一步放在这里，而不是设置页的选择器里。
             persistKey(apiKey, for: previous)
@@ -118,14 +149,14 @@ struct ModelSettingsView: View {
             if kind == .ollama { probeOllama() }
             if kind == .codexCLI {
                 ensureCLIPath()
-                if settings.cliProvider == .agy { scanAgyModels() }
+                if settings.cliProvider == .agy { modelState.refreshAgyIfStale() }
             }
         }
         .onChange(of: settings.cliProvider) { _, provider in
             guard kind == .codexCLI else { return }
             ensureCLIPath()
             testResult = nil
-            if provider == .agy { scanAgyModels() }
+            if provider == .agy { modelState.refreshAgyIfStale() }
         }
     }
 
@@ -134,6 +165,8 @@ struct ModelSettingsView: View {
             picker
             Divider()
             fields
+            Divider()
+            ResponseModeSettings()
             Divider()
             testRow
             Spacer(minLength: 0)
@@ -210,7 +243,7 @@ struct ModelSettingsView: View {
             }
 
             ModelPickerRow(
-                label: "模型",
+                label: "默认模型",
                 presets: ModelCatalog.cloudPresets(provider: cloudProvider, baseURL: settings.baseURL),
                 placeholder: cloudProvider.defaultModel.isEmpty ? "gpt-5.6-luna" : cloudProvider.defaultModel,
                 emptyOptionTitle: nil,
@@ -262,7 +295,7 @@ struct ModelSettingsView: View {
                 ))
             }
 
-            Field(label: "模型") {
+            Field(label: "默认模型") {
                 HStack(spacing: 6) {
                     if case .running(let models) = ollamaStatus, !models.isEmpty {
                         Picker("", selection: Binding(
@@ -328,9 +361,8 @@ struct ModelSettingsView: View {
                 Picker("", selection: Binding(
                     get: { settings.cliProvider },
                     set: { provider in
+                        // ensureCLIPath and the Agy scan follow from the onChange above.
                         settings.cliProvider = provider
-                        ensureCLIPath()
-                        if provider == .agy { scanAgyModels() }
                         testResult = nil
                     }
                 )) {
@@ -366,7 +398,7 @@ struct ModelSettingsView: View {
                 }
             }
             ModelPickerRow(
-                label: "模型",
+                label: "默认模型",
                 presets: ModelCatalog.codexPresets(),
                 placeholder: "gpt-5.6-sol",
                 emptyOptionTitle: ModelCatalog.codexConfiguredModel
@@ -402,8 +434,8 @@ struct ModelSettingsView: View {
             }
 
             ModelPickerRow(
-                label: "模型",
-                presets: agyModels.isEmpty ? AgyCLIProvider.fallbackModels : agyModels,
+                label: "默认模型",
+                presets: modelState.agyPresets,
                 placeholder: "gemini-3.8-flash-high",
                 emptyOptionTitle: String(localized: "跟随 Agy 默认"),
                 value: Binding(get: { settings.agyModel },
@@ -411,8 +443,8 @@ struct ModelSettingsView: View {
             )
             HStack(spacing: 8) {
                 Spacer()
-                Button(agyScanning ? "扫描中…" : "刷新模型") { scanAgyModels() }
-                    .disabled(agyScanning)
+                Button(modelState.isScanningAgy ? "扫描中…" : "刷新模型") { modelState.refreshAgy() }
+                    .disabled(modelState.isScanningAgy)
                 InfoButton(message: String(localized: "从 Agy 获取最新可用模型。"))
             }
 
@@ -441,7 +473,7 @@ struct ModelSettingsView: View {
             }
 
             ModelPickerRow(
-                label: "模型",
+                label: "默认模型",
                 presets: ClaudeCodeCLIProvider.presets,
                 placeholder: "sonnet",
                 emptyOptionTitle: String(localized: "跟随 Claude Code 默认"),
@@ -461,7 +493,7 @@ struct ModelSettingsView: View {
     private var testRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Button(testing ? "测试中…" : "保存并测试") { runTest() }
+                Button(testing ? "测试中…" : "测试连接") { runTest() }
                     .disabled(testing || (kind.needsAPIKey && apiKey.isEmpty))
                 if kind.needsAPIKey, KeychainStore.hasKey(for: settings.cloudProvider) {
                     Button("清除 Key") {
@@ -471,9 +503,9 @@ struct ModelSettingsView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                InfoButton(message: String(localized: kind == .codexCLI
-                                            ? "仅检查本地工具能否启动，不消耗模型额度。"
-                                            : "发送一张 64×64 测试图，验证连接和图片输入。"))
+                InfoButton(message: kind == .codexCLI
+                           ? String(localized: "设置改动会自动保存。这里只检查本地工具能否启动，不消耗模型额度。")
+                           : String(localized: "设置改动会自动保存。这里给快速、深入模式实际使用的模型各发送一张 64×64 测试图，验证连接和图片输入。"))
             }
             if let result = testResult {
                 Label(result.message, systemImage: result.ok ? "checkmark.circle" : "xmark.circle")
@@ -507,39 +539,37 @@ struct ModelSettingsView: View {
     private func runTest() {
         testing = true
         testResult = nil
-        var config: ProviderConfig
-        switch kind {
-        case .openAICompatible:
-            let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = KeychainStore.save(trimmed, for: settings.cloudProvider)
-            config = ProviderConfig(kind: .openAICompatible, baseURL: settings.baseURL,
-                                    apiKey: trimmed, model: settings.model)
-        case .ollama:
-            config = ProviderConfig(kind: .ollama, baseURL: settings.ollamaBaseURL,
-                                    apiKey: "ollama", model: settings.ollamaModel)
-        case .codexCLI:
-            switch settings.cliProvider {
-            case .codex:
-                config = ProviderConfig(kind: .codexCLI, model: settings.codexModel,
-                                        cliProvider: .codex, cliPath: settings.codexPath)
-            case .agy:
-                config = ProviderConfig(kind: .codexCLI, model: settings.agyModel,
-                                        cliProvider: .agy, cliPath: settings.agyPath)
-            case .claudeCode:
-                config = ProviderConfig(kind: .codexCLI, model: settings.claudeCodeModel,
-                                        cliProvider: .claudeCode, cliPath: settings.claudeCodePath)
-            }
+        // 输入框里可能是还没失焦落盘的新 Key，测它，也顺手存下。
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if kind == .openAICompatible { _ = KeychainStore.save(trimmedKey, for: settings.cloudProvider) }
+        // 测的是两个模式真正会发出去的模型。本地 CLI 只检查能否启动、与模型无关，测一次就够。
+        let models = ActiveModels(settings: settings, state: modelState)
+        var configs: [ProviderConfig] = []
+        for mode in ResponseMode.allCases {
+            var config = models.config(for: mode)
+            if kind == .openAICompatible { config.apiKey = trimmedKey }
+            let alreadyCovered = kind == .codexCLI ? !configs.isEmpty : configs.contains { $0.model == config.model }
+            if !alreadyCovered { configs.append(config) }
         }
         Task {
-            do {
-                try await ProviderConfig.provider(for: config).validate(config: config)
-                testResult = (true, kind == .codexCLI
-                              ? String(localized: "\(settings.cliProvider.title) 可以运行，配置已保存。")
-                              : String(localized: "连接正常，这个模型接受图片输入。配置已保存。"))
-            } catch let error as ProviderError {
-                testResult = (false, error.errorDescription ?? String(localized: "失败"))
-            } catch {
-                testResult = (false, error.localizedDescription)
+            var failures: [String] = []
+            for config in configs {
+                do {
+                    try await ProviderConfig.provider(for: config).validate(config: config)
+                } catch {
+                    let message = (error as? ProviderError)?.errorDescription ?? error.localizedDescription
+                    failures.append(configs.count > 1 ? "\(config.model)：\(message)" : message)
+                }
+            }
+            if !failures.isEmpty {
+                testResult = (false, failures.joined(separator: "\n"))
+            } else if kind == .codexCLI {
+                testResult = (true, String(localized: "\(settings.cliProvider.title) 可以运行。"))
+            } else if configs.count > 1 {
+                let names = configs.map(\.model).formatted(.list(type: .and))
+                testResult = (true, String(localized: "连接正常，\(names) 都接受图片输入。"))
+            } else {
+                testResult = (true, String(localized: "连接正常，这个模型接受图片输入。"))
             }
             testing = false
         }
@@ -559,16 +589,6 @@ struct ModelSettingsView: View {
             if settings.claudeCodePath.isEmpty, let detected = ClaudeCodeCLIProvider.detectedPath {
                 settings.claudeCodePath = detected
             }
-        }
-    }
-
-    private func scanAgyModels() {
-        guard !agyScanning else { return }
-        agyScanning = true
-        Task {
-            let models = await AgyCLIProvider.scanModels(configuredPath: settings.agyPath)
-            if !models.isEmpty { agyModels = models }
-            agyScanning = false
         }
     }
 }
@@ -714,8 +734,18 @@ private struct Field<Content: View>: View {
     }
 }
 
-private struct CaptureModeOption: View {
-    let mode: CaptureMode
+/// 采集设置里「几选一」卡片要的三样东西。采集模式和截图范围都是这种卡片。
+private protocol CaptureChoice {
+    var title: String { get }
+    var symbol: String { get }
+    var detail: String { get }
+}
+
+extension CaptureMode: CaptureChoice {}
+extension CaptureScope: CaptureChoice {}
+
+private struct CaptureOptionCard: View {
+    let option: any CaptureChoice
     let selected: Bool
     let action: () -> Void
     @State private var hovering = false
@@ -723,10 +753,10 @@ private struct CaptureModeOption: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: mode.symbol)
+                Image(systemName: option.symbol)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-                Text(mode.title)
+                Text(option.title)
                     .font(.system(size: 11.5, weight: .medium))
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
@@ -756,7 +786,7 @@ private struct CaptureModeOption: View {
                               lineWidth: selected ? 1.2 : 0.5)
         )
         .overlay(alignment: .topTrailing) {
-            InfoButton(message: mode.detail)
+            InfoButton(message: option.detail)
                 .padding(.top, 7)
                 .padding(.trailing, 7)
         }
@@ -987,18 +1017,15 @@ private struct CaptureSettingsView: View {
     var body: some View {
         Form {
             Section {
-                HStack {
-                    Label(hasScreenRecording ? "屏幕录制：已授权" : "屏幕录制：未授权",
-                          systemImage: hasScreenRecording ? "checkmark.circle" : "xmark.circle")
-                        .foregroundStyle(hasScreenRecording ? .green : .red)
-                    Spacer()
-                    Button("请求") { Permissions.requestScreenRecording(); refresh() }
-                    Button("打开系统设置") { Permissions.openScreenRecordingSettings() }
-                }
+                PermissionRow(title: "屏幕录制",
+                              status: hasScreenRecording ? String(localized: "已授权") : String(localized: "未授权"),
+                              granted: hasScreenRecording,
+                              request: { Permissions.requestScreenRecording(); refresh() },
+                              open: Permissions.openScreenRecordingSettings)
                 HStack {
                     Text("浏览器自动化")
                     Spacer()
-                    Button("打开系统设置") { Permissions.openAutomationSettings() }
+                    Button("系统设置…") { Permissions.openAutomationSettings() }
                 }
             } header: {
                 SettingsSectionHeader("权限", info: String(localized: "整页文字需要浏览器的 Apple Events 权限；在浏览器的 Developer 菜单中开启。"))
@@ -1030,7 +1057,7 @@ private struct CaptureSettingsView: View {
             Section {
                 HStack(spacing: 8) {
                     ForEach(CaptureMode.allCases) { mode in
-                        CaptureModeOption(mode: mode, selected: settings.captureMode == mode) {
+                        CaptureOptionCard(option: mode, selected: settings.captureMode == mode) {
                             settings.captureMode = mode
                         }
                     }
@@ -1048,6 +1075,22 @@ private struct CaptureSettingsView: View {
                 }
             } header: {
                 SettingsSectionHeader("采集模式")
+            }
+
+            Section {
+                HStack(spacing: 8) {
+                    ForEach(CaptureScope.allCases) { scope in
+                        CaptureOptionCard(option: scope, selected: settings.captureScope == scope) {
+                            settings.captureScope = scope
+                        }
+                    }
+                }
+
+                if settings.captureScope == .screen {
+                    ScreenHiddenAppsPicker()
+                }
+            } header: {
+                SettingsSectionHeader("截图范围")
             }
 
             Section {
@@ -1087,7 +1130,7 @@ private struct CaptureSettingsView: View {
                 Button("排除当前应用") { model.excludeCurrentApp() }
                     .disabled(model.packet?.bundleID == nil)
             } header: {
-                SettingsSectionHeader("排除的应用", info: String(localized: "排除后不截图，也不读取浏览器页面。"))
+                SettingsSectionHeader("排除的应用", info: String(localized: "排除后不截图，也不读取浏览器页面；整屏截图时也会被挖掉。"))
             }
         }
         .formStyle(.grouped)
@@ -1121,11 +1164,100 @@ private struct CaptureSettingsView: View {
     }
 }
 
+/// 整屏截图时挖掉哪些应用。按应用勾而不是按窗口：窗口编号每次开关都会变，记不住。
+/// 列出正在运行的普通应用，再加上勾过但此刻没开的，方便取消勾选。
+private struct ScreenHiddenAppsPicker: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @State private var apps: [Entry] = []
+
+    struct Entry: Identifiable {
+        let bundleID: String
+        let name: String
+        let icon: NSImage?
+        var id: String { bundleID }
+    }
+
+    private let columns = [GridItem(.flexible(), alignment: .leading),
+                           GridItem(.flexible(), alignment: .leading)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 5) {
+                Text("整屏时不截的应用")
+                    .font(.system(size: 12, weight: .medium))
+                InfoButton(message: String(localized: "勾选的应用不会出现在整屏截图里。「排除的应用」任何时候都不截，在这里显示为已勾选。"))
+            }
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                ForEach(apps) { app in
+                    let excluded = settings.isExcluded(bundleID: app.bundleID)
+                    Toggle(isOn: hidden(app.bundleID, alwaysHidden: excluded)) {
+                        HStack(spacing: 5) {
+                            if let icon = app.icon {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .frame(width: 16, height: 16)
+                            }
+                            Text(app.name)
+                                .font(.system(size: 11))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                    .toggleStyle(.checkbox)
+                    .disabled(excluded)
+                    .help(excluded ? String(localized: "已在「排除的应用」里，任何时候都不截。") : app.bundleID)
+                }
+            }
+        }
+        .onAppear(perform: reload)
+        .onReceive(NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didLaunchApplicationNotification)) { _ in reload() }
+        .onReceive(NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didTerminateApplicationNotification)) { _ in reload() }
+    }
+
+    private func hidden(_ bundleID: String, alwaysHidden: Bool) -> Binding<Bool> {
+        Binding(
+            get: { alwaysHidden || settings.screenHiddenBundleIDs.contains(bundleID) },
+            set: { hide in
+                var list = settings.screenHiddenBundleIDs.filter { $0 != bundleID }
+                if hide { list.append(bundleID) }
+                settings.screenHiddenBundleIDs = list
+            }
+        )
+    }
+
+    private func reload() {
+        let ownBundleID = Bundle.main.bundleIdentifier
+        var entries: [String: Entry] = [:]
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            guard let bundleID = app.bundleIdentifier, bundleID != ownBundleID else { continue }
+            entries[bundleID] = Entry(bundleID: bundleID, name: app.localizedName ?? bundleID, icon: app.icon)
+        }
+        for bundleID in settings.screenHiddenBundleIDs where entries[bundleID] == nil {
+            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+            entries[bundleID] = Entry(bundleID: bundleID,
+                                      name: url?.deletingPathExtension().lastPathComponent ?? bundleID,
+                                      icon: url.map { NSWorkspace.shared.icon(forFile: $0.path) })
+        }
+        apps = entries.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+}
+
 // MARK: - 隐私
 
 /// 别人的屏幕上看不看得见 Wisp。两个开关都只影响它自己的窗口，不碰系统设置。
 private struct PrivacySettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @State private var confirmHidingMenuBarIcon = false
+
+    /// 关掉菜单栏图标之后，用户还剩什么办法把 Wisp 叫出来。
+    private var fallbackEntry: String {
+        if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleAssistant) {
+            return String(localized: "快捷键 \(shortcut.description)，或者在访达里再打开一次 Wisp")
+        }
+        return String(localized: "在访达里再打开一次 Wisp")
+    }
 
     var body: some View {
         Form {
@@ -1140,12 +1272,23 @@ private struct PrivacySettingsView: View {
                     }
                 }
                 Toggle(isOn: Binding(
+                    get: { settings.localCursorEnabled },
+                    set: { settings.localCursorEnabled = $0 }
+                )) {
+                    HStack(spacing: 5) {
+                        Text("本地光标（实验）")
+                        InfoButton(message: String(localized: "Wisp 活跃时，在窗口内绘制光标并隐藏系统指针，点击照常进行。离开窗口或打开原生菜单时恢复。需要开启窗口隐藏；不同共享工具仍可能显示鼠标或点击标记，请先检查接收端。"))
+                    }
+                }
+                .disabled(!settings.hideFromScreenCapture)
+                Toggle(isOn: Binding(
                     get: { settings.showsMenuBarIcon },
-                    set: { settings.showsMenuBarIcon = $0 }
+                    // 关掉之前先问一句：这是没有 Dock 图标的应用唯一看得见的入口。
+                    set: { if $0 { settings.showsMenuBarIcon = true } else { confirmHidingMenuBarIcon = true } }
                 )) {
                     HStack(spacing: 5) {
                         Text("在菜单栏显示图标")
-                        InfoButton(message: String(localized: "菜单栏图标可能出现在共享和录屏中。关闭后，仍可用全局快捷键打开 Wisp，再通过面板上的齿轮进入设置。"))
+                        InfoButton(message: String(localized: "菜单栏图标可能出现在共享和录屏中。关闭后 Wisp 在菜单栏不留痕迹，仍可用全局快捷键唤起，或在访达里再打开一次 Wisp；面板上的齿轮是进入设置的入口。"))
                     }
                 }
             } header: {
@@ -1153,15 +1296,252 @@ private struct PrivacySettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .alert("关掉菜单栏图标？", isPresented: $confirmHidingMenuBarIcon) {
+            Button("关掉", role: .destructive) { settings.showsMenuBarIcon = false }
+            Button("保留", role: .cancel) { }
+        } message: {
+            Text("关掉之后菜单栏上不会再有 Wisp。要再打开它，用\(fallbackEntry)。")
+        }
+    }
+}
+
+// MARK: - 音频
+
+struct AudioSettingsView: View {
+    @ObservedObject private var listening = ListeningModel.shared
+    @ObservedObject private var catalog = LocalSpeechCatalog.shared
+    @State private var microphone = AVCaptureDevice.authorizationStatus(for: .audio)
+    @State private var speech = SFSpeechRecognizer.authorizationStatus()
+    @State private var screen = Permissions.hasScreenRecording
+    @State private var deviceSupport = ""
+    @State private var requesting = false
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("启用语音输入", isOn: $listening.isEnabled)
+            } header: {
+                SettingsSectionHeader("语音输入", info: String(localized: "关掉之后面板上不再有语音那一行，快捷键也不再开始录音；正在录的会先停下来。"))
+            }
+
+            // 关掉之后底下这些都不再影响任何事，留在页面上只会让人以为它们还在生效。
+            if listening.isEnabled {
+                Section {
+                    Picker("音源", selection: $listening.mode) {
+                        ForEach(ListeningMode.allCases) { Text($0.title).tag($0) }
+                    }
+                    if listening.mode.sources.contains(.application) {
+                        HStack {
+                            Picker("应用", selection: $listening.selectedPID) {
+                                Text("选择音频应用…").tag(pid_t(0))
+                                ForEach(listening.applications, id: \.processID) { app in
+                                    Text(app.applicationName).tag(app.processID)
+                                }
+                            }
+                            Button("刷新") { listening.refreshApplications() }
+                                .disabled(listening.isRefreshing)
+                        }
+                    }
+                    Toggle("保存音频", isOn: $listening.savesAudio)
+                } header: {
+                    SettingsSectionHeader("录音", info: String(localized: "应用按次选择；录音期间不能更改音源、语言或保存选项。"))
+                }
+                .disabled(listening.isActive)
+
+                Section {
+                    KeyboardShortcuts.Recorder("开始／停止录音", name: .toggleListening)
+                    KeyboardShortcuts.Recorder("转写放入输入框", name: .stageListening)
+                    KeyboardShortcuts.Recorder("停止并交给 AI 分析", name: .stopAndAnalyzeListening)
+                    KeyboardShortcuts.Recorder("现在分析一下（不停止录音）", name: .analyzeListening)
+                    KeyboardShortcuts.Recorder("按住说话提问", name: .pushToTalk)
+                } header: {
+                    SettingsSectionHeader("快捷键", info: String(localized: "转写取上一次交出去之后说的全部内容，最多 12,000 字。「放入输入框」不会自动发送；两个「分析」会连同当前上下文一起发送给所选模型。")
+                        + "\n\n" + String(localized: "「按住说话提问」：按住快捷键说出问题，松开后连同当前屏幕上下文，用当前回答模式直接发送。只用麦克风，不写进录音记录；录音进行中不可用。按一下就松开不会发送。"))
+                }
+
+                Section {
+                    Picker("识别引擎", selection: $listening.engine) {
+                        Text("Apple 设备端语音识别").tag(ListeningEngine.appleSpeech)
+                        ForEach(catalog.models) { model in
+                            Text(catalog.title(for: model)).tag(ListeningEngine.local(model.id))
+                        }
+                        // Keep a vanished choice visible instead of silently showing another engine.
+                        if let id = selectedLocalID, catalog.model(id: id) == nil {
+                            Text(catalog.hasScanned ? String(localized: "找不到：\(URL(fileURLWithPath: id).lastPathComponent)")
+                                                    : URL(fileURLWithPath: id).lastPathComponent)
+                                .tag(listening.engine)
+                        }
+                    }
+                    .disabled(listening.isActive)
+                    if listening.engine == .appleSpeech {
+                        Picker("转写语言", selection: $listening.locale) {
+                            Text("English").tag("en-US")
+                            Text("简体中文").tag("zh-CN")
+                            Text("繁體中文").tag("zh-TW")
+                            Text("日本語").tag("ja-JP")
+                        }
+                        .disabled(listening.isActive)
+                        HStack {
+                            Text("本机语言支持")
+                            Spacer()
+                            Text(deviceSupport).foregroundStyle(.secondary)
+                            Button("检查") { refresh() }
+                        }
+                    } else if let family = selectedLocalModel?.family {
+                        if family.languages.count > 1 {
+                            Picker("转写语言", selection: Binding(
+                                get: { family.language(for: listening.localLanguage) },
+                                set: { listening.localLanguage = $0 })) {
+                                ForEach(family.languages, id: \.self) { Text(Self.languageName($0)).tag($0) }
+                            }
+                            .disabled(listening.isActive)
+                        } else {
+                            LabeledContent("转写语言") { Text("模型自动识别") }
+                        }
+                        Picker("中文字形", selection: $listening.chineseScript) {
+                            ForEach(ChineseScript.allCases) { Text($0.title).tag($0) }
+                        }
+                        .disabled(listening.isActive)
+                        .help("有的本地模型会把普通话写成繁体字，这里统一换成你习惯的写法。")
+                    }
+                    HStack {
+                        Text("本地模型")
+                        Spacer()
+                        Text(localModelStatus).foregroundStyle(.secondary)
+                        Button(catalog.isScanning ? "扫描中…" : catalog.hasScanned ? "重新扫描" : "扫描") { catalog.rescan() }
+                            .disabled(catalog.isScanning)
+                        if catalog.rootExists {
+                            Button("打开文件夹") { NSWorkspace.shared.open(LocalSpeechCatalog.root) }
+                        }
+                    }
+                    .help(selectedLocalModel?.folder.path ?? LocalSpeechCatalog.root.path)
+                } header: {
+                    SettingsSectionHeader("转写", info: String(localized: "所有引擎都在本机转写。本地模型从 ~/Documents/huggingface/models 自动发现：放入新的 sherpa-onnx 模型文件夹后点「重新扫描」即可选用，不需要重装 Wisp。第一次扫描时 macOS 可能询问是否允许访问「文稿」文件夹。Wisp 不会下载、复制或删除模型。Apple Speech 使用系统语言资源。")
+                        + "\n\n" + String(localized: "可识别的模型架构：\(LocalSpeechCatalog.families.map(\.title).formatted(.list(type: .and)))"))
+                }
+
+                Section {
+                    permissionRow("麦克风", status: microphoneStatus, granted: microphone == .authorized, request: {
+                        requesting = true
+                        Task {
+                            _ = await AVCaptureDevice.requestAccess(for: .audio)
+                            requesting = false
+                            refresh()
+                        }
+                    }, open: Permissions.openMicrophoneSettings)
+                    if listening.engine.requiresSpeechAuthorization {
+                        permissionRow("语音识别", status: speechStatus, granted: speech == .authorized, request: {
+                            requesting = true
+                            SFSpeechRecognizer.requestAuthorization { _ in
+                                Task { @MainActor in requesting = false; refresh() }
+                            }
+                        }, open: Permissions.openSpeechSettings)
+                    }
+                    permissionRow("屏幕与系统音频",
+                                  status: screen ? String(localized: "已授权") : String(localized: "未授权"),
+                                  granted: screen, request: {
+                        Permissions.requestScreenRecording()
+                        refresh()
+                    }, open: Permissions.openScreenRecordingSettings)
+                } header: {
+                    SettingsSectionHeader("权限", info: String(localized: "仅在点击请求时弹出系统授权；打开此页不会开始录音。系统采集指示无法由 Wisp 的状态点替代。"))
+                }
+
+                Section {
+                    HStack {
+                        Text("输入与输出音量")
+                        Spacer()
+                        Button("系统声音…") { Permissions.openSoundSettings() }
+                    }
+                } header: {
+                    SettingsSectionHeader("声音", info: String(localized: "使用系统默认麦克风。设备及输入、输出音量在 macOS 声音设置中调整；Wisp 不改变其他应用的音量。"))
+                }
+            }
+        }
+        .formStyle(.grouped)
+        // Rescanning is cheap (folder listings plus a few header reads, off the main thread), and
+        // coming back to this page is how a model copied in meanwhile shows up.
+        .onAppear { refresh(); catalog.refresh(for: listening.engine) }
+        .onChange(of: listening.locale) { refresh() }
+        .onChange(of: listening.engine) { refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refresh()
+            catalog.refresh(for: listening.engine)
+        }
+    }
+
+    private var selectedLocalID: String? {
+        if case .local(let id) = listening.engine { return id }
+        return nil
+    }
+
+    private var selectedLocalModel: LocalSpeechModel? { selectedLocalID.flatMap(catalog.model(id:)) }
+
+    /// The selected model's state first, then how many models there are to choose from.
+    private var localModelStatus: String {
+        guard catalog.hasScanned else { return catalog.isScanning ? "" : String(localized: "未扫描") }
+        guard catalog.rootExists else { return String(localized: "文件夹不存在") }
+        let count = catalog.models.count
+        let found = count == 0 ? String(localized: "没有找到模型") : String(localized: "找到 \(count) 个")
+        guard selectedLocalID != nil else { return found }
+        return selectedLocalModel == nil ? String(localized: "所选模型不可用") : String(localized: "文件就绪") + " · " + found
+    }
+
+    /// Native names, matching the Apple Speech language list beside it.
+    private static func languageName(_ code: String) -> String {
+        code == "auto" ? String(localized: "自动检测")
+            : Locale(identifier: code).localizedString(forLanguageCode: code) ?? code
+    }
+
+    /// 录音期间请求会打断采集，所以这一页的「请求」统一带上同一个禁用条件。
+    private func permissionRow(_ title: LocalizedStringKey, status: String, granted: Bool,
+                               request: @escaping () -> Void, open: @escaping () -> Void) -> some View {
+        PermissionRow(title: title, status: status, granted: granted,
+                      requestDisabled: requesting || listening.isActive,
+                      request: request, open: open)
+    }
+
+    private var microphoneStatus: String {
+        switch microphone {
+        case .authorized: return String(localized: "已授权")
+        case .notDetermined: return String(localized: "未请求")
+        case .denied: return String(localized: "未授权")
+        case .restricted: return String(localized: "受限")
+        @unknown default: return String(localized: "未知")
+        }
+    }
+
+    private var speechStatus: String {
+        switch speech {
+        case .authorized: return String(localized: "已授权")
+        case .notDetermined: return String(localized: "未请求")
+        case .denied: return String(localized: "未授权")
+        case .restricted: return String(localized: "受限")
+        @unknown default: return String(localized: "未知")
+        }
+    }
+
+    private func refresh() {
+        microphone = AVCaptureDevice.authorizationStatus(for: .audio)
+        speech = SFSpeechRecognizer.authorizationStatus()
+        screen = Permissions.hasScreenRecording
+        if let recognizer = SFSpeechRecognizer(locale: Locale(identifier: listening.locale)), recognizer.supportsOnDeviceRecognition {
+            deviceSupport = recognizer.isAvailable ? String(localized: "可用") : String(localized: "暂不可用")
+        } else {
+            deviceSupport = String(localized: "不支持")
+        }
     }
 }
 
 // MARK: - 数据
 
-private struct DataSettingsView: View {
+struct DataSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @EnvironmentObject private var model: AssistantModel
     @State private var confirmWipe = false
+    @State private var confirmListeningWipe = false
+    @State private var cleanupResult: String?
+    @ObservedObject private var listening = ListeningModel.shared
 
     var body: some View {
         Form {
@@ -1203,21 +1583,53 @@ private struct DataSettingsView: View {
             }
 
             Section {
-                Button("删除全部对话与 API Key", role: .destructive) { confirmWipe = true }
+                HStack {
+                    Text("录音与转写")
+                    Spacer()
+                    Button("打开文件夹") { listening.showFiles() }
+                    Button("清理…", role: .destructive) { confirmListeningWipe = true }
+                        .disabled(listening.isActive)
+                }
+                if listening.isActive {
+                    Text("请先停止录音，再清理记录。")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                if let cleanupResult {
+                    Text(cleanupResult).font(.system(size: 11)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
             } header: {
-                SettingsSectionHeader("清除", info: String(localized: "删除对话、调试文件和钥匙串中的 API Key；不可撤销。"))
+                SettingsSectionHeader("录音记录", info: String(localized: "最多 2 GiB / 100 次。手动清理全部录音与转写，不影响对话和 API Key；不会定时自动删除。"))
+            }
+
+            Section {
+                Button("删除全部记录与 API Key", role: .destructive) { confirmWipe = true }
+            } header: {
+                SettingsSectionHeader("清除", info: String(localized: "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key；不可撤销。"))
             }
         }
         .formStyle(.grouped)
+        .alert("清理录音与转写？", isPresented: $confirmListeningWipe) {
+            Button("清理", role: .destructive) {
+                do {
+                    try listening.clearRecords()
+                    cleanupResult = String(localized: "录音与转写已清理。")
+                } catch { cleanupResult = error.localizedDescription }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("删除所有本地录音与转写文件，无法撤销。对话和 API Key 保留。")
+        }
         .alert("删除全部数据？", isPresented: $confirmWipe) {
             Button("全部删除", role: .destructive) {
+                ListeningModel.shared.discardForDataReset()
                 model.store.deleteAll()
                 KeychainStore.deleteAll()
                 settings.wipeLocalData()
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("所有对话和 API Key 都会被删除，无法撤销。")
+            Text("所有对话、录音与转写记录和 API Key 都会被删除，无法撤销。")
         }
     }
 }
@@ -1469,7 +1881,9 @@ private struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: $showsNotices) { NoticesSheet() }
+        .sheet(isPresented: $showsNotices) {
+            NoticesSheet().background(ScreenPrivacyWindow())
+        }
         .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
     }
 

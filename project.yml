@@ -8,6 +8,9 @@ options:
   groupSortPosition: top
 
 packages:
+  SherpaOnnx:
+    url: https://github.com/k2-fsa/sherpa-onnx.git
+    exactVersion: 1.13.7
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: 2.2.1
@@ -43,6 +46,8 @@ targets:
         buildPhase: resources
     dependencies:
       - package: KeyboardShortcuts
+      - package: SherpaOnnx
+        product: sherpa-onnx
     info:
       path: Wisp/App/Info.plist
       properties:
@@ -55,6 +60,8 @@ targets:
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSHumanReadableCopyright: ""
+        NSMicrophoneUsageDescription: "Wisp 在你开始录音后采集麦克风，用于本机实时字幕和可选音频保存。"
+        NSSpeechRecognitionUsageDescription: "Wisp 使用设备端语音识别，将选定的麦克风或应用音频转写为文字。"
         NSAppleEventsUsageDescription: "Wisp 需要控制浏览器，以读取当前页面的网址与完整正文，作为提问的上下文。"
     settings:
       base:

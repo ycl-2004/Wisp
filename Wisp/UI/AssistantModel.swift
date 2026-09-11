@@ -7,7 +7,11 @@ final class AssistantModel: ObservableObject {
 
     @Published var packet: ContextPacket?
     @Published var isCapturing = false
-    @Published var input = ""
+    @Published var input = "" {
+        didSet { if input.isEmpty { isSpeechDraft = false } }
+    }
+    @Published private(set) var isSpeechDraft = false
+    @Published private(set) var speechDraftRevision = 0
     @Published var isStreaming = false {
         didSet {
             IslandModel.shared.isGenerating = isStreaming
@@ -15,9 +19,16 @@ final class AssistantModel: ObservableObject {
             PanelController.shared.refreshIdleTimer()
         }
     }
+    @Published private(set) var isPreparingResponse = false
+    @Published private(set) var lastResponseTiming: ResponseTiming?
+    @Published private(set) var lastResponseSkippedPage = false
+    private var preparationTask: Task<Void, Never>?
+    private var responseGeneration = UUID()
     @Published var errorText: String?
     @Published var showsConversationList = false
     @Published var showsNotes = false
+    /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
+    @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
     private var suppressCollapseAnimation = false
 
@@ -79,15 +90,20 @@ final class AssistantModel: ObservableObject {
 
     /// 第二阶段还没跑的那份活。
     private var pendingText: ContextCapture.PendingText?
+    private var capturedScreenshotOnly = false
 
     /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
     /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
-    func captureShot() async {
+    func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
         guard !isCapturing else { return }
+        let screenshotOnly = screenshotOnly ?? (settings.responseMode == .quick)
+        // Opening/refocusing Quick with the camera off must not capture either.
+        if screenshotOnly && !(attachScreenshot ?? settings.sendScreenshot) { return }
         isCapturing = true
         errorText = nil
         let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: ownWindowIDs,
-                                                                 fallbackApp: targetApp)
+                                                                 fallbackApp: targetApp,
+                                                                 screenshotOnly: screenshotOnly)
         if let bundleID = result.bundleID,
            bundleID != Bundle.main.bundleIdentifier,
            let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
@@ -103,6 +119,7 @@ final class AssistantModel: ObservableObject {
 
         packet = result
         pendingText = pending
+        capturedScreenshotOnly = screenshotOnly
         isCapturing = false
         // 截图是新的了，过期标记就该清掉。正文还欠着的话由 `pendingText` 记着，
         // 不要用 contextIsStale 兼职表示这件事——否则发送时会白截一次图。
@@ -131,7 +148,7 @@ final class AssistantModel: ObservableObject {
 
     /// 两个阶段一次跑完。手动刷新走这条。
     func captureContext() async {
-        await captureShot()
+        await captureShot(screenshotOnly: false)
         await captureText()
     }
 
@@ -262,7 +279,7 @@ final class AssistantModel: ObservableObject {
     /// 除「输入框里有东西」以外的发送前置条件。空状态里那几个建议自带问题文本，
     /// 不该被空输入框挡住，所以单独拆出来一份。
     var canStartQuestion: Bool {
-        guard !isStreaming else { return false }
+        guard !isStreaming, !isPreparingResponse, !isCapturing else { return false }
         guard let conversation = store.active else { return store.canCreateNew }
         return !store.isAtTurnLimit(conversation)
     }
@@ -287,10 +304,20 @@ final class AssistantModel: ObservableObject {
 
     @Published var confirmsEviction = false
 
+    func toggleConversationList() {
+        let showing = !showsConversationList
+        showsConversationList = showing
+        if showing {
+            showsTranscript = false
+            if isCollapsed { setCollapsed(false) }
+        }
+    }
+
     func newConversation() {
         guard store.canCreateNew else {
             // 满了不是死路：把「要顶掉哪一个」摆出来让用户确认。
             showsConversationList = true
+            if isCollapsed { setCollapsed(false) }
             confirmsEviction = true
             return
         }
@@ -319,24 +346,161 @@ final class AssistantModel: ObservableObject {
     // MARK: - 发送
 
     func send() {
-        let question = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, !isStreaming else { return }
+        send(question: input, mode: settings.responseMode)
+    }
 
-        if isCollapsed {
-            withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) }
-        }
-        Task {
-            // 截图过期了先补一张，然后读正文——滑动采集就发生在这一步。
-            // 不再按「超过 N 秒就重来」：那会在用户慢慢打字的时候突然翻动页面。
-            if packet == nil || contextIsStale {
-                await captureShot()
+    /// `mode` 只管这一次：常用指令可以带着自己的模式发，不改输入框旁边那个开关。
+    func send(question raw: String, mode: ResponseMode) {
+        let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty, canStartQuestion, let config = requestConfig(for: mode) else { return }
+        let conversationID = store.active?.id
+        let sendScreenshot = settings.sendScreenshot
+        let generation = beginResponse(config)
+        preparationTask = Task {
+            defer { endPreparation(generation) }
+            if mode == .quick {
+                if sendScreenshot { await captureShot(screenshotOnly: true, attachScreenshot: true) }
+            } else if packet == nil || contextIsStale || capturedScreenshotOnly {
+                await captureShot(screenshotOnly: false)
             }
-            await captureText()
-            performSend(question: question)
+            guard !Task.isCancelled, responseGeneration == generation else { return }
+            let skippedPage = !mode.capturesPageText
+            if mode.capturesPageText { await captureText() }
+            guard !Task.isCancelled, responseGeneration == generation else { return }
+            guard store.active?.id == conversationID else { return cancelPreparation() }
+            lastResponseSkippedPage = skippedPage
+            performSend(question: question, config: config, sendScreenshot: sendScreenshot,
+                        skippedPage: skippedPage, generation: generation)
         }
     }
 
-    private func performSend(question: String) {
+    /// 常用指令：指令文字就是问题，输入框里写了的东西作为材料跟在后面。
+    func run(_ command: QuickCommand) {
+        guard canStartQuestion else {
+            errorText = turnLimitMessage ?? String(localized: "请等待回答结束，或新建对话后重试。")
+            return
+        }
+        send(question: command.question(withDraft: input), mode: command.mode ?? settings.responseMode)
+    }
+
+    /// 最后一条回答能不能用深入重答：快速模式答的、已经答完、此刻没有别的请求在跑。
+    func canReanswerDeeply(_ message: Message) -> Bool {
+        message.role == .assistant && message.mode == .quick && !message.text.isEmpty
+            && store.active?.messages.last?.id == message.id
+            && !isStreaming && !isPreparingResponse && !isCapturing
+    }
+
+    /// 深入重答：问题留着，只把最后那条快速回答换成深入模式的，不多占一轮。
+    ///
+    /// 那一页还开着，就把正文读全、附上新截图再答——快速模式正是跳过了这一步。已经换到
+    /// 别的页面，就用问题当时记下的上下文，不拿新页面去答旧问题。新回答一个字都没出来
+    /// （出错、被停掉）时，原来那条回答会放回去。
+    func reanswerDeeply(_ answerID: UUID) {
+        guard let conversation = store.active, conversation.messages.count >= 2,
+              let previous = conversation.messages.last, previous.id == answerID, canReanswerDeeply(previous),
+              let question = conversation.messages.dropLast().last, question.role == .user,
+              let config = requestConfig(for: .deep) else { return }
+        let conversationID = conversation.id
+        let sendScreenshot = settings.sendScreenshot
+        let generation = beginResponse(config)
+        preparationTask = Task {
+            defer { endPreparation(generation) }
+            if packet == nil || contextIsStale || capturedScreenshotOnly {
+                await captureShot(screenshotOnly: false)
+            }
+            guard !Task.isCancelled, responseGeneration == generation else { return }
+            let samePage = Self.isSamePage(packet, question.context)
+            // 换了页面就不去读（更不去滚动）一个跟这个问题无关的页面。
+            if samePage { await captureText() }
+            guard !Task.isCancelled, responseGeneration == generation else { return }
+            guard !isStreaming, store.active?.id == conversationID,
+                  store.active?.messages.last?.id == answerID else { return cancelPreparation() }
+            var screenshot: Data?
+            if samePage {
+                let (snapshot, shot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
+                store.updateContext(snapshot, sentScreenshot: shot != nil, messageID: question.id, in: conversationID)
+                screenshot = shot
+            }
+            store.removeMessage(previous.id, from: conversationID)
+            errorText = nil
+            streamAnswer(in: conversationID, config: config, screenshot: screenshot,
+                         skippedPage: false, generation: generation, restoring: previous)
+        }
+    }
+
+    /// 同一个应用、同一个网址。不是浏览器时网址都是空的，就按应用算。
+    nonisolated static func isSamePage(_ packet: ContextPacket?, _ context: ContextSnapshot?) -> Bool {
+        guard let packet, let context, !packet.isExcluded else { return false }
+        guard packet.bundleID == context.bundleID else { return false }
+        if context.url == nil, let title = context.windowTitle, !title.isEmpty {
+            return packet.windowTitle == title
+        }
+        return packet.url == context.url
+    }
+
+    /// 这一次要发出去的配置。模型由 `ActiveModels` 决定，界面上显示的就是这一个。
+    private func requestConfig(for mode: ResponseMode) -> ProviderConfig? {
+        do {
+            return try ProviderConfig.authorized(ActiveModels(settings: settings, state: .shared).config(for: mode),
+                                                 settings: settings)
+        } catch {
+            errorText = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// 一次回答开始：记下代次与计时，展开面板。
+    private func beginResponse(_ config: ProviderConfig) -> UUID {
+        let generation = UUID()
+        responseGeneration = generation
+        lastResponseSkippedPage = false
+        lastResponseTiming = ResponseTiming(mode: config.responseMode, model: config.model,
+                                            startedAt: ProcessInfo.processInfo.systemUptime)
+        errorText = nil
+        isPreparingResponse = true
+        if isCollapsed { withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) } }
+        return generation
+    }
+
+    private func endPreparation(_ generation: UUID) {
+        guard responseGeneration == generation else { return }
+        isPreparingResponse = false
+        preparationTask = nil
+    }
+
+    private func cancelPreparation() {
+        errorText = String(localized: "准备期间切换了对话，请重新发送。")
+        lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
+        lastResponseTiming?.outcome = "cancelled"
+    }
+
+    func toggleTranscriptView() {
+        showsTranscript.toggle()
+        showsConversationList = false
+        if showsTranscript { setCollapsed(false) }
+    }
+
+    /// 把转写放进输入框。用户自己写了字就用他的问题，一个字没写才用 `fallbackQuestion`
+    /// ——一键分析总得带着问题过去，否则模型只收到一段没有指令的会议记录。
+    @discardableResult
+    func stageSpeechDraft(_ text: String, fallbackQuestion: String? = nil) -> Bool {
+        let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existing = typed.isEmpty ? (fallbackQuestion ?? "") : input
+        guard !text.isEmpty, !isStreaming, !isPreparingResponse,
+              let draft = ListeningTranscript.appendingToDraft(text, existing: existing) else { return false }
+        input = draft
+        isSpeechDraft = true
+        speechDraftRevision += 1
+        showsTranscript = false
+        showsConversationList = false
+        setCollapsed(false)
+        return true
+    }
+
+    private func performSend(question: String, config: ProviderConfig, sendScreenshot: Bool,
+                             skippedPage: Bool, generation: UUID) {
+        // A previous asynchronous screen read may finish after another send started.
+        guard !isStreaming else { return }
         guard let conversation = store.ensureActive() else {
             errorText = conversationLimitMessage
             return
@@ -350,73 +514,108 @@ final class AssistantModel: ObservableObject {
         errorText = nil
         input = ""
 
+        let (snapshot, screenshot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
+        store.append(Message(role: .user, text: question, context: snapshot, sentScreenshot: screenshot != nil),
+                     to: conversationID)
+        streamAnswer(in: conversationID, config: config, screenshot: screenshot,
+                     skippedPage: skippedPage, generation: generation, restoring: nil)
+    }
+
+    /// 这一轮附哪张截图、问题记下哪份上下文。
+    private func contextForSend(config: ProviderConfig, sendScreenshot: Bool) -> (ContextSnapshot?, Data?) {
+        // Conversation history remains in PromptBuilder; stale screen context does not
+        // belong to a camera-off Quick question.
+        if config.responseMode == .quick && !sendScreenshot { return (nil, nil) }
         var screenshotToSend: Data?
-        if settings.sendScreenshot, let packet, packet.hasScreenshot, lastSentPacketID != packet.id {
+        if sendScreenshot, let packet, packet.hasScreenshot,
+           (config.responseMode != .standard || lastSentPacketID != packet.id) {
             screenshotToSend = packet.screenshotJPEG
             lastSentPacketID = packet.id
         }
+        var snapshot = packet?.isExcluded == true ? nil : packet?.snapshot()
+        // History never stores screenshot bytes; report only the image actually sent this turn.
+        snapshot?.hadScreenshot = screenshotToSend != nil
+        return (snapshot, screenshotToSend)
+    }
 
-        let snapshot = (packet?.isExcluded == true) ? nil : packet?.snapshot()
-        let userMessage = Message(role: .user,
-                                  text: question,
-                                  context: snapshot,
-                                  sentScreenshot: screenshotToSend != nil)
-        store.append(userMessage, to: conversationID)
-
-        let assistantMessage = Message(role: .assistant, text: "")
+    /// 给对话里最后那个问题生成回答。`previous` 是被重答替换掉的旧回答：
+    /// 新回答一个字都没出来时放回去，重答失败不会让人两头落空。
+    private func streamAnswer(in conversationID: UUID, config: ProviderConfig, screenshot: Data?,
+                              skippedPage: Bool, generation: UUID, restoring previous: Message?) {
+        let assistantMessage = Message(role: .assistant, text: "", mode: config.responseMode)
         store.append(assistantMessage, to: conversationID)
 
         let history = store.conversations.first { $0.id == conversationID }?.messages ?? []
         let payloadMessages = Array(history.dropLast())
-        let payload = PromptBuilder.build(messages: payloadMessages, liveScreenshot: screenshotToSend)
+        let payload = PromptBuilder.build(messages: payloadMessages, liveScreenshot: screenshot,
+                                          mode: config.responseMode, skippedPageCapture: skippedPage)
 
+        lastResponseTiming?.requestStartedAt = ProcessInfo.processInfo.systemUptime
         isStreaming = true
         streamTask = Task { [weak self] in
             guard let self else { return }
             var accumulated = ""
             var counter = 0
             do {
-                let config = try ProviderConfig.current()
                 let provider = ProviderConfig.provider(for: config)
                 for try await chunk in provider.stream(messages: payload, config: config) {
-                    if Task.isCancelled { break }
+                    if Task.isCancelled || self.responseGeneration != generation { throw CancellationError() }
+                    self.lastResponseTiming?.receive(chunk, at: ProcessInfo.processInfo.systemUptime)
                     accumulated += chunk
                     counter += 1
                     self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: false)
                     if counter % 40 == 0 { self.store.flush() }
                 }
+                try Task.checkCancellation()
+                self.lastResponseTiming?.outcome = accumulated.isEmpty ? "empty" : "completed"
                 if accumulated.isEmpty {
-                    self.store.removeMessage(assistantMessage.id, from: conversationID)
+                    self.discard(assistantMessage.id, restoring: previous, in: conversationID)
                     self.errorText = String(localized: "模型没有返回任何内容。可以换个模型名再试。")
                 } else {
                     self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
             } catch {
+                guard self.responseGeneration == generation else { return }
+                self.lastResponseTiming?.outcome = Task.isCancelled || error is CancellationError ? "cancelled" : "failed"
                 if accumulated.isEmpty {
-                    self.store.removeMessage(assistantMessage.id, from: conversationID)
+                    self.discard(assistantMessage.id, restoring: previous, in: conversationID)
                 } else {
                     let incomplete = accumulated + "\n\n" + String(localized: "（回答未完成：生成过程已中断。）")
                     self.store.updateStreaming(text: incomplete, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
-                if let providerError = error as? ProviderError {
+                if error is CancellationError { self.errorText = nil }
+                else if let providerError = error as? ProviderError {
                     if case .cancelled = providerError { self.errorText = nil }
                     else { self.errorText = providerError.errorDescription }
                 } else {
                     self.errorText = error.localizedDescription
                 }
             }
+            guard self.responseGeneration == generation else { return }
+            self.lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
             self.isStreaming = false
             self.streamTask = nil
         }
     }
 
+    /// 一个字都没出来的回答不留空壳；重答时把原来那条放回去。
+    private func discard(_ answerID: UUID, restoring previous: Message?, in conversationID: UUID) {
+        store.removeMessage(answerID, from: conversationID)
+        if let previous { store.append(previous, to: conversationID) }
+    }
+
     func stopStreaming() {
+        if isPreparingResponse, !isStreaming {
+            preparationTask?.cancel()
+            responseGeneration = UUID()
+            isPreparingResponse = false
+            lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
+            lastResponseTiming?.outcome = "cancelled"
+        }
         streamTask?.cancel()
-        streamTask = nil
-        isStreaming = false
         store.flush()
     }
 

@@ -37,6 +37,8 @@ struct ContextPacket: Identifiable {
     /// JPEG 数据，仅内存。
     var screenshotJPEG: Data?
     var screenshotPixelSize: CGSize?
+    /// 截图实际覆盖的范围。找不到窗口时会退回整屏，所以以这里为准，不看设置。
+    var screenshotScope: CaptureScope = .window
 
     var capturedAt: Date = Date()
     /// 采集过程中的说明与失败原因，会显示在浮窗头部。
@@ -78,6 +80,7 @@ struct ContextPacket: Identifiable {
             selectedText: selectedText,
             iframeURLs: iframeURLs,
             hadScreenshot: hasScreenshot,
+            screenshotScope: screenshotScope,
             capturedAt: capturedAt
         )
     }

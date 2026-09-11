@@ -224,6 +224,15 @@ final class ConversationStore: ObservableObject {
         if persistNow { persist() }
     }
 
+    /// 深入重答重新读了同一页，问题记下的上下文换成读全的那份。
+    func updateContext(_ context: ContextSnapshot?, sentScreenshot: Bool, messageID: UUID, in id: UUID) {
+        guard let ci = conversations.firstIndex(where: { $0.id == id }),
+              let mi = conversations[ci].messages.firstIndex(where: { $0.id == messageID }) else { return }
+        conversations[ci].messages[mi].context = context
+        conversations[ci].messages[mi].sentScreenshot = sentScreenshot
+        persist()
+    }
+
     func removeMessage(_ messageID: UUID, from id: UUID) {
         guard let ci = conversations.firstIndex(where: { $0.id == id }) else { return }
         conversations[ci].messages.removeAll { $0.id == messageID }

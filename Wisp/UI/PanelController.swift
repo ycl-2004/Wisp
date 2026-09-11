@@ -9,13 +9,17 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private var panel: NSPanel?
 
-    static let width: CGFloat = 850
+    static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
-    static let collapsedHeight: CGFloat = 106
-    private static let minimumCollapsedHeight: CGFloat = 100
-    private static let maximumCollapsedHeight: CGFloat = 160
-    private static let minimumExpandedHeight: CGFloat = 420
-    private static let maximumExpandedHeight: CGFloat = 680
+    static let collapsedHeight: CGFloat = 110
+    /// AppKit's resizable style installs its own frame cursors around the window.
+    /// Resizing is handled by `PanelResizeOverlay`, so keep the system style non-resizable.
+    static let panelStyleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
+    private static let minimumCollapsedHeight: CGFloat = 110
+    private static let legacyCollapsedHeight: CGFloat = 180
+    private static let maximumCollapsedHeight: CGFloat = 240
+    private static let minimumExpandedHeight: CGFloat = 280
+    private static let maximumExpandedHeight: CGFloat = 1000
 
     var isVisible: Bool { panel?.isVisible == true }
 
@@ -25,7 +29,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         isVisible ? hide() : show()
     }
 
-    func show() {
+    /// `then` runs once the panel is on screen with this capture done, so an action started from a
+    /// shortcut in another app reads that app rather than a stale context.
+    func show(then: (@MainActor () -> Void)? = nil) {
         let model = AssistantModel.shared
         // 必须在激活自己之前记住目标应用。
         if let front = NSWorkspace.shared.frontmostApplication,
@@ -53,13 +59,17 @@ final class PanelController: NSObject, NSWindowDelegate {
             model.startFollowingFrontWindow()
             // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
             // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
+            then?()
         }
     }
 
     func hide() {
+        ListeningModel.shared.stop()
+        PushToTalk.shared.cancel()
         guard let panel else { return }
         cancelIdleTimer()
         saveFrame(panel)
+        flushFrameSave()
         panel.orderOut(nil)
         isPointerInside = false
         broadcastActivity()
@@ -72,6 +82,8 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// 鼠标是否停在面板上。悬停也算「还在用」，不计时。
     private var isPointerInside = false
     private var idleTimer: Timer?
+    private var frameSaveTimer: Timer?
+    private var pendingFrameString: String?
 
     func setPointerInside(_ inside: Bool) {
         guard isPointerInside != inside else { return }
@@ -96,19 +108,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// 焦点、悬停、生成状态、设置里的秒数，任何一样变了都重新决定要不要计时。
     func refreshIdleTimer() {
         guard let panel, panel.isVisible else { cancelIdleTimer(); return }
-        // 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
-        // 鼠标停在上面、回答正在生成、正在采集。任何一条成立都不能收。
-        //
-        // 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
-        // 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
-        // 不相干的应用、也就是真的走开了，倒计时才有意义。
-        guard AppSettings.shared.idleDismissSeconds > 0,
-              !panel.isKeyWindow,
-              !isPointerInside,
-              !AssistantModel.shared.isStreaming,
-              !AssistantModel.shared.isCapturing,
-              !isWorkingInCapturedApp
-        else { cancelIdleTimer(); return }
+        guard isIdle(panel) else { cancelIdleTimer(); return }
 
         // 已经在倒计时就让它继续走，别重置——否则鼠标扫过窗口边缘会一直续命。
         guard idleTimer == nil else { return }
@@ -129,15 +129,25 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     /// 倒计时这几秒里状态可能已经变了，真收之前再确认一次。
     private func hideIfStillIdle() {
-        guard let panel, panel.isVisible,
-              AppSettings.shared.idleDismissSeconds > 0,
-              !panel.isKeyWindow,
-              !isPointerInside,
-              !AssistantModel.shared.isStreaming,
-              !AssistantModel.shared.isCapturing,
-              !isWorkingInCapturedApp
-        else { refreshIdleTimer(); return }
+        guard let panel, panel.isVisible, isIdle(panel) else { refreshIdleTimer(); return }
         hide()
+    }
+
+    /// 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
+    /// 鼠标停在上面、回答正在生成、正在录音或按住说话、正在采集。任何一条成立都不能收。
+    ///
+    /// 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
+    /// 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
+    /// 不相干的应用、也就是真的走开了，倒计时才有意义。
+    private func isIdle(_ panel: NSPanel) -> Bool {
+        AppSettings.shared.idleDismissSeconds > 0
+            && !panel.isKeyWindow
+            && !isPointerInside
+            && !AssistantModel.shared.isStreaming
+            && !ListeningModel.shared.isActive
+            && !PushToTalk.shared.isActive
+            && !AssistantModel.shared.isCapturing
+            && !isWorkingInCapturedApp
     }
 
     /// 前台应用就是这份上下文读到的那个应用吗？
@@ -154,8 +164,31 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     /// 收起／展开：只改高度，宽度和左上角位置不动。
     func setCollapsed(_ collapsed: Bool, animated: Bool = true) {
-        guard let panel else { return }
+        guard panel != nil else { return }
         let target = collapsed ? storedCollapsedHeight : storedExpandedHeight
+        setPanelHeight(target, animated: animated)
+    }
+
+    /// Keep the collapsed panel tight to the composer as a multiline question grows.
+    /// The stored value is updated even while expanded so the next show starts at the
+    /// one-line height after the draft is cleared.
+    func updateCollapsedHeight(forInputHeight inputHeight: CGFloat, animated: Bool = true) {
+        let target = Self.collapsedHeight(forInputHeight: inputHeight)
+        storedCollapsedHeight = target
+        guard AssistantModel.shared.isCollapsed else { return }
+        setPanelHeight(target, animated: animated)
+    }
+
+    /// The collapsed height follows the measured composer height one point for one,
+    /// while keeping a predictable one-line minimum and a bounded multiline maximum.
+    static func collapsedHeight(forInputHeight inputHeight: CGFloat) -> CGFloat {
+        let delta = max(0, inputHeight - ChatInput.defaultHeight)
+        return min(max(Self.collapsedHeight + delta, Self.minimumCollapsedHeight),
+                   Self.maximumCollapsedHeight)
+    }
+
+    private func setPanelHeight(_ target: CGFloat, animated: Bool) {
+        guard let panel else { return }
         var frame = panel.frame
         guard abs(frame.height - target) > 0.5 else { return }
         // 底边不动，向上展开。输入框位置保持稳定，内容从上方长出来。
@@ -168,7 +201,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         isApplyingProgrammaticFrame = true
         if animated {
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.18
+                context.duration = 0.14
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 panel.animator().setFrame(frame, display: true)
             } completionHandler: { [weak self] in
@@ -198,7 +231,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
         let panel = KeyablePanel(
             contentRect: NSRect(x: 0, y: 0, width: Self.width, height: Self.collapsedHeight),
-            styleMask: [.borderless, .nonactivatingPanel, .resizable],
+            styleMask: Self.panelStyleMask,
             backing: .buffered,
             defer: false
         )
@@ -219,16 +252,32 @@ final class PanelController: NSObject, NSWindowDelegate {
         let root = ChatView()
             .environmentObject(AssistantModel.shared)
             .environmentObject(ConversationStore.shared)
+        let hosting = Self.makePanelContentView(root)
+        panel.contentView = hosting
+
+        self.panel = panel
+        return panel
+    }
+
+    static func makePanelContentView<Content: View>(_ root: Content) -> NSView {
+        let container = NSView()
         let hosting = NSHostingView(rootView: root)
+        // AppKit owns resizing. Content-derived bounds otherwise grow/lock the window.
+        // https://developer.apple.com/documentation/swiftui/nshostingview/sizingoptions
+        hosting.sizingOptions = []
         hosting.autoresizingMask = [.width, .height]
         hosting.wantsLayer = true
         hosting.layer?.cornerRadius = DS.windowCorner
         hosting.layer?.cornerCurve = .continuous
         hosting.layer?.masksToBounds = true
-        panel.contentView = hosting
-
-        self.panel = panel
-        return panel
+        // Keep NSHostingView out of NSWindow.contentView so SwiftUI cannot override
+        // the borderless panel's AppKit min/max sizes during root-view changes.
+        container.addSubview(hosting)
+        // 缩放层盖在内容之上，只吃边缘那几个点；其余位置事件照常落到 SwiftUI。
+        let resize = PanelResizeOverlay(frame: container.bounds)
+        resize.autoresizingMask = [.width, .height]
+        container.addSubview(resize)
+        return container
     }
 
     private func position(_ panel: NSPanel) {
@@ -251,16 +300,32 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func saveFrame(_ panel: NSPanel) {
         guard !isApplyingProgrammaticFrame else { return }
-        AppSettings.shared.panelFrame = NSStringFromRect(panel.frame)
-        storedWidth = panel.frame.width
-        storedOrigin = panel.frame.origin
+        let frame = panel.frame
+        pendingFrameString = NSStringFromRect(frame)
+        storedWidth = frame.width
+        storedOrigin = frame.origin
         if AssistantModel.shared.isCollapsed {
-            storedCollapsedHeight = min(max(panel.frame.height, Self.minimumCollapsedHeight),
+            storedCollapsedHeight = min(max(frame.height, Self.minimumCollapsedHeight),
                                         Self.maximumCollapsedHeight)
         } else {
-            storedExpandedHeight = min(max(panel.frame.height, Self.minimumExpandedHeight),
+            storedExpandedHeight = min(max(frame.height, Self.minimumExpandedHeight),
                                        Self.maximumExpandedHeight)
         }
+
+        // Moving and custom resizing can emit a callback for every mouse event.
+        // Keep the live frame in memory and persist only after the gesture pauses.
+        frameSaveTimer?.invalidate()
+        frameSaveTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.flushFrameSave() }
+        }
+    }
+
+    private func flushFrameSave() {
+        frameSaveTimer?.invalidate()
+        frameSaveTimer = nil
+        guard let pendingFrameString else { return }
+        AppSettings.shared.panelFrame = pendingFrameString
+        self.pendingFrameString = nil
     }
 
     /// 启动时把上次的尺寸读回来。
@@ -271,8 +336,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         storedWidth = rect.width
         storedOrigin = rect.origin
         if rect.height <= Self.maximumCollapsedHeight {
-            storedCollapsedHeight = min(max(rect.height, Self.minimumCollapsedHeight),
-                                        Self.maximumCollapsedHeight)
+            // 180pt was the old default while the standalone mode row was present.
+            // Treat that exact legacy default as a migration value so existing users
+            // do not keep a large blank strip after the row is removed.
+            storedCollapsedHeight = (abs(rect.height - Self.legacyCollapsedHeight) < 1 || abs(rect.height - 140) < 1)
+                ? Self.collapsedHeight
+                : min(max(rect.height, Self.minimumCollapsedHeight), Self.maximumCollapsedHeight)
         } else if rect.height >= Self.minimumExpandedHeight {
             storedExpandedHeight = min(rect.height, Self.maximumExpandedHeight)
         }
@@ -286,6 +355,13 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func windowDidResize(_ notification: Notification) {
         if let panel { saveFrame(panel) }
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let panel else { return }
+        AssistantModel.shared.setCollapsedSilently(panel.frame.height < Self.minimumExpandedHeight)
+        saveFrame(panel)
+        flushFrameSave()
     }
 
     func windowDidResignKey(_ notification: Notification) {

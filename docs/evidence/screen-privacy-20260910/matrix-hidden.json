@@ -1,0 +1,1089 @@
+{
+  "directWindowShots" : [
+    {
+      "listed" : true,
+      "pixels" : {
+        "cyan" : 0.81937499999999996,
+        "magenta" : 0
+      },
+      "target" : "control"
+    },
+    {
+      "listed" : true,
+      "pixels" : {
+        "cyan" : 0,
+        "magenta" : 0
+      },
+      "target" : "panel"
+    },
+    {
+      "listed" : true,
+      "pixels" : {
+        "cyan" : 0,
+        "magenta" : 0
+      },
+      "target" : "settings"
+    },
+    {
+      "listed" : true,
+      "pixels" : {
+        "cyan" : 0,
+        "magenta" : 0
+      },
+      "target" : "video"
+    }
+  ],
+  "displayCount" : 1,
+  "missionControl" : {
+    "openRequested" : true,
+    "wholeDisplayMarkerFractions" : {
+      "cyan" : 3.5416666666666669e-05,
+      "magenta" : 4.1666666666666669e-06
+    }
+  },
+  "mode" : "hidden",
+  "os" : "Version 26.6.1 (Build 25G76)",
+  "scope" : "Zero markers without a visible paired control is inconclusive. Not a universal hiding verdict.",
+  "separateProcesses" : true,
+  "settingsUsesPanel" : false,
+  "shots" : [
+    {
+      "path" : "exclude-no-windows",
+      "targets" : {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      }
+    },
+    {
+      "path" : "include-all-applications",
+      "targets" : {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      }
+    },
+    {
+      "path" : "exclude-no-applications",
+      "targets" : {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      }
+    },
+    {
+      "path" : "include-all-windows",
+      "targets" : {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      }
+    }
+  ],
+  "streams" : [
+    {
+      "completeFrames" : 11,
+      "frames" : [
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        }
+      ],
+      "liveUpdate" : false,
+      "path" : "exclude-no-windows"
+    },
+    {
+      "completeFrames" : 11,
+      "frames" : [
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        }
+      ],
+      "liveUpdate" : true,
+      "path" : "include-all-applications"
+    },
+    {
+      "completeFrames" : 11,
+      "frames" : [
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        }
+      ],
+      "liveUpdate" : true,
+      "path" : "exclude-no-applications"
+    },
+    {
+      "completeFrames" : 13,
+      "frames" : [
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        },
+        {
+          "control" : {
+            "cyan" : 1,
+            "magenta" : 0
+          },
+          "panel" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "settings" : {
+            "cyan" : 0,
+            "magenta" : 0
+          },
+          "video" : {
+            "cyan" : 0,
+            "magenta" : 0
+          }
+        }
+      ],
+      "liveUpdate" : true,
+      "path" : "include-all-windows"
+    }
+  ],
+  "syntheticOnly" : true,
+  "systemMovie" : {
+    "exitStatus" : 0,
+    "sampledFrames" : [
+      {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      },
+      {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      },
+      {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      },
+      {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      },
+      {
+        "control" : {
+          "cyan" : 1,
+          "magenta" : 0
+        },
+        "panel" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "settings" : {
+          "cyan" : 0,
+          "magenta" : 0
+        },
+        "video" : {
+          "cyan" : 0,
+          "magenta" : 0
+        }
+      }
+    ]
+  }
+}

@@ -1,12 +1,23 @@
 import AppKit
+import Combine
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
+    static let responseQuick = Self("responseQuick")
+    static let responseDeep = Self("responseDeep")
+    static let toggleListening = Self("toggleListening", default: .init(.r, modifiers: [.control, .option]))
+    static let stageListening = Self("stageListening", default: .init(.d, modifiers: [.control, .option]))
+    static let analyzeListening = Self("analyzeListening", default: .init(.a, modifiers: [.control, .option]))
+    static let stopAndAnalyzeListening = Self("stopAndAnalyzeListening",
+                                              default: .init(.return, modifiers: [.control, .option]))
     static let toggleAssistant = Self("toggleAssistant",
                                       default: .init(.space, modifiers: [.control, .option]))
+    /// Held, not pressed. Unassigned until the user records one, like the mode shortcuts.
+    static let pushToTalk = Self("pushToTalk")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var cursorSettingsObservation: AnyCancellable?
 
 #if DEBUG && WISP_DIAGNOSTICS
     static let remoteShowNotification = Notification.Name("com.yichenlin.Wisp.show")
@@ -104,8 +115,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
             ScreenPrivacy.start()
+            configureLocalCursor()
+            cursorSettingsObservation = AppSettings.shared.objectWillChange.sink { [weak self] _ in
+                Task { @MainActor in self?.configureLocalCursor() }
+            }
             PanelController.shared.restoreStoredFrame()
             IslandController.shared.start()
+            // 菜单栏图标关着的时候，启动完成后什么都不显示等于「打开了但找不到」。
+            // 这时候先把面板亮出来，设置也能从它的齿轮进。
+            if !AppSettings.shared.showsMenuBarIcon { PanelController.shared.show() }
         }
 
         // 启动更新检查默认关闭，用户可以在设置里主动开启。
@@ -124,6 +142,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 PanelController.shared.toggle()
             }
         }
+
+        for (name, mode) in [(KeyboardShortcuts.Name.responseQuick, ResponseMode.quick),
+                             (.responseDeep, .deep)] {
+            KeyboardShortcuts.onKeyUp(for: name) {
+                Task { @MainActor in AppSettings.shared.responseMode = mode }
+            }
+        }
+
+        onListeningShortcut(.toggleListening) { $0.toggleFromUser() }
+        onListeningShortcut(.stageListening) { $0.stageRecentSpeech() }
+        onListeningShortcut(.analyzeListening) { $0.analyzeRecentSpeech() }
+        onListeningShortcut(.stopAndAnalyzeListening) { $0.stopAndAnalyze() }
+        // The master switch is checked inside `begin()`; a key-up must always reach `end()`.
+        KeyboardShortcuts.onKeyDown(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.begin() } }
+        KeyboardShortcuts.onKeyUp(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.end() } }
+        MainActor.assumeIsolated { QuickCommandStore.shared.registerShortcuts() }
 
         AdvancedShortcutMonitor.shared.configure {
             Task { @MainActor in
@@ -184,10 +218,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.attributedTitle = attributed
     }
 
+    /// 语音的快捷键统一从这里注册：总开关关掉之后，面板上没有任何东西能提示
+    /// 正在录音，快捷键就不该还能悄悄把它开起来。
+    private func onListeningShortcut(_ name: KeyboardShortcuts.Name,
+                                     _ action: @escaping @MainActor (ListeningModel) -> Void) {
+        KeyboardShortcuts.onKeyUp(for: name) {
+            Task { @MainActor in
+                let listening = ListeningModel.shared
+                guard listening.isEnabled else { return }
+                action(listening)
+            }
+        }
+    }
+
+    /// 菜单栏图标是这个没有 Dock 图标的应用唯一看得见的入口。用户在访达或聚焦里
+    /// 再点一次 Wisp（图标被关掉、被菜单栏挤掉、或者只是没找到），至少要有反应。
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        MainActor.assumeIsolated { PanelController.shared.show() }
+        return true
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
+            LocalCursorController.shared.stop()
+            ListeningModel.shared.terminate()
             ConversationStore.shared.flush()
         }
+    }
+
+    @MainActor private func configureLocalCursor() {
+        let settings = AppSettings.shared
+        LocalCursorController.shared.setEnabled(settings.localCursorEnabled && settings.hideFromScreenCapture)
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }

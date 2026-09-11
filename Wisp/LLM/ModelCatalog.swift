@@ -65,4 +65,12 @@ enum ModelCatalog {
     static func isCustom(_ value: String, in presets: [Preset]) -> Bool {
         !value.isEmpty && !presets.contains { $0.slug == value }
     }
+
+    /// 同一个模型的 High 思考档：`gemini-3.6-flash-low` → `gemini-3.6-flash-high`。
+    /// 只认清单里真有的那一个，没有 High 档（或本身不带档位）就返回 nil。
+    static func highThinkingSibling(of slug: String, in presets: [Preset]) -> String? {
+        guard let level = ["-low", "-medium", "-high"].first(where: slug.hasSuffix) else { return nil }
+        let high = String(slug.dropLast(level.count)) + "-high"
+        return presets.contains { $0.slug == high } ? high : nil
+    }
 }

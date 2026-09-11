@@ -1,4 +1,6 @@
 <p align="center">
+
+
   <img src="Design/App_Icon_Mac_Master.png" alt="Wisp app icon" width="120" height="120">
 </p>
 
@@ -32,8 +34,8 @@
 </p>
 
 Wisp lives in the menu bar. Press `⌃⌥Space`, and it remembers the frontmost
-app before its panel appears. It can then capture the current window and, when
-the frontmost app is a supported browser, read the URL, title, selected text,
+app before its panel appears. It can then capture the current window (or, if
+you choose, the whole screen) and, when the frontmost app is a supported browser, read the URL, title, selected text,
 and page body. Ask a question without copying context between apps.
 
 It is a local-first desktop shell around the model provider you choose:
@@ -50,9 +52,50 @@ Simplified Chinese and follows your system language.
 > **Open**.
 
 > **What gets sent:** when you use a cloud provider, the full text of the page
-> you are looking at and a screenshot of the current window go to the endpoint
-> you configured. Exclusions are per application, not per site — see
+> you are looking at and a screenshot of the current window (or the whole screen,
+> if you choose Entire screen) go to the endpoint you configured. Exclusions are per application, not per site — see
 > [PRIVACY.md](PRIVACY.md).
+
+## Live listening (unreleased)
+
+Voice input shares the main chat panel: a single live caption line with the elapsed
+time, the microphone/stop button, Stop & analyze, and the rest under a ⋯ menu.
+Configure source/application/language in Settings → Audio. Control–Option–R
+starts/stops recording; stopping stages recent speech. Control–Option–D stages it
+while capture continues. Edit, then Enter sends through the selected AI with normal
+screen context. For a meeting that just ended, Stop & analyze (Control–Option–Return)
+stops, waits for the trailing text, and sends it in one key; Control–Option–A does the
+same without stopping. One more button swaps the answer area between the AI answer and
+this session's raw transcript. Nothing is submitted without one of those explicit
+actions, and no completion notification is emitted. Settings → Data can clear listening
+records separately. The archive retains its 2 GiB / 100-session admission budget.
+Hiding the panel stops recording. Settings → Audio also carries a master switch:
+turn voice input off and the row leaves the panel, the shortcuts stop starting a
+recording, and a session still running is stopped.
+
+**Settings → Audio → Recognition engine** lists Apple Speech plus every local
+sherpa-onnx model found under `~/Documents/huggingface/models/` (SenseVoice and
+Qwen3-ASR architectures today). Copy another model folder there and click
+**Rescan**; no reinstall is needed. Local output is written in Simplified Chinese by
+default (Qwen3-ASR sometimes answers in Traditional); Settings → Audio → Chinese script
+changes it. See [engine setup and limits](docs/live-listening.md#recognition-engines).
+
+**Hold to ask** (Settings → Audio → Shortcuts, unassigned by default): hold the shortcut,
+say your question, release. It is sent with the current screen context in the current
+response mode. Microphone only, never saved to listening records, and unavailable while a
+recording runs. A tap shorter than 0.3 s sends nothing; after 60 s the words wait in the
+input box instead of being sent.
+
+Device/language support is required for on-device transcription. Audio selection
+is application-level, not per participant or browser tab. This feature does not
+promise undetectability. See [setup, storage limits, and verification scope](docs/live-listening.md).
+
+
+If the menu-bar icon is missing, reopen Wisp from Finder or Spotlight to reveal the
+panel; its gear always opens Settings. Settings → Privacy controls intentional
+hiding. System removal no longer changes that preference: Wisp retries insertion
+once, then shows the panel if removal repeats. Full-screen menu hiding, limited
+menu-bar space and third-party menu utilities remain controlled by macOS/the utility.
 
 ## Quick start
 
@@ -63,8 +106,8 @@ Simplified Chinese and follows your system language.
    by Gatekeeper.
 4. Grant **Screen Recording** permission in System Settings. The first time
    Wisp reads a browser page, grant Wisp **Automation** access to that browser.
-5. Open **Settings → Model**, choose a provider, save it, and test the
-   connection.
+5. Open **Settings → Model**, choose a provider (changes save automatically), and
+   click **Test Connection**.
 6. Return to the window you want to ask about and press `⌃⌥Space`.
 
 If Control-click → **Open** is unavailable, clear the quarantine flag:
@@ -78,7 +121,7 @@ open "$HOME/Applications/Wisp.app"
 
 - macOS 14.0 or later.
 - An Apple Silicon or Intel Mac. The published app is a Universal 2 binary.
-- **Screen Recording** permission for current-window screenshots.
+- **Screen Recording** permission for current-window or entire-screen screenshots.
 - **Automation** permission and the browser's `Allow JavaScript from Apple
   Events` setting for full-page browser text.
 - Network access and your own API key for cloud endpoints.
@@ -107,6 +150,8 @@ open "$HOME/Applications/Wisp.app"
 
 - Capture the current frontmost application's window; screenshots are normally
   kept in memory only.
+- Or capture the entire display that window is on, to ask about several windows
+  at once. Excluded apps, and any running apps you check, are cut out of it.
 - Supports Chrome, Brave, Edge, Vivaldi, Yandex Browser, Opera, Safari, Arc,
   and selected stable or beta bundle identifiers.
 - Read the current URL, page title, selected text, and page body from supported
@@ -136,6 +181,11 @@ open "$HOME/Applications/Wisp.app"
 
 **Screen-sharing visibility (best effort)**
 
+- The [macOS privacy research and expanded capture matrix](docs/screen-privacy-research-20260910.md)
+  covers independent-process capture, live filter changes, native video recording,
+  and alternatives such as protected video layers and a separate filtered share window.
+  Information popovers and the notices sheet apply the hiding preference when
+  their content attaches to a window. This reduces a timing gap, not the OS-level limits below.
 - Enabled by default, this setting requests window hiding through
   `NSWindow.sharingType = .none`, while leaving Wisp usable on your own screen.
   Apple treats this as a legacy mechanism and explicitly says not to rely on it
@@ -152,6 +202,16 @@ open "$HOME/Applications/Wisp.app"
   setting does not conceal application identity, focus changes, clipboard
   events, or third-party activity records. Cameras and hardware capture are
   unaffected. Verify the actual receiving-side view before relying on it.
+- **Local cursor (experimental).** Settings → Permissions → Screen sharing can draw the
+  cursor inside Wisp while hiding the system cursor. Wisp remains clickable, selectable,
+  scrollable and draggable locally. The drawn pointer is always an arrow, including over resize
+  edges. The option is off by default and only works with Wisp's
+  window-hiding request enabled. ScreenCaptureKit, system screenshots and local video tests
+  showed no cursor pixels while it was enabled and restored them after disabling it; this does
+  not establish behavior for every browser, meeting app, recorder or remote desktop tool.
+- **Resize guide.** A thin pale-blue rounded line and small edge markers inside the panel show
+  where the custom resize gesture can start. They are visual hints only; the panel remains
+  clickable and the pointer stays an arrow.
 
 **Shortcuts**
 
@@ -184,6 +244,16 @@ open "$HOME/Applications/Wisp.app"
   official OpenAI and Gemini endpoints. OpenRouter free models keep their free
   IDs and prefer throughput; unsupported gateways receive no extra parameters.
   Availability and billing depend on the service. See [speed preferences](docs/model-speed.md).
+- **Quick / Deep responses:** select a mode above the input (Quick is the default); set
+  each mode's model and shortcut in Settings → Model. Choices remain editable during an
+  answer and apply to the next question. Quick skips new full-page text capture and sends
+  the default model; Deep uses more supported reasoning, and on Antigravity switches to the
+  default model's High thinking level. Both prefer available Fast tiers. A Quick answer can
+  be redone in Deep with one click, replacing it without using another turn. The stopwatch
+  separates preparation, first-text and total latency; higher effort alone does not establish accuracy.
+- **Commands:** saved questions such as Summarize This Page or Translate Selection, each
+  with its own mode and optional shortcut, run from the ✦ menu, the empty chat, or any app.
+  Text in the input box goes with the command as its material. Edit them in Settings → Commands.
 
 **Startup and updates**
 
@@ -260,8 +330,8 @@ Open the menu-bar icon → **Settings → Model**:
   CLI login already on your Mac. Antigravity models are refreshed by running
   `agy models`, so an Antigravity update does not require a Wisp update.
 
-All three provider groups have **Save and test connection**. Cloud and Ollama
-tests send a very small test image. Codex and Antigravity tests check `--version`;
+All three provider groups have **Test Connection**. Cloud and Ollama tests send a
+very small test image to each model Quick and Deep use. Codex and Antigravity tests check `--version`;
 Claude Code uses `auth status` so a missing login gets its own message. None of
 the local CLI checks spends a model request.
 
@@ -338,17 +408,19 @@ specific localization.
   address and a `Wisp/<version>` user agent, downloads nothing, and installs
   nothing. Turning it off makes no request at all.
 - Wisp has no account system, sync service, analytics SDK, crash-reporting SDK,
-  or background continuous-recording feature.
+  or automatic background recording. Explicit Live listening sessions continuously
+  capture selected audio until stopped; see [details](docs/live-listening.md).
 
 **Exclusions are per app, not per site.** The exclusion list takes bundle
 identifiers, so there is currently no way to exempt one URL or domain while
-still using Wisp in that browser.
+still using Wisp in that browser. Entire-screen captures always cut out excluded
+apps, plus any apps you check under Settings → Capture → Capture range.
 
 The full policy is in [PRIVACY.md](PRIVACY.md).
 
 **Permissions**
 
-- **Screen Recording:** current-window screenshots.
+- **Screen Recording:** current-window or entire-screen screenshots.
 - **Automation / Apple Events:** browser URL and title access, plus page
   JavaScript execution for supported browsers.
 - **Accessibility:** only for the enhanced shortcut mode, to observe Shift,
@@ -419,7 +491,9 @@ and re-enter the API key if the Keychain prompt is declined. Removing the stale
 entry for the old build from the Screen Recording list keeps that list tidy.
 
 This goes away once releases are signed with a Developer ID certificate and
-notarized.
+notarized. For the copy you build and use yourself, `tools/install-local.sh` already
+avoids it: it signs with your team certificate, so the code identity stops changing
+between rebuilds.
 
 </details>
 
@@ -490,6 +564,32 @@ xcodegen generate
 xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Debug build
 cp -R Build/Debug/Wisp.app "$HOME/Applications/"
 ```
+
+Install the copy you actually use (`/Applications/Wisp.app`) without losing system
+permissions:
+
+```bash
+tools/install-local.sh              # build, sign, install; clean temporary backup after verification
+tools/install-local.sh --no-install # build and sign only
+tools/install-local.sh --keep-backup # optional: retain the rollback copy
+```
+
+An ad-hoc signature has no certificate chain to anchor to, so its designated
+requirement is `cdhash H"…"`. Any code change changes that hash, macOS treats the
+result as a different program, and screen recording, microphone and speech
+recognition must be granted again on every update. Signing with the team certificate
+makes the requirement `identifier "com.yichenlin.Wisp" and anchor apple generic and
+certificate leaf…`, which does not depend on the code at all. Certificates rotate
+yearly and their names carry an identifier that changes, so the script picks the
+certificate by team ID and signs with its fingerprint — a keychain can also hold
+development certificates belonging to other accounts, and matching by name picks the
+wrong one. The switch itself asks for permissions once more; rebuilds after that do not.
+The installer keeps the old bundle only until the new signature and move are verified,
+then removes that temporary backup by default. Use `--keep-backup` only when you need
+to retain a rollback copy.
+
+**Do not distribute that build:** other machines do not have your development
+certificate, and Gatekeeper will refuse it.
 
 If your machine does not have the development team or signing identity in the
 project, use an unsigned build for compile verification:
@@ -615,8 +715,9 @@ resolution, and public documentation are tracked.
 - App exclusions are per bundle identifier. There is no per-URL or per-domain
   exclusion, which is the exclusion most useful in a browser.
 - Conversation history is stored as unencrypted JSON and is not evicted by age.
-  At the default limits the file can reach roughly 50 MB, and it is rewritten in
-  full on every message.
+  Conversation and turn counts are bounded, but message bytes are not strictly
+  capped; the file is rewritten in full on every message. Live captions do not
+  append messages automatically.
 - The island can be dragged only in its desktop form; the notch form stays
   anchored to the notch.
 - The island's circle can reach a screen edge but not overlap it, so its centre

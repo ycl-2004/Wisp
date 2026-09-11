@@ -31,7 +31,7 @@ enum CaptureMode: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .screenshotOnly:
-            return String(localized: "只发当前窗口截图和网址。不读页面，最快。")
+            return String(localized: "只发截图和网址。不读页面，最快。")
         case .pageText:
             return String(localized: "读取页面正文。动态页面可能只包含当前可见内容。")
         case .scrollCollect:
@@ -41,6 +41,39 @@ enum CaptureMode: String, CaseIterable, Identifiable {
 
     /// 要不要注入 JS 读正文。
     var readsPageText: Bool { self != .screenshotOnly }
+}
+
+/// 截图截多大一块。和 `CaptureMode`（正文读到什么程度）是两根轴：三种采集模式都会截图。
+enum CaptureScope: String, CaseIterable, Identifiable, Codable {
+    /// 焦点应用最前面的那个窗口。旁边的东西一概不进画面。
+    case window
+    /// 焦点窗口所在的整块屏幕。排除的应用和整屏隐藏的应用会被挖掉。
+    case screen
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .window: return String(localized: "当前窗口")
+        case .screen: return String(localized: "整个屏幕")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .window: return "macwindow"
+        case .screen: return "display"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .window:
+            return String(localized: "只截焦点应用最前面的窗口，旁边的窗口不会进画面。")
+        case .screen:
+            return String(localized: "截焦点窗口所在的整块屏幕，旁边的窗口也在画面里。显示器越大，每个窗口里的字越小。")
+        }
+    }
 }
 
 /// UserDefaults 包装。不存 API Key（Key 在 Keychain）。
@@ -67,6 +100,8 @@ final class AppSettings: ObservableObject {
         static let excludedBundleIDs = "excludedBundleIDs"
         static let pageTextLimit = "pageTextLimit"
         static let captureMode = "captureMode"
+        static let captureScope = "captureScope"
+        static let screenHiddenBundleIDs = "screenHiddenBundleIDs"
         static let maxConversations = "maxConversations"
         static let maxUserTurns = "maxUserTurns"
         static let sendScreenshot = "sendScreenshot"
@@ -78,6 +113,7 @@ final class AppSettings: ObservableObject {
         static let showIsland = "showIsland"
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let hideFromScreenCapture = "hideFromScreenCapture"
+        static let localCursorEnabled = "localCursorEnabled"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
         static let panelBackgroundOpacity = "panelBackgroundOpacity"
@@ -87,6 +123,7 @@ final class AppSettings: ObservableObject {
         static let islandOrigin = "islandOrigin"   // 0.2.0 开发期的旧键，只用于迁移
         static let islandAnchor = "islandAnchor"
         static let appLanguage = "appLanguage"
+        static let listeningEnabled = "listeningEnabled"
     }
 
     private init() {
@@ -110,6 +147,7 @@ final class AppSettings: ObservableObject {
             ],
             K.pageTextLimit: 60_000,
             K.captureMode: CaptureMode.pageText.rawValue,
+            K.captureScope: CaptureScope.window.rawValue,
             K.maxConversations: 10,
             K.maxUserTurns: 30,
             K.sendScreenshot: true,
@@ -118,12 +156,14 @@ final class AppSettings: ObservableObject {
             K.showIsland: true,
             K.showsMenuBarIcon: true,
             K.hideFromScreenCapture: true,
+            K.localCursorEnabled: false,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
             K.panelBackgroundOpacity: 1.0,
             K.panelOpaqueWhenActive: true,
             K.checkForUpdates: false,
             K.appLanguage: "system",
+            K.listeningEnabled: true,
         ])
     }
 
@@ -255,6 +295,23 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue.rawValue, forKey: K.captureMode); objectWillChange.send() }
     }
 
+    /// 截图范围。默认只截当前窗口：画面最清楚，也不会顺带把旁边的东西发出去。
+    var captureScope: CaptureScope {
+        get { CaptureScope(rawValue: d.string(forKey: K.captureScope) ?? "") ?? .window }
+        set { d.set(newValue.rawValue, forKey: K.captureScope); objectWillChange.send() }
+    }
+
+    /// 整屏截图时额外挖掉的应用。只管整屏；要让一个应用任何时候都不被读，放进 `excludedBundleIDs`。
+    var screenHiddenBundleIDs: [String] {
+        get { d.stringArray(forKey: K.screenHiddenBundleIDs) ?? [] }
+        set { d.set(newValue, forKey: K.screenHiddenBundleIDs); objectWillChange.send() }
+    }
+
+    /// 整屏截图里要挖掉的全部应用。排除的应用任何时候都不截，所以一并算进来。
+    var screenCaptureHiddenBundleIDs: Set<String> {
+        Set(screenHiddenBundleIDs).union(excludedBundleIDs)
+    }
+
     var maxConversations: Int {
         get { max(1, d.integer(forKey: K.maxConversations)) }
         set { d.set(newValue, forKey: K.maxConversations); objectWillChange.send() }
@@ -297,6 +354,38 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.debugDumpEnabled); objectWillChange.send() }
     }
 
+    var responseMode: ResponseMode {
+        get {
+            // Older releases stored Standard. Treat it as the new balanced
+            // default rather than exposing a removed third mode after upgrade.
+            guard let raw = d.string(forKey: "responseMode"), raw != ResponseMode.standard.rawValue,
+                  let mode = ResponseMode(rawValue: raw) else { return .quick }
+            return mode
+        }
+        set { objectWillChange.send(); d.set(newValue.rawValue, forKey: "responseMode") }
+    }
+
+    func responseModel(for mode: ResponseMode, connection: String) -> String {
+        let models = d.dictionary(forKey: "responseModels") as? [String: String] ?? [:]
+        return models[connection + "|" + mode.rawValue] ?? ""
+    }
+
+    func setResponseModel(_ model: String, for mode: ResponseMode, connection: String) {
+        guard mode != .standard else { return }
+        var models = d.dictionary(forKey: "responseModels") as? [String: String] ?? [:]
+        let key = connection + "|" + mode.rawValue
+        let value = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { models.removeValue(forKey: key) } else { models[key] = value }
+        objectWillChange.send()
+        d.set(models, forKey: "responseModels")
+    }
+
+    /// 语音功能的总开关。关掉之后面板上不再留那一行，快捷键也不响应。
+    var listeningEnabled: Bool {
+        get { d.bool(forKey: K.listeningEnabled) }
+        set { d.set(newValue, forKey: K.listeningEnabled); objectWillChange.send() }
+    }
+
     var showIsland: Bool {
         get { d.bool(forKey: K.showIsland) }
         set { d.set(newValue, forKey: K.showIsland); objectWillChange.send() }
@@ -313,10 +402,16 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.showsMenuBarIcon); objectWillChange.send() }
     }
 
-    /// 把 Wisp 自己的窗口标成其他进程读不到，屏幕共享和录屏里就看不见它。
+    /// 请求兼容捕获路径排除 Wisp；不代表全局防录屏保证，也不覆盖系统生成的预览。
     var hideFromScreenCapture: Bool {
         get { d.bool(forKey: K.hideFromScreenCapture) }
         set { d.set(newValue, forKey: K.hideFromScreenCapture); objectWillChange.send() }
+    }
+
+    /// Opt-in experiment; effective only while screen privacy is enabled.
+    var localCursorEnabled: Bool {
+        get { d.bool(forKey: K.localCursorEnabled) }
+        set { d.set(newValue, forKey: K.localCursorEnabled); objectWillChange.send() }
     }
 
     var islandPosition: String {

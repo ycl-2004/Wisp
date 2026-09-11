@@ -1,20 +1,20 @@
 import AppKit
 import SwiftUI
 
-/// 两行头部：第一行是当前在读哪个页面，第二行是这次会发送什么 + 轮次计数。
-/// 目标是把原来那一大块信息压到 52pt 以内，并且不用手动点刷新。
+/// 标题与共享快捷控制两行；录音时第二行让位给语音，采集详情使用弹窗。
 struct ContextHeaderView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var listening = ListeningModel.shared
+    @ObservedObject private var pushToTalk = PushToTalk.shared
+    @AppStorage("settingsTab") private var settingsTab: SettingsView.Tab = .model
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(spacing: 0) {
             titleRow
             metaRow
-            if model.showsNotes, !notes.isEmpty {
-                notesBlock
-            }
         }
         .padding(.horizontal, DS.gutter)
         .padding(.top, 7)
@@ -31,7 +31,7 @@ struct ContextHeaderView: View {
     private var titleRow: some View {
         HStack(spacing: 6) {
             Button {
-                model.showsConversationList.toggle()
+                model.toggleConversationList()
             } label: {
                 Image(systemName: model.showsConversationList
                       ? "chevron.left"
@@ -42,26 +42,35 @@ struct ContextHeaderView: View {
                   ? "回到当前对话"
                   : "对话记录（\(store.conversations.count)/\(store.maxConversations)），可切换和删除")
 
-            appIcon
-                .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
+            // 图标到右边控件之间这一段是这个无边框面板的标题栏：拖它可以把窗口挪走。
+            HStack(spacing: 6) {
+                appIcon
+                    .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
 
-            Text(model.packet?.appName ?? String(localized: "读取中…"))
-                .font(DS.title)
-                .lineLimit(1)
-                .fixedSize()
+                Text(model.packet?.appName ?? model.targetApp?.localizedName ?? "Wisp")
+                    .font(DS.title)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
 
-            if let subtitle {
-                HStack(spacing: 4) {
-                    Text(verbatim: "·").font(DS.meta).foregroundStyle(.tertiary)
-                    Text(subtitle)
-                        .font(DS.meta)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                if let subtitle {
+                    HStack(spacing: 4) {
+                        Text(verbatim: "·").font(DS.meta).foregroundStyle(.tertiary)
+                        Text(subtitle)
+                            .font(DS.meta)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
-            }
 
-            Spacer(minLength: 2)
+                Spacer(minLength: 2)
+            }
+            // Put the drag view above the non-interactive title content. With a
+            // background view, the text and icon can win hit-testing, leaving only
+            // the small gap beside them draggable.
+            .overlay(WindowDragArea())
+            .help("拖这里可以移动面板")
 
             if model.isCapturing {
                 ProgressView().controlSize(.small).scaleEffect(0.7).frame(width: 16)
@@ -71,6 +80,7 @@ struct ContextHeaderView: View {
                         .font(.system(size: 9.5))
                         .foregroundStyle(.tertiary)
                 }
+                .overlay(WindowDragArea())
             }
 
             Button { model.refreshContext() } label: { Image(systemName: "arrow.clockwise") }
@@ -82,12 +92,10 @@ struct ContextHeaderView: View {
                 .buttonStyle(IconButtonStyle())
                 .help(store.canCreateNew ? "新建对话" : "已达上限，可移除最早的对话后新建")
 
-            // 菜单栏图标藏起来之后，这里是唯一还看得见的设置入口。
-            if !settings.showsMenuBarIcon {
-                SettingsLink { Image(systemName: "gearshape") }
-                    .buttonStyle(IconButtonStyle())
-                    .help("设置")
-            }
+            // Keep settings reachable even when macOS crowds out an enabled menu item.
+            SettingsLink { Image(systemName: "gearshape") }
+                .buttonStyle(IconButtonStyle())
+                .help("设置")
 
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }
@@ -128,46 +136,82 @@ struct ContextHeaderView: View {
     // MARK: - 第二行
 
     private var metaRow: some View {
-        HStack(spacing: 5) {
-            Chip(icon: "camera.viewfinder",
-                 text: screenshotChipText,
-                 active: model.packet?.hasScreenshot == true && settings.sendScreenshot,
-                 enabled: model.packet?.hasScreenshot == true) {
-                model.toggleScreenshot()
+        GeometryReader { geometry in
+            if listening.isActive || pushToTalk.isActive {
+                ListeningView()
+            } else {
+                metaContent(modelWidth: min(200, max(60, geometry.size.width - 250)))
             }
-            .help("附带截图")
-
-            Chip(icon: "doc.plaintext",
-                 text: pageTextChipText,
-                 active: model.packet?.hasPageText == true,
-                 enabled: false)
-
-            if !notes.isEmpty {
-                Chip(icon: hasBlockingNote ? "exclamationmark.triangle" : "info.circle",
-                     text: "\(notes.count)",
-                     active: hasBlockingNote) {
-                    withAnimation(.easeOut(duration: 0.14)) { model.showsNotes.toggle() }
-                }
-                .help("采集详情")
-            }
-
-            Spacer(minLength: 4)
-
-            ModelSwitcher()
-
-            Text(counters)
-                .font(DS.meta)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(
-                    RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
-                        .fill(Color.primary.opacity(0.04))
-                )
-                .help("本对话 \(store.active?.userTurnCount ?? 0)/\(store.maxUserTurns) 轮 · 共 \(store.conversations.count)/\(store.maxConversations) 个对话")
         }
-        .frame(height: DS.metaHeight)
+        .frame(height: 30)
+    }
+
+    private func metaContent(modelWidth: CGFloat) -> some View {
+        HStack(spacing: DS.tightGap) {
+            ListeningView()
+                .fixedSize()
+
+            Button {
+                model.toggleScreenshot()
+            } label: {
+                Image(systemName: settings.sendScreenshot ? "camera.fill" : "camera")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(settings.sendScreenshot ? Color.blue : Color.secondary)
+                    .frame(width: 26, height: 24)
+                    .background(RoundedRectangle(cornerRadius: DS.chipCorner)
+                        .fill(settings.sendScreenshot ? Color.blue.opacity(0.14) : .clear))
+            }
+            .buttonStyle(.plain)
+            .help(screenshotChipText)
+            .accessibilityLabel("附带截图")
+            .accessibilityValue(settings.sendScreenshot ? "On" : "Off")
+            .fixedSize()
+
+            if !notes.isEmpty || model.packet?.hasPageText == true {
+                Button { model.showsNotes.toggle() } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(hasBlockingNote ? Color.orange : Color.secondary)
+                }
+                .buttonStyle(IconButtonStyle())
+                .help("采集详情")
+                .accessibilityLabel("采集详情")
+                .popover(isPresented: $model.showsNotes) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if model.packet?.hasPageText == true { Text(pageTextChipText) }
+                        if !notes.isEmpty { notesBlock }
+                    }
+                    .font(DS.meta)
+                    .padding(12)
+                    .frame(width: 300, alignment: .leading)
+                    .background(ScreenPrivacyWindow())
+                }
+            }
+
+            // Keep a generous, stable drag lane between the left status controls
+            // and the model picker. It remains available while the content above
+            // changes, but does not cover any button or text field.
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(WindowDragArea())
+                .accessibilityHidden(true)
+
+            ModelSwitcher(width: modelWidth)
+            Text(counters)
+                .font(DS.meta.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .fixedSize()
+            if listening.isEnabled {
+                Button {
+                    settingsTab = .audio
+                    openSettings()
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .buttonStyle(IconButtonStyle())
+                .help("音频设置…")
+                .accessibilityLabel("音频设置…")
+            }
+        }
     }
 
     private var counters: String {
@@ -179,7 +223,8 @@ struct ContextHeaderView: View {
         guard let packet = model.packet else { return String(localized: "截图") }
         if packet.isExcluded { return String(localized: "已停用") }
         guard packet.hasScreenshot else { return String(localized: "无截图") }
-        return settings.sendScreenshot ? String(localized: "截图") : String(localized: "截图 关")
+        guard settings.sendScreenshot else { return String(localized: "截图 关") }
+        return packet.screenshotScope == .screen ? String(localized: "截图 · 整个屏幕") : String(localized: "截图")
     }
 
     private var pageTextChipText: String {

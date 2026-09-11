@@ -222,6 +222,7 @@ struct SurfaceProbe {
         popover.behavior = .applicationDefined
         let controller = NSViewController()
         controller.view = marker("popover", size: CGSize(width: 200, height: 90))
+        controller.view.addSubview(ScreenPrivacyWindow.WindowView(frame: .zero))
         popover.contentViewController = controller
         popover.show(relativeTo: CGRect(x: 10, y: 10, width: 40, height: 40),
                      of: host.contentView!, preferredEdge: .maxX)
@@ -236,6 +237,7 @@ struct SurfaceProbe {
                              styleMask: [.titled], backing: .buffered, defer: false)
         sheet.isReleasedWhenClosed = false
         sheet.contentView = marker("sheet")
+        sheet.contentView?.addSubview(ScreenPrivacyWindow.WindowView(frame: .zero))
         host.beginSheet(sheet)
 
         FileHandle.standardError.write(Data("sheet firstFrame sharingType=\(sheet.sharingType.rawValue) visible=\(sheet.isVisible) inAppWindows=\(NSApp.windows.contains(sheet))\n".utf8))

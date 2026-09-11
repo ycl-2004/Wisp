@@ -30,6 +30,18 @@ enum Permissions {
         open("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
     }
 
+    static func openMicrophoneSettings() {
+        open("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+    }
+
+    static func openSpeechSettings() {
+        open("x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition")
+    }
+
+    static func openSoundSettings() {
+        open("x-apple.systempreferences:com.apple.preference.sound")
+    }
+
     private static func open(_ urlString: String) {
         guard let url = URL(string: urlString) else { return }
         NSWorkspace.shared.open(url)

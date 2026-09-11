@@ -73,6 +73,7 @@ enum ScreenGeometry {
         var result = frame
         let visible = screen.visibleFrame
         result.size.height = min(result.height, visible.height - 8)
+        result.size.width = min(result.width, visible.width - 8)
         if result.maxY > visible.maxY { result.origin.y = visible.maxY - result.height }
         if result.minY < visible.minY { result.origin.y = visible.minY }
         if result.maxX > visible.maxX { result.origin.x = visible.maxX - result.width }

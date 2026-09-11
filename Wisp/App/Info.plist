@@ -33,5 +33,9 @@
 	<string>Wisp 需要控制浏览器，以读取当前页面的网址与完整正文，作为提问的上下文。</string>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Wisp 在你开始录音后采集麦克风，用于本机实时字幕和可选音频保存。</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Wisp 使用设备端语音识别，将选定的麦克风或应用音频转写为文字。</string>
 </dict>
 </plist>

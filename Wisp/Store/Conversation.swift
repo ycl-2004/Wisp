@@ -55,6 +55,8 @@ struct ContextSnapshot: Codable, Hashable {
     var selectedText: String?
     var iframeURLs: [String]
     var hadScreenshot: Bool
+    /// 截图是单个窗口还是整块屏幕。旧记录没有这个字段，按单窗口读。
+    var screenshotScope: CaptureScope = .window
     var capturedAt: Date
 
     var summaryLine: String {
@@ -67,7 +69,7 @@ struct ContextSnapshot: Codable, Hashable {
     init(appName: String, bundleID: String?, windowTitle: String?, url: String?, pageTitle: String?,
          pageText: String?, pageTextTotalChars: Int?, pageTextIsPartial: Bool = false,
          selectedText: String?, iframeURLs: [String],
-         hadScreenshot: Bool, capturedAt: Date) {
+         hadScreenshot: Bool, screenshotScope: CaptureScope = .window, capturedAt: Date) {
         self.appName = appName
         self.bundleID = bundleID
         self.windowTitle = windowTitle
@@ -79,6 +81,7 @@ struct ContextSnapshot: Codable, Hashable {
         self.selectedText = selectedText
         self.iframeURLs = iframeURLs
         self.hadScreenshot = hadScreenshot
+        self.screenshotScope = screenshotScope
         self.capturedAt = capturedAt
     }
 
@@ -96,6 +99,7 @@ struct ContextSnapshot: Codable, Hashable {
         selectedText = c.optional(String.self, .selectedText)
         iframeURLs = c.value(.iframeURLs, or: [])
         hadScreenshot = c.value(.hadScreenshot, or: false)
+        screenshotScope = c.value(.screenshotScope, or: .window)
         capturedAt = c.value(.capturedAt, or: Date())
     }
 }
@@ -113,15 +117,18 @@ struct Message: Codable, Identifiable, Hashable {
     var createdAt: Date = Date()
     /// 该回合是否随消息发了截图（仅用于 UI 显示，图片本身不保存）。
     var sentScreenshot: Bool = false
+    /// 回答用的是哪个模式；旧记录没有这个字段。快速模式的回答可以一键用深入重答。
+    var mode: ResponseMode?
 
     init(id: UUID = UUID(), role: Role, text: String, context: ContextSnapshot? = nil,
-         createdAt: Date = Date(), sentScreenshot: Bool = false) {
+         createdAt: Date = Date(), sentScreenshot: Bool = false, mode: ResponseMode? = nil) {
         self.id = id
         self.role = role
         self.text = text
         self.context = context
         self.createdAt = createdAt
         self.sentScreenshot = sentScreenshot
+        self.mode = mode
     }
 
     /// role 与 text 是 v1 就有的，缺了这条消息本身就没意义；其余全部容错。
@@ -133,6 +140,7 @@ struct Message: Codable, Identifiable, Hashable {
         context = c.optional(ContextSnapshot.self, .context)
         createdAt = c.value(.createdAt, or: Date())
         sentScreenshot = c.value(.sentScreenshot, or: false)
+        mode = c.optional(ResponseMode.self, .mode)
     }
 }
 

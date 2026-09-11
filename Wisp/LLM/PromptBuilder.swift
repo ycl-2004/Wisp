@@ -12,13 +12,13 @@ enum PromptBuilder {
         String(localized: """
         你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。
 
-        上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。
+        上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张截图（当前窗口，或整个屏幕）。
 
         要求：
         1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。
         2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。
         3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。
-        4. 截图只有当前可视区域，正文文字则是整页。两者冲突时以正文文字为准，并说明差异。
+        4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。
         5. 用用户提问所使用的语言回答，默认简体中文。
         6. 回答简洁直接，先给结论。
         """)
@@ -27,10 +27,11 @@ enum PromptBuilder {
     /// - Parameters:
     ///   - messages: 当前对话的全部消息，最后一条应为本轮用户消息。
     ///   - liveScreenshot: 本轮要发送的截图；nil 表示不发图。
-    static func build(messages: [Message], liveScreenshot: Data?) -> [[String: Any]] {
-        var payload: [[String: Any]] = [
-            ["role": "system", "content": systemPrompt]
-        ]
+    static func build(messages: [Message], liveScreenshot: Data?, mode: ResponseMode = .quick, skippedPageCapture: Bool = false) -> [[String: Any]] {
+        let instructions = [systemPrompt, ResponsePolicy.evidenceInstructions, mode.prompt,
+                            skippedPageCapture ? ResponsePolicy.skippedContextNotice : ""]
+            .filter { !$0.isEmpty }.joined(separator: "\n\n")
+        var payload: [[String: Any]] = [["role": "system", "content": instructions]]
 
         let userIndexes = messages.enumerated()
             .filter { $0.element.role == .user }
@@ -49,8 +50,9 @@ enum PromptBuilder {
                 var blocks: [[String: Any]] = []
 
                 if let context = message.context {
-                    let full = fullContextIndexes.contains(index)
-                    blocks.append(["type": "text", "text": contextBlock(context, full: full)])
+                    let full = mode != .quick && fullContextIndexes.contains(index)
+                    let text = mode == .quick ? quickLine(context) : contextBlock(context, full: full)
+                    blocks.append(["type": "text", "text": text])
                 }
 
                 if index == lastIndex, let jpeg = liveScreenshot, !jpeg.isEmpty {
@@ -69,6 +71,12 @@ enum PromptBuilder {
         return payload
     }
 
+    /// 快速模式每轮只带一行上下文。整屏截图要点明，不然模型会把整张图都当成焦点应用。
+    static func quickLine(_ context: ContextSnapshot) -> String {
+        guard context.hadScreenshot, context.screenshotScope == .screen else { return "[\(context.summaryLine)]" }
+        return String(localized: "[整屏截图，焦点：\(context.summaryLine)]")
+    }
+
     static func contextBlock(_ context: ContextSnapshot, full: Bool) -> String {
         guard full else {
             var line = String(localized: "[较早一轮的屏幕上下文，已折叠] \(context.summaryLine)")
@@ -84,7 +92,7 @@ enum PromptBuilder {
         if let url = context.url, !url.isEmpty { lines.append(String(localized: "网址：\(url)")) }
         if let pageTitle = context.pageTitle, !pageTitle.isEmpty { lines.append(String(localized: "页面标题：\(pageTitle)")) }
         lines.append(String(localized: "截取时间：\(Self.timeFormatter.string(from: context.capturedAt))"))
-        lines.append(String(localized: "截图：\(context.hadScreenshot ? String(localized: "有，只覆盖当前可视区域") : String(localized: "无"))"))
+        lines.append(String(localized: "截图：\(screenshotDescription(context))"))
 
         if !context.iframeURLs.isEmpty {
             lines.append(String(localized: "读不到内容的嵌入框架（\(context.iframeURLs.count) 个）："))
@@ -123,6 +131,16 @@ enum PromptBuilder {
 
         lines.append(String(localized: "</屏幕上下文>"))
         return lines.joined(separator: "\n")
+    }
+
+    private static func screenshotDescription(_ context: ContextSnapshot) -> String {
+        guard context.hadScreenshot else { return String(localized: "无") }
+        switch context.screenshotScope {
+        case .window:
+            return String(localized: "有，只覆盖当前可视区域")
+        case .screen:
+            return String(localized: "有，覆盖整个屏幕的可视区域；「\(context.appName)」是焦点应用，其他可见窗口也在图里")
+        }
     }
 
     private static let timeFormatter: DateFormatter = {

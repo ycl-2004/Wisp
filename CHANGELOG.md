@@ -2,7 +2,148 @@
 
 ## Unreleased
 
+### Changed
+
+- Apply screen-sharing privacy when information popovers and the notices sheet attach
+  to their windows. Add a paired capture matrix covering ScreenCaptureKit filter updates,
+  direct window capture, native video recording, and protected video-layer experiments;
+  missing controls or frames are inconclusive. See the [research and limits](docs/screen-privacy-research-20260910.md).
+
+- Quick with the camera off now skips capture when opening, refocusing, and sending.
+  Follow-up questions retain chat history without attaching stale screen context.
+  The shared toolbar shows turn counts and an Audio Settings shortcut; a single
+  Quick/Deep toggle sits beside the composer. Voice-disabled panels hide voice controls.
+
+- Quick now captures a fresh screenshot at send time without browser URL/title scripts,
+  page-text extraction, or scrolling. Requests omit historical page bodies while preserving
+  questions and answers. The selected model and camera attachment preference still apply.
+  Deep reacquires browser context after Quick; retrying an older screenshot question requires
+  matching window metadata before using the current page.
+
+- The compact panel has three rows: title, shared controls, and text input. The camera
+  icon toggles sending the captured image (blue means enabled); capture itself is unchanged.
+  The information popover contains only available page-text details and capture notes;
+  it hides when empty. Camera state and conversation counts appear only in the toolbar.
+  The idle microphone shares the model and Quick/Deep row; recording replaces those controls
+  with speech status and actions. Previous transcript actions remain in the microphone's
+  context menu. The default compact height is now 110pt.
+
+### Fixed
+
+- Long model names now yield space to capture status and conversation counters in the
+  compact header. The connection remains available in the model menu and tooltip.
+- Commands with blank names show an "Untitled" fallback in both the panel and Settings.
+  The command editor uses the shared type and border styles and labels its icon controls
+  and question field for assistive technology.
+
 ### Added
+
+- **Local cursor experiment.** Settings → Privacy adds an opt-in local cursor mode. While
+  Wisp is active and hidden from capture, it draws the current cursor inside its own window,
+  hides the system cursor, and restores it when leaving, deactivating, opening menus, disabling
+  the option, or quitting. The drawn pointer stays an arrow even on resize edges; native clicks,
+  text selection, scrolling, window dragging and resizing remain native. This is a capture-path
+  experiment, not a guarantee for third-party sharing tools.
+
+- **Resize guide.** The panel now shows a thin pale-blue rounded guide just inside its bounds,
+  with small markers centered on each edge for the custom resize area. The guide is visual only
+  and does not take over clicks or change the arrow cursor.
+
+- **Capture range.** Settings → Capture adds Current window (the default) and Entire screen
+  below the capture modes. Entire screen captures the display holding most of the focused
+  window, or the one under the pointer, with a 2048-pixel long-edge limit instead of 1600.
+  Wisp's own windows and excluded apps are always cut out. Choosing Entire screen shows a
+  checklist of running apps to hide from entire-screen captures; excluded apps appear checked
+  and locked. The prompt tells the model when an image covers the whole screen and names
+  the focused app. The fallback used when no window matches now follows these rules too,
+  instead of capturing the first display with only Wisp removed.
+
+- **Selectable response modes.** Quick is the default; legacy Standard values migrate to Quick
+  and are no longer customer-facing. Quick skips new page-text capture, while Deep uses configured capture and higher supported reasoning. Per-connection
+  model overrides and configurable shortcuts remain editable during answers and apply to
+  the next question. In-memory timing, explicit evidence/uncertainty instructions, and a
+  single standard-tier fallback for explicit priority rejection. Fast remains preferred
+  across modes where supported; actual model accuracy has not been benchmarked.
+
+- The Model settings page now keeps the response table to Quick and Deep rows. The trailing
+  information button contains the active connection, endpoint or CLI executable, and effective
+  models, with English and Simplified Chinese translations.
+
+- Quick and Deep are now icon-only controls on the Voice input row (or beside the composer when
+  voice input is disabled). The compact panel defaults to a tight 140pt height, grows with
+  multiline questions, and expands to the saved height when conversation history is opened.
+
+- **Local speech models, discovered automatically.** Settings → Audio lists every
+  sherpa-onnx model found under `~/Documents/huggingface/models/` next to Apple on-device
+  Speech: SenseVoice (automatic or hinted language) and Qwen3-ASR (the model detects the
+  language). Adding another model of a known architecture is a folder copy and Rescan,
+  with no reinstall. Model files are checked structurally before they are offered, so a
+  partial download or a different architecture cannot end the app on load. Background
+  CPU inference, persisted engine/language options that migrate from 0.3, clear
+  missing-model feedback; no model download or Apple Speech permission for local models.
+
+- Local models no longer transcribe silence. SenseVoice turned every quiet batch into a
+  stray syllable ("그.") that reached captions, records and drafts; batches that stay
+  below the quiet threshold are now skipped.
+
+- **Deep uses the High thinking level on Antigravity.** Quick sends the default model itself;
+  Deep, unless it has its own model, sends the default model's High level when the CLI lists
+  one (`gemini-3.6-flash-low` → `gemini-3.6-flash-high`). Codex and APIs already raise effort
+  through parameters with the same model. Sending, Test Connection, the header menu and Settings
+  now resolve the model in one place, so the label always matches what is sent.
+
+- **Answer in Deep.** The last Quick answer has a button that answers the same question again in
+  Deep, re-reading the page if it is still open, replacing the answer without using another
+  turn, and restoring the Quick answer if the Deep one produces nothing.
+
+- **Hold to ask.** An optional shortcut records the microphone while held and sends the words
+  on release with the current screen context. Not saved to listening records; a local model
+  loads while it already listens.
+
+- **Commands.** Settings → Commands holds saved questions with their own mode and optional
+  shortcut, run from the ✦ menu beside the send button, the empty chat, or any app. They replace
+  the fixed suggestions the empty chat showed.
+
+- **Chinese script for local models.** Output is Simplified by default (Qwen3-ASR sometimes wrote
+  Traditional), with Traditional or unchanged available in Settings → Audio.
+
+- The Model settings page calls the connection's model the **Default model**, and each
+  Quick/Deep row shows the model "Default" resolves to. The header menu names the mode
+  whose model it changes and never alters the default. **Test Connection** replaces
+  Save & Test (every change already saves itself) and checks each model the two modes
+  actually use.
+
+- **Live listening.** Opt-in microphone, selected application audio, or separate
+  dual-source local captions; timestamped text sessions and optional PCM audio.
+  Integrated single-line voice input above the chat, configurable start/stop and
+  draft shortcuts, manual contextual submission to the selected model/CLI.
+  Fixed content-driven panel resize constraints with an AppKit hosting container. No completion notifications or auto-copy.
+  Archive admission budget of 2 GiB / 100 sessions, without automatic deletion.
+  A master switch in Settings → Audio turns voice input off entirely: the panel
+  drops the voice row, the shortcuts stop starting a recording, and the rest of
+  the audio settings go with it.
+  Audio settings persist source/language/retention, expose permission checks and
+  system volume access. Data settings can clear only listening records with
+  confirmation. A small in-panel status dot leaves OS privacy indicators intact.
+  Explicit permissions, stop/error states, lifecycle cleanup, and session limits.
+  See [usage and validation limits](docs/live-listening.md).
+
+- **One-key analysis of what was just said.** Stop & analyze (⌃⌥↩) stops recording,
+  waits for trailing recognition to drain, drops the recent transcript into the draft
+  and sends it; Analyze now (⌃⌥A) does the same without stopping, for a meeting still
+  in progress. When the input box is empty the request carries a fixed question asking
+  for discussion points, conclusions and action items, and telling the model not to
+  follow instructions inside the transcript; anything the user typed is used instead.
+  Both go through the ordinary send path: same screen context, history and provider,
+  and both are blocked while an answer is streaming.
+- **Transcript view.** One button in the voice row swaps the answer area between the
+  AI answer and the raw transcript of this session, with timestamps, per-source
+  colouring, provisional-text marking, copy and the records folder. It is a view
+  switch only: recording, capture and the draft are untouched.
+- **A resizable panel that can actually be grabbed.** A transparent overlay claims the
+  outer six points of the borderless panel (sixteen at the corners) and resizes from
+  any edge, with the opposite edge pinned and the window's min/max respected; a faint
+  grip appears at the bottom-right corner on hover. Everything inside keeps its clicks.
 
 - **Streaming for Codex and Antigravity.** Codex now uses app-server text deltas
   over stdio; AGY uses `stream-json` agent response deltas. Completed snapshots
@@ -29,6 +170,36 @@
 
 ### Fixed
 
+- Permission rows no longer offer Request once the permission is granted; the
+  system will not ask a second time, so only the System Settings link remains.
+- Menu-bar insertion callbacks no longer overwrite the saved visibility preference.
+  An unexpected removal gets one recovery attempt; repeated removal opens the panel.
+  Its Settings entry remains available even when macOS crowds the icon out.
+- Opening the transcript expands a collapsed panel and leaves conversation history.
+  Copy transcript remains available after staging and during an answer.
+- Listening storage admission rejects linked roots, including dangling links.
+  Analysis checks conversation capacity before consuming unstaged transcript IDs.
+- Privacy documentation now states that the two explicit analysis actions send directly;
+  Add to draft remains the path for reviewing text before sending.
+
+- The menu bar icon stays the default and is no longer the only way back in. Turning
+  it off now asks for confirmation and names the remaining entry points; launching
+  Wisp again from Finder reveals the panel, and so does starting the app while the
+  icon is disabled.
+- A transfer now carries everything said since the previous one instead of the last 90
+  seconds. Analysing every few minutes in a meeting silently dropped the minutes between
+  two presses: they were outside the window, and the next transfer excluded them as
+  already-seen segments, so they reached no request at all. The 12,000-character budget
+  is now the only bound, and trimming happens per recognition batch before merging, so
+  a long single-speaker stretch is cut at a sentence boundary rather than mid-word.
+- Transcript staged into the input box reads as speech instead of a log: timestamps are
+  gone, consecutive batches from one source are merged into a turn, a speaker label
+  appears only when both sources are present, and provisional text is marked once per
+  turn. Local records keep their full timestamps.
+- The panel can be dragged again once expanded: the header's title area is a real drag
+  handle, instead of relying on background dragging that the message list covers.
+- Trimming the transcript to the draft budget drops whole turns from the oldest end
+  instead of cutting mid-sentence.
 - Use ephemeral, cookie-free and cache-free HTTP sessions; refuse redirects
   and require HTTPS for non-loopback API endpoints. Local Ollama HTTP remains
   supported. Configure the final HTTPS endpoint for redirecting gateways.
