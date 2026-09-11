@@ -143,7 +143,7 @@ struct Chip: View {
             if let icon {
                 Image(systemName: icon).font(.system(size: 9.5, weight: .medium))
             }
-            Text(text).font(DS.meta)
+            Text(text).font(DS.meta).lineLimit(1)
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 2.5)
@@ -158,6 +158,7 @@ struct Chip: View {
                 .strokeBorder(active ? Color.accentColor.opacity(0.25) : DS.hairline, lineWidth: 0.5)
         )
         .contentShape(Rectangle())
+        .accessibilityLabel(Text(text))
     }
 }
 

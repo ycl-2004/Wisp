@@ -14,7 +14,7 @@ final class ListeningAudioSink: @unchecked Sendable {
     private let origin = ProcessInfo.processInfo.systemUptime
     private var acceptsAudio = true
 
-    init(mode: ListeningMode, locale: String, recognition: SenseVoiceRecognition? = nil, directory: URL?,
+    init(mode: ListeningMode, locale: String, recognition: LocalSpeechRecognition? = nil, directory: URL?,
          onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
         self.onFailure = onFailure
         if let recognition {
@@ -92,7 +92,7 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     private var engineObserver: NSObjectProtocol?
     private var accepting = true
 
-    init(mode: ListeningMode, locale: String, recognition: SenseVoiceRecognition? = nil, directory: URL?,
+    init(mode: ListeningMode, locale: String, recognition: LocalSpeechRecognition? = nil, directory: URL?,
          onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
         self.onFailure = onFailure
         sink = try ListeningAudioSink(mode: mode, locale: locale, recognition: recognition, directory: directory,

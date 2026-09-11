@@ -73,9 +73,18 @@ Hiding the panel stops recording. Settings → Audio also carries a master switc
 turn voice input off and the row leaves the panel, the shortcuts stop starting a
 recording, and a session still running is stopped.
 
-Choose **SenseVoice Small** in **Settings → Audio → Recognition engine** to reuse
-`~/Documents/huggingface/models/k2-fsa/`. Apple Speech remains available.
-See [engine setup and limits](docs/live-listening.md#recognition-engines).
+**Settings → Audio → Recognition engine** lists Apple Speech plus every local
+sherpa-onnx model found under `~/Documents/huggingface/models/` (SenseVoice and
+Qwen3-ASR architectures today). Copy another model folder there and click
+**Rescan**; no reinstall is needed. Local output is written in Simplified Chinese by
+default (Qwen3-ASR sometimes answers in Traditional); Settings → Audio → Chinese script
+changes it. See [engine setup and limits](docs/live-listening.md#recognition-engines).
+
+**Hold to ask** (Settings → Audio → Shortcuts, unassigned by default): hold the shortcut,
+say your question, release. It is sent with the current screen context in the current
+response mode. Microphone only, never saved to listening records, and unavailable while a
+recording runs. A tap shorter than 0.3 s sends nothing; after 60 s the words wait in the
+input box instead of being sent.
 
 Device/language support is required for on-device transcription. Audio selection
 is application-level, not per participant or browser tab. This feature does not
@@ -97,8 +106,8 @@ menu-bar space and third-party menu utilities remain controlled by macOS/the uti
    by Gatekeeper.
 4. Grant **Screen Recording** permission in System Settings. The first time
    Wisp reads a browser page, grant Wisp **Automation** access to that browser.
-5. Open **Settings → Model**, choose a provider, save it, and test the
-   connection.
+5. Open **Settings → Model**, choose a provider (changes save automatically), and
+   click **Test Connection**.
 6. Return to the window you want to ask about and press `⌃⌥Space`.
 
 If Control-click → **Open** is unavailable, clear the quarantine flag:
@@ -220,9 +229,14 @@ open "$HOME/Applications/Wisp.app"
   Availability and billing depend on the service. See [speed preferences](docs/model-speed.md).
 - **Quick / Deep responses:** select a mode above the input (Quick is the default); set
   each mode's model and shortcut in Settings → Model. Choices remain editable during an
-  answer and apply to the next question. Quick skips new full-page text capture; Deep uses
-  more supported reasoning. Both prefer available Fast tiers. The stopwatch separates
-  preparation, first-text and total latency; higher effort alone does not establish accuracy.
+  answer and apply to the next question. Quick skips new full-page text capture and sends
+  the default model; Deep uses more supported reasoning, and on Antigravity switches to the
+  default model's High thinking level. Both prefer available Fast tiers. A Quick answer can
+  be redone in Deep with one click, replacing it without using another turn. The stopwatch
+  separates preparation, first-text and total latency; higher effort alone does not establish accuracy.
+- **Commands:** saved questions such as Summarize This Page or Translate Selection, each
+  with its own mode and optional shortcut, run from the ✦ menu, the empty chat, or any app.
+  Text in the input box goes with the command as its material. Edit them in Settings → Commands.
 
 **Startup and updates**
 
@@ -299,8 +313,8 @@ Open the menu-bar icon → **Settings → Model**:
   CLI login already on your Mac. Antigravity models are refreshed by running
   `agy models`, so an Antigravity update does not require a Wisp update.
 
-All three provider groups have **Save and test connection**. Cloud and Ollama
-tests send a very small test image. Codex and Antigravity tests check `--version`;
+All three provider groups have **Test Connection**. Cloud and Ollama tests send a
+very small test image to each model Quick and Deep use. Codex and Antigravity tests check `--version`;
 Claude Code uses `auth status` so a missing login gets its own message. None of
 the local CLI checks spends a model request.
 

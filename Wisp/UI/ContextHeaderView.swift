@@ -50,7 +50,8 @@ struct ContextHeaderView: View {
                 Text(model.packet?.appName ?? String(localized: "读取中…"))
                     .font(DS.title)
                     .lineLimit(1)
-                    .fixedSize()
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
 
                 if let subtitle {
                     HStack(spacing: 4) {
@@ -131,7 +132,14 @@ struct ContextHeaderView: View {
     // MARK: - 第二行
 
     private var metaRow: some View {
-        HStack(spacing: 5) {
+        GeometryReader { geometry in
+            metaContent(modelWidth: min(200, max(60, geometry.size.width - 300)))
+        }
+        .frame(height: DS.metaHeight)
+    }
+
+    private func metaContent(modelWidth: CGFloat) -> some View {
+        HStack(spacing: DS.tightGap) {
             Chip(icon: "camera.viewfinder",
                  text: screenshotChipText,
                  active: model.packet?.hasScreenshot == true && settings.sendScreenshot,
@@ -139,11 +147,14 @@ struct ContextHeaderView: View {
                 model.toggleScreenshot()
             }
             .help("附带截图")
+            .fixedSize()
 
             Chip(icon: "doc.plaintext",
-                 text: pageTextChipText,
+                 text: pageTextChipLabel,
                  active: model.packet?.hasPageText == true,
                  enabled: false)
+                .help(pageTextChipText)
+                .accessibilityLabel(Text(pageTextChipText))
 
             if !notes.isEmpty {
                 Chip(icon: hasBlockingNote ? "exclamationmark.triangle" : "info.circle",
@@ -156,10 +167,11 @@ struct ContextHeaderView: View {
 
             Spacer(minLength: 4)
 
-            ModelSwitcher()
+            ModelSwitcher(width: modelWidth)
 
             Text(counters)
                 .font(DS.meta)
+                .fixedSize()
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .padding(.horizontal, 5)
@@ -170,7 +182,6 @@ struct ContextHeaderView: View {
                 )
                 .help("本对话 \(store.active?.userTurnCount ?? 0)/\(store.maxUserTurns) 轮 · 共 \(store.conversations.count)/\(store.maxConversations) 个对话")
         }
-        .frame(height: DS.metaHeight)
     }
 
     private var counters: String {
@@ -196,6 +207,13 @@ struct ContextHeaderView: View {
         return packet.isTruncated
             ? String(localized: "正文 \(text.count) 字 · 截断")
             : String(localized: "正文 \(text.count) 字")
+    }
+
+    private var pageTextChipLabel: String {
+        guard let packet = model.packet, !packet.isExcluded,
+              let text = packet.pageText, !text.isEmpty else { return pageTextChipText }
+        // The document icon supplies the category; the full unit/status stays in help and VoiceOver.
+        return "\(text.count)" + (packet.isTruncated ? "…" : "")
     }
 
     // MARK: - 说明

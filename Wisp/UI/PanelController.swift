@@ -26,7 +26,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         isVisible ? hide() : show()
     }
 
-    func show() {
+    /// `then` runs once the panel is on screen with this capture done, so an action started from a
+    /// shortcut in another app reads that app rather than a stale context.
+    func show(then: (@MainActor () -> Void)? = nil) {
         let model = AssistantModel.shared
         // 必须在激活自己之前记住目标应用。
         if let front = NSWorkspace.shared.frontmostApplication,
@@ -54,11 +56,13 @@ final class PanelController: NSObject, NSWindowDelegate {
             model.startFollowingFrontWindow()
             // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
             // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
+            then?()
         }
     }
 
     func hide() {
         ListeningModel.shared.stop()
+        PushToTalk.shared.cancel()
         guard let panel else { return }
         cancelIdleTimer()
         saveFrame(panel)
@@ -98,20 +102,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// 焦点、悬停、生成状态、设置里的秒数，任何一样变了都重新决定要不要计时。
     func refreshIdleTimer() {
         guard let panel, panel.isVisible else { cancelIdleTimer(); return }
-        // 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
-        // 鼠标停在上面、回答正在生成、正在采集。任何一条成立都不能收。
-        //
-        // 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
-        // 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
-        // 不相干的应用、也就是真的走开了，倒计时才有意义。
-        guard AppSettings.shared.idleDismissSeconds > 0,
-              !panel.isKeyWindow,
-              !isPointerInside,
-              !AssistantModel.shared.isStreaming,
-              !ListeningModel.shared.isActive,
-              !AssistantModel.shared.isCapturing,
-              !isWorkingInCapturedApp
-        else { cancelIdleTimer(); return }
+        guard isIdle(panel) else { cancelIdleTimer(); return }
 
         // 已经在倒计时就让它继续走，别重置——否则鼠标扫过窗口边缘会一直续命。
         guard idleTimer == nil else { return }
@@ -132,16 +123,25 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     /// 倒计时这几秒里状态可能已经变了，真收之前再确认一次。
     private func hideIfStillIdle() {
-        guard let panel, panel.isVisible,
-              AppSettings.shared.idleDismissSeconds > 0,
-              !panel.isKeyWindow,
-              !isPointerInside,
-              !AssistantModel.shared.isStreaming,
-              !ListeningModel.shared.isActive,
-              !AssistantModel.shared.isCapturing,
-              !isWorkingInCapturedApp
-        else { refreshIdleTimer(); return }
+        guard let panel, panel.isVisible, isIdle(panel) else { refreshIdleTimer(); return }
         hide()
+    }
+
+    /// 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
+    /// 鼠标停在上面、回答正在生成、正在录音或按住说话、正在采集。任何一条成立都不能收。
+    ///
+    /// 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
+    /// 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
+    /// 不相干的应用、也就是真的走开了，倒计时才有意义。
+    private func isIdle(_ panel: NSPanel) -> Bool {
+        AppSettings.shared.idleDismissSeconds > 0
+            && !panel.isKeyWindow
+            && !isPointerInside
+            && !AssistantModel.shared.isStreaming
+            && !ListeningModel.shared.isActive
+            && !PushToTalk.shared.isActive
+            && !AssistantModel.shared.isCapturing
+            && !isWorkingInCapturedApp
     }
 
     /// 前台应用就是这份上下文读到的那个应用吗？
@@ -158,7 +158,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     /// 收起／展开：只改高度，宽度和左上角位置不动。
     func setCollapsed(_ collapsed: Bool, animated: Bool = true) {
-        guard let panel else { return }
+        guard panel != nil else { return }
         let target = collapsed ? storedCollapsedHeight : storedExpandedHeight
         setPanelHeight(target, animated: animated)
     }

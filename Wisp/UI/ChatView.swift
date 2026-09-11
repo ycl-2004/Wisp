@@ -5,6 +5,9 @@ struct ChatView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var commands = QuickCommandStore.shared
+    @AppStorage("settingsTab") private var settingsTab: SettingsView.Tab = .model
+    @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var focusRequest = 0
     @State private var inputHeight = ChatInput.defaultHeight
@@ -189,6 +192,7 @@ struct ChatView: View {
                 if !settings.listeningEnabled {
                     ResponseModeToggle()
                 }
+                commandsMenu
                 sendButton
             }
         }
@@ -201,12 +205,34 @@ struct ChatView: View {
         }
     }
 
+    /// 常用指令随时可用，不只是空对话里那几颗胶囊。
+    private var commandsMenu: some View {
+        Menu {
+            ForEach(commands.commands.filter(\.isRunnable)) { command in
+                Button { model.run(command) } label: { Label(command.displayTitle, systemImage: command.symbol) }
+                    .disabled(!model.canStartQuestion)
+            }
+            Divider()
+            Button("编辑常用指令…") {
+                settingsTab = .commands
+                openSettings()
+            }
+        } label: {
+            Image(systemName: "sparkles").font(.system(size: 11, weight: .medium))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .foregroundStyle(.secondary)
+        .help("常用指令")
+        .accessibilityLabel(Text("常用指令"))
+    }
+
     /// 当前在用哪家、哪个模型。放在发送键的提示里，不占版面。
     private var providerLabel: String {
-        let baseline = ProviderConfig.selection()
-        let selected = baseline.selecting(settings.responseMode,
-            model: settings.responseModel(for: settings.responseMode, connection: baseline.responseConnectionKey))
-        return settings.responseMode.title + " · " + (selected.model.isEmpty ? selected.kind.title : selected.model)
+        let mode = settings.responseMode
+        let models = ActiveModels(settings: settings, state: .shared)
+        return mode.title + " · " + models.connectionTitle + " · " + models.effectiveTitle(for: mode)
     }
 
     @ViewBuilder
@@ -244,56 +270,10 @@ struct ChatView: View {
 /// 也被 IslandRenderer 拿去离线出图，所以不是 private。
 struct ChatEmptyStateView: View {
     @EnvironmentObject var model: AssistantModel
+    @ObservedObject private var commands = QuickCommandStore.shared
 
     private var appName: String {
         model.packet?.appName ?? String(localized: "当前应用")
-    }
-
-    private var isBrowser: Bool {
-        guard let bundleID = model.packet?.bundleID?.lowercased() else { return false }
-        return bundleID.contains("chrome") || bundleID.contains("safari") ||
-               bundleID.contains("arc") || bundleID.contains("edge") ||
-               bundleID.contains("firefox") || bundleID.contains("brave")
-    }
-
-    private var isDevTool: Bool {
-        guard let bundleID = model.packet?.bundleID?.lowercased() else { return false }
-        return bundleID.contains("xcode") || bundleID.contains("vscode") ||
-               bundleID.contains("terminal") || bundleID.contains("iterm") ||
-               bundleID.contains("warp") || bundleID.contains("cursor")
-    }
-
-    private var suggestions: [Suggestion] {
-        if isBrowser {
-            return [
-                Suggestion(icon: "list.bullet.rectangle", title: "提炼本页核心结论",
-                           prompt: String(localized: "请提炼当前网页的核心要点和关键结论，分条列出。")),
-                Suggestion(icon: "tablecells", title: "提取关键数据",
-                           prompt: String(localized: "请从当前页面中提取关键事实、数据或步骤清单。")),
-                Suggestion(icon: "character.bubble", title: "翻译并梳理逻辑",
-                           prompt: String(localized: "请简述并翻译当前页面的主要脉络，用清晰中文说明。")),
-            ]
-        } else if isDevTool {
-            return [
-                Suggestion(icon: "curlybraces", title: "解释当前代码或报错",
-                           prompt: String(localized: "请分析当前窗口中的代码或报错信息，指出其核心原因。")),
-                Suggestion(icon: "ladybug", title: "找出潜在问题",
-                           prompt: String(localized: "请检查当前代码是否存在潜在缺陷或边缘情况，并给出修复方案。")),
-                Suggestion(icon: "wand.and.stars", title: "重构优化建议",
-                           prompt: String(localized: "针对当前窗口里的实现，提供更简洁、高性能的重构建议。")),
-            ]
-        } else {
-            return [
-                Suggestion(icon: "list.bullet.rectangle", title: "梳理当前屏幕内容",
-                           prompt: String(localized: "请梳理当前窗口呈现的核心内容，帮我快速把握重点。")),
-                Suggestion(icon: "checklist", title: "总结要点与待办",
-                           prompt: String(localized: "从当前屏幕中提取重要信息，整理成清晰的要点与待办事项。")),
-            ]
-        }
-    }
-
-    private var canUseSuggestions: Bool {
-        model.canStartQuestion && model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -317,42 +297,36 @@ struct ChatEmptyStateView: View {
                 }
             }
 
-            // 快捷问题建议胶囊
-            VStack(alignment: .leading, spacing: 6) {
-                Text("建议提问：")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.tertiary)
+            // 常用指令胶囊：输入框里写了的东西会作为材料跟在指令后面，所以不必等它清空。
+            let runnable = commands.commands.filter(\.isRunnable)
+            if !runnable.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("常用指令：")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.tertiary)
 
-                HStack(spacing: 6) {
-                    ForEach(suggestions) { item in
-                        SuggestionChip(icon: item.icon, title: item.title) {
-                            model.input = item.prompt
-                            model.send()
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 6, alignment: .leading)],
+                              alignment: .leading, spacing: 6) {
+                        ForEach(runnable) { command in
+                            SuggestionChip(icon: command.symbol, title: command.displayTitle) { model.run(command) }
+                                // 不可用时明确压暗，而不是点了才发现没反应。
+                                .disabled(!model.canStartQuestion)
                         }
-                        // 不覆盖用户已经写好的草稿；不可用时明确压暗，而不是点了才发现内容丢了。
-                        .disabled(!canUseSuggestions)
                     }
                 }
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 4)
     }
 }
 
-private struct Suggestion: Identifiable {
-    let icon: String
-    let title: LocalizedStringKey
-    let prompt: String
-    var id: String { prompt }
-}
-
 /// 空状态里的建议胶囊。hover 时描边和底色一起跟上，让它看起来确实可以点；
 /// 发不出去的时候整体压暗，而不是点了没反应。
 private struct SuggestionChip: View {
     let icon: String
-    let title: LocalizedStringKey
+    let title: String
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
@@ -501,6 +475,19 @@ private struct MessageRow: View {
                 .foregroundStyle(.tertiary)
                 .opacity(hovering || showsContext ? 1 : 0.52)
                 .help(showsContext ? "隐藏上下文" : "上下文")
+            }
+
+            if model.canReanswerDeeply(message) {
+                Button { model.reanswerDeeply(message.id) } label: {
+                    HStack(spacing: 2) {
+                        Image(systemName: ResponseMode.deep.symbol).font(.system(size: 9))
+                        Text("深入重答").font(.system(size: 9.5))
+                    }
+                }
+                .buttonStyle(PressFeedbackButtonStyle())
+                .foregroundStyle(Color.accentColor.opacity(hovering ? 1 : 0.75))
+                .help("用深入模式重新回答这个问题：读全正文、提高思考强度，替换这条回答")
+                .accessibilityLabel(Text("深入重答"))
             }
 
             if message.role == .assistant, !message.text.isEmpty {

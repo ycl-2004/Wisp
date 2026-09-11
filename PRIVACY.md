@@ -57,12 +57,17 @@ lengths and model outputs vary. Continuous transcription does not add chat messa
 Live listening is off until you start a session. Audio transcription is requested
 on-device only; if the selected language is not supported locally, Wisp stops and
 shows an error instead of using cloud recognition. Apple Speech uses macOS-managed
-language resources. Optional SenseVoice Small uses the existing shared ONNX model
-under `~/Documents/huggingface/models/k2-fsa/`, loaded locally through sherpa-onnx.
-Wisp does not download, copy, delete or upload these model files. SenseVoice does
-not request Apple Speech authorization; capture-source permissions still apply.
+language resources. Optional local models (SenseVoice, Qwen3-ASR) are found in the
+shared folder `~/Documents/huggingface/models/` and loaded locally through sherpa-onnx.
+To recognize them Wisp lists that folder and reads model file headers only; it does
+not download, copy, delete or upload model files. Local models do not request Apple
+Speech authorization; capture-source permissions still apply.
 Text is automatically checkpointed locally. Raw audio is saved only when selected
 before starting. Wisp does not save video in this mode.
+
+Hold to ask records the microphone only while its shortcut is held, keeps the words in
+memory, and sends them as a question with the current screen context to the selected model,
+exactly like typed text. It writes nothing to listening records and saves no audio.
 
 Enter/Send submits an editable transcript draft. The explicit Analyze now and
 Stop & analyze actions also submit directly, without a second confirmation; the latter
@@ -198,7 +203,7 @@ for the tested configurations and remaining gaps.
   works, but sends no screenshot. Live listening also needs screen/system audio
   authorization to capture a selected application.
 - **Microphone** — only for listening modes that include your microphone.
-- **Speech Recognition** — for Apple Speech transcription only; SenseVoice does not need it. No cloud audio fallback.
+- **Speech Recognition** — for Apple Speech transcription only; local models do not need it. No cloud audio fallback.
 - **Automation / Apple Events** — to read the URL, title, and page text from a
   supported browser. Granted per browser, the first time Wisp reads from it.
   Full page text additionally needs "Allow JavaScript from Apple Events"

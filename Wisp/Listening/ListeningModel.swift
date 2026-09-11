@@ -16,13 +16,17 @@ final class ListeningModel: ObservableObject {
         get { preferences.mode }
         set { guard !isActive else { return }; preferences.mode = newValue }
     }
-    var recognitionEngine: ListeningRecognitionEngine {
+    var engine: ListeningEngine {
         get { preferences.recognitionEngine ?? .appleSpeech }
         set { guard !isActive else { return }; preferences.recognitionEngine = newValue }
     }
-    var senseVoiceLanguage: String {
-        get { preferences.senseVoiceLanguage ?? "auto" }
-        set { guard !isActive else { return }; preferences.senseVoiceLanguage = newValue }
+    var localLanguage: String {
+        get { preferences.localLanguage ?? "auto" }
+        set { guard !isActive else { return }; preferences.localLanguage = newValue }
+    }
+    var chineseScript: ChineseScript {
+        get { preferences.chineseScript ?? .default }
+        set { guard !isActive else { return }; preferences.chineseScript = newValue }
     }
     var locale: String {
         get { preferences.locale }
@@ -100,6 +104,7 @@ final class ListeningModel: ObservableObject {
             stopFollowUp = state == .recording ? .stage : .none
             stop()
         } else {
+            guard !PushToTalk.shared.isActive else { return }
             guard canStart else {
                 error = String(localized: "请在设置 → 音频中选择应用。")
                 return
@@ -164,7 +169,11 @@ final class ListeningModel: ObservableObject {
         case .stopping: return String(localized: "正在保存末尾文字…")
         }
     }
-    var canStart: Bool { isEnabled && state == .idle && (!mode.sources.contains(.application) || selectedApplication != nil) }
+    /// Push-to-talk holds the microphone while its key is down; the two never run together.
+    var canStart: Bool {
+        isEnabled && state == .idle && !PushToTalk.shared.isActive
+            && (!mode.sources.contains(.application) || selectedApplication != nil)
+    }
     var selectedApplication: SCRunningApplication? { applications.first { $0.processID == selectedPID } }
     static var rootDirectory: URL { AppSettings.supportDirectory.appendingPathComponent("Listening", isDirectory: true) }
 
@@ -198,7 +207,7 @@ final class ListeningModel: ObservableObject {
         guard canStart else { return }
         let mode = self.mode, locale = self.locale, savesAudio = self.savesAudio
         let application = selectedApplication
-        let recognitionEngine = self.recognitionEngine, senseVoiceLanguage = self.senseVoiceLanguage
+        let engine = self.engine, localLanguage = self.localLanguage, script = self.chineseScript
         generation = UUID()
         let generation = self.generation
         state = .starting
@@ -209,9 +218,12 @@ final class ListeningModel: ObservableObject {
             do {
                 // Check before permissions/capture; reserve headroom without deleting history.
                 try ListeningStorageBudget.validate(root: Self.rootDirectory, savesAudio: savesAudio)
-                let recognition: SenseVoiceRecognition?
-                if recognitionEngine == .senseVoice {
-                    recognition = try await SenseVoiceRecognition.load(language: senseVoiceLanguage)
+                let recognition: LocalSpeechRecognition?
+                if case .local(let id) = engine {
+                    // Resolve the folder now rather than trusting the last scan: it may have been
+                    // renamed, deleted or replaced since.
+                    let model = try await Task.detached { try LocalSpeechCatalog.readyModel(id: id) }.value
+                    recognition = try await LocalSpeechRecognition.load(model, language: localLanguage, script: script)
                     try Task.checkCancellation()
                 } else {
                     recognition = nil
@@ -220,17 +232,17 @@ final class ListeningModel: ObservableObject {
                     }
                     try Task.checkCancellation()
                     guard speechAllowed else {
-                        throw ListeningFailure(message: String(localized: "请在系统设置 → 隐私与安全性 → 语音识别中允许 Wisp。"))
+                        throw ListeningFailure.speechRecognitionDenied
                     }
                 }
                 if mode.sources.contains(.microphone) {
                     let allowed = await AVCaptureDevice.requestAccess(for: .audio)
                     try Task.checkCancellation()
                     guard allowed else {
-                        throw ListeningFailure(message: String(localized: "请在系统设置 → 隐私与安全性 → 麦克风中允许 Wisp。"))
+                        throw ListeningFailure.microphoneDenied
                     }
                 }
-                let session = ListeningTranscript(id: UUID(), startedAt: Date(), locale: recognitionEngine == .senseVoice ? senseVoiceLanguage : locale,
+                let session = ListeningTranscript(id: UUID(), startedAt: Date(), locale: recognition?.language ?? locale,
                                                   applicationName: mode.sources.contains(.application) ? application?.applicationName : nil,
                                                   savesAudio: savesAudio)
                 let folder = Self.rootDirectory.appendingPathComponent(session.id.uuidString, isDirectory: true)

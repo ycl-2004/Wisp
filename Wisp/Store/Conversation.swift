@@ -113,15 +113,18 @@ struct Message: Codable, Identifiable, Hashable {
     var createdAt: Date = Date()
     /// 该回合是否随消息发了截图（仅用于 UI 显示，图片本身不保存）。
     var sentScreenshot: Bool = false
+    /// 回答用的是哪个模式；旧记录没有这个字段。快速模式的回答可以一键用深入重答。
+    var mode: ResponseMode?
 
     init(id: UUID = UUID(), role: Role, text: String, context: ContextSnapshot? = nil,
-         createdAt: Date = Date(), sentScreenshot: Bool = false) {
+         createdAt: Date = Date(), sentScreenshot: Bool = false, mode: ResponseMode? = nil) {
         self.id = id
         self.role = role
         self.text = text
         self.context = context
         self.createdAt = createdAt
         self.sentScreenshot = sentScreenshot
+        self.mode = mode
     }
 
     /// role 与 text 是 v1 就有的，缺了这条消息本身就没意义；其余全部容错。
@@ -133,6 +136,7 @@ struct Message: Codable, Identifiable, Hashable {
         context = c.optional(ContextSnapshot.self, .context)
         createdAt = c.value(.createdAt, or: Date())
         sentScreenshot = c.value(.sentScreenshot, or: false)
+        mode = c.optional(ResponseMode.self, .mode)
     }
 }
 

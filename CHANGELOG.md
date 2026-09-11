@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- Long model names now yield space to capture status and conversation counters in the
+  compact header. The connection remains available in the model menu and tooltip.
+- Commands with blank names show an "Untitled" fallback in both the panel and Settings.
+  The command editor uses the shared type and border styles and labels its icon controls
+  and question field for assistive technology.
+
 ### Added
 
 - **Selectable response modes.** Quick is the default; legacy Standard values migrate to Quick
@@ -19,10 +27,45 @@
   voice input is disabled). The compact panel defaults to a tight 140pt height, grows with
   multiline questions, and expands to the saved height when conversation history is opened.
 
-- **SenseVoice Small recognition engine.** Audio settings can reuse the shared local
-  ONNX model with automatic language detection, alongside Apple on-device Speech.
-  Background CPU inference, persisted engine/language options, missing-model feedback;
-  no duplicate model download and no Apple Speech permission for SenseVoice.
+- **Local speech models, discovered automatically.** Settings → Audio lists every
+  sherpa-onnx model found under `~/Documents/huggingface/models/` next to Apple on-device
+  Speech: SenseVoice (automatic or hinted language) and Qwen3-ASR (the model detects the
+  language). Adding another model of a known architecture is a folder copy and Rescan,
+  with no reinstall. Model files are checked structurally before they are offered, so a
+  partial download or a different architecture cannot end the app on load. Background
+  CPU inference, persisted engine/language options that migrate from 0.3, clear
+  missing-model feedback; no model download or Apple Speech permission for local models.
+
+- Local models no longer transcribe silence. SenseVoice turned every quiet batch into a
+  stray syllable ("그.") that reached captions, records and drafts; batches that stay
+  below the quiet threshold are now skipped.
+
+- **Deep uses the High thinking level on Antigravity.** Quick sends the default model itself;
+  Deep, unless it has its own model, sends the default model's High level when the CLI lists
+  one (`gemini-3.6-flash-low` → `gemini-3.6-flash-high`). Codex and APIs already raise effort
+  through parameters with the same model. Sending, Test Connection, the header menu and Settings
+  now resolve the model in one place, so the label always matches what is sent.
+
+- **Answer in Deep.** The last Quick answer has a button that answers the same question again in
+  Deep, re-reading the page if it is still open, replacing the answer without using another
+  turn, and restoring the Quick answer if the Deep one produces nothing.
+
+- **Hold to ask.** An optional shortcut records the microphone while held and sends the words
+  on release with the current screen context. Not saved to listening records; a local model
+  loads while it already listens.
+
+- **Commands.** Settings → Commands holds saved questions with their own mode and optional
+  shortcut, run from the ✦ menu beside the send button, the empty chat, or any app. They replace
+  the fixed suggestions the empty chat showed.
+
+- **Chinese script for local models.** Output is Simplified by default (Qwen3-ASR sometimes wrote
+  Traditional), with Traditional or unchanged available in Settings → Audio.
+
+- The Model settings page calls the connection's model the **Default model**, and each
+  Quick/Deep row shows the model "Default" resolves to. The header menu names the mode
+  whose model it changes and never alters the default. **Test Connection** replaces
+  Save & Test (every change already saves itself) and checks each model the two modes
+  actually use.
 
 - **Live listening.** Opt-in microphone, selected application audio, or separate
   dual-source local captions; timestamped text sessions and optional PCM audio.

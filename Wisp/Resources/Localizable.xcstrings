@@ -306,22 +306,6 @@
         }
       }
     },
-    "仅检查本地工具能否启动，不消耗模型额度。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check that the local tool can start, without using model credits."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅检查本地工具能否启动，不消耗模型额度。"
-          }
-        }
-      }
-    },
     "从 Agy 获取最新可用模型。": {
       "localizations": {
         "en": {
@@ -414,22 +398,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "刷新模型"
-          }
-        }
-      }
-    },
-    "保存并测试": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save & Test"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存并测试"
           }
         }
       }
@@ -1634,22 +1602,6 @@
         }
       }
     },
-    "发送一张 64×64 测试图，验证连接和图片输入。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sends a 64×64 test image to verify the connection and image input."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "发送一张 64×64 测试图，验证连接和图片输入。"
-          }
-        }
-      }
-    },
     "底部位置可拖动，Wisp 会记住位置；面板仍从底部中央打开。": {
       "localizations": {
         "en": {
@@ -2510,22 +2462,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "复用已登录的 Codex，免配 Key"
-          }
-        }
-      }
-    },
-    "失败": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Failed"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "失败"
           }
         }
       }
@@ -4231,7 +4167,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld chars of page text"
+            "value": "%lld chars"
           }
         },
         "zh-Hans": {
@@ -4247,7 +4183,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld chars of page text · truncated"
+            "value": "%lld chars · truncated"
           }
         },
         "zh-Hans": {
@@ -5454,22 +5390,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "连不上这个地址。检查 Base URL 和端口，以及对方服务是否在运行。"
-          }
-        }
-      }
-    },
-    "连接正常，这个模型接受图片输入。配置已保存。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connected, and this model accepts image input. Settings saved."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连接正常，这个模型接受图片输入。配置已保存。"
           }
         }
       }
@@ -6754,22 +6674,6 @@
         }
       }
     },
-    "%@ 可以运行，配置已保存。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ runs. The configuration has been saved."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 可以运行，配置已保存。"
-          }
-        }
-      }
-    },
     "扫描中…": {
       "localizations": {
         "en": {
@@ -7122,150 +7026,6 @@
         }
       }
     },
-    "建议提问：": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try asking"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "建议提问："
-          }
-        }
-      }
-    },
-    "提炼本页核心结论": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Key takeaways"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "提炼本页核心结论"
-          }
-        }
-      }
-    },
-    "提取关键数据": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pull out the data"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "提取关键数据"
-          }
-        }
-      }
-    },
-    "翻译并梳理逻辑": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translate and outline"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "翻译并梳理逻辑"
-          }
-        }
-      }
-    },
-    "解释当前代码或报错": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Explain this code or error"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解释当前代码或报错"
-          }
-        }
-      }
-    },
-    "找出潜在问题": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find potential problems"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "找出潜在问题"
-          }
-        }
-      }
-    },
-    "重构优化建议": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggest a refactor"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重构优化建议"
-          }
-        }
-      }
-    },
-    "梳理当前屏幕内容": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Summarize this screen"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "梳理当前屏幕内容"
-          }
-        }
-      }
-    },
-    "总结要点与待办": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Takeaways and to-dos"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "总结要点与待办"
-          }
-        }
-      }
-    },
     "请提炼当前网页的核心要点和关键结论，分条列出。": {
       "localizations": {
         "en": {
@@ -7282,38 +7042,6 @@
         }
       }
     },
-    "请从当前页面中提取关键事实、数据或步骤清单。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Extract the key facts, figures, or step-by-step instructions from this page."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请从当前页面中提取关键事实、数据或步骤清单。"
-          }
-        }
-      }
-    },
-    "请简述并翻译当前页面的主要脉络，用清晰中文说明。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Outline and translate the main thread of this page in clear English."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请简述并翻译当前页面的主要脉络，用清晰中文说明。"
-          }
-        }
-      }
-    },
     "请分析当前窗口中的代码或报错信息，指出其核心原因。": {
       "localizations": {
         "en": {
@@ -7326,38 +7054,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "请分析当前窗口中的代码或报错信息，指出其核心原因。"
-          }
-        }
-      }
-    },
-    "请检查当前代码是否存在潜在缺陷或边缘情况，并给出修复方案。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check this code for defects and edge cases, and propose fixes."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请检查当前代码是否存在潜在缺陷或边缘情况，并给出修复方案。"
-          }
-        }
-      }
-    },
-    "针对当前窗口里的实现，提供更简洁、高性能的重构建议。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggest a simpler, faster refactor of the implementation in this window."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "针对当前窗口里的实现，提供更简洁、高性能的重构建议。"
           }
         }
       }
@@ -7566,22 +7262,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "关闭截图附带"
-          }
-        }
-      }
-    },
-    "请梳理当前窗口呈现的核心内容，帮我快速把握重点。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Summarize what this window is showing so I can get the gist quickly."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请梳理当前窗口呈现的核心内容，帮我快速把握重点。"
           }
         }
       }
@@ -10294,54 +9974,6 @@
         }
       }
     },
-    "中文": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chinese"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "中文"
-          }
-        }
-      }
-    },
-    "粤语": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cantonese"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粤语"
-          }
-        }
-      }
-    },
-    "共享本地模型": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shared local model"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "共享本地模型"
-          }
-        }
-      }
-    },
     "文件就绪": {
       "localizations": {
         "en": {
@@ -10354,134 +9986,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件就绪"
-          }
-        }
-      }
-    },
-    "模型缺失": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model missing"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型缺失"
-          }
-        }
-      }
-    },
-    "两种引擎均在本机转写。SenseVoice 复用 Documents/huggingface 中的模型，支持自动检测语言；不会下载、复制或删除模型。Apple Speech 使用系统语言资源。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Both engines transcribe locally. SenseVoice reuses the model in Documents/huggingface and supports automatic language detection. It does not download, copy, or delete models. Apple Speech uses system language resources."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "两种引擎均在本机转写。SenseVoice 复用 Documents/huggingface 中的模型，支持自动检测语言；不会下载、复制或删除模型。Apple Speech 使用系统语言资源。"
-          }
-        }
-      }
-    },
-    "SenseVoice 模型文件缺失或不可读：": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice model file is missing or unreadable:"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice 模型文件缺失或不可读："
-          }
-        }
-      }
-    },
-    "SenseVoice 不支持所选语言。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice does not support the selected language."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice 不支持所选语言。"
-          }
-        }
-      }
-    },
-    "SenseVoice 模型加载失败，请检查本地模型文件。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice could not load. Check the local model files."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice 模型加载失败，请检查本地模型文件。"
-          }
-        }
-      }
-    },
-    "SenseVoice 无法创建转写任务。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice could not create a transcription task."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice 无法创建转写任务。"
-          }
-        }
-      }
-    },
-    "SenseVoice 未能返回转写结果。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice did not return a transcription result."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice 未能返回转写结果。"
-          }
-        }
-      }
-    },
-    "SenseVoice 无法转换此音频格式。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice could not convert this audio format."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SenseVoice 无法转换此音频格式。"
           }
         }
       }
@@ -10644,12 +10148,6 @@
             "value": "使用标准模式的模型"
           }
         }
-      }
-    },
-    "使用默认模型": {
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Use default model" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "使用默认模型" } }
       }
     },
     "本轮为快速模式，尚未采集新的整页正文。当前截图仅覆盖可视区域；不能把已有片段当作全文。若问题依赖未提供的内容，请明确建议切换深入模式重新提问。": {
@@ -11178,6 +10676,420 @@
             "value": "你是一个 macOS 桌面助手。用户会按快捷键唤起你，并附上他当前屏幕的上下文。\n\n上下文可能包含：当前应用名与窗口标题、当前网页的网址与标题、整页正文文字、用户选中的文字，以及一张当前窗口的截图。\n\n要求：\n1. 优先根据提供的上下文回答，不要凭空猜测页面上没有的内容。\n2. 页面正文可能被截断、可能没采集到文末，也可能有跨域嵌入框架读不到。上下文里会写明正文是「完整」还是残缺以及残缺的原因，以那个标注为准，不要自己假设读到的就是全文。\n3. 如果答案所需的信息不在给到的正文里，直接说明这一点，并指出正文断在哪一句、可以看截图的哪一部分，或需要用户滚动到哪里。\n4. 截图只有当前可视区域，正文也可能不完整或过时。两者冲突时说明差异，不要自行假定哪一份正确。\n5. 用用户提问所使用的语言回答，默认简体中文。\n6. 回答简洁直接，先给结论。"
           }
         }
+      }
+    },
+    "%@ 可以运行。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%@ runs." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@ 可以运行。" } }
+      }
+    },
+    "%@ 无法创建转写任务。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%@ could not create a transcription task." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@ 无法创建转写任务。" } }
+      }
+    },
+    "%@ 未能返回转写结果。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%@ did not return a transcription result." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@ 未能返回转写结果。" } }
+      }
+    },
+    "%@ 模型加载失败，请检查本地模型文件。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%@ could not load. Check the local model files." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@ 模型加载失败，请检查本地模型文件。" } }
+      }
+    },
+    "本地模型无法转换此音频格式。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The local model could not convert this audio format." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本地模型无法转换此音频格式。" } }
+      }
+    },
+    "%@模式的模型": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Model for %@ mode" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@模式的模型" } }
+      }
+    },
+    "默认：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Default: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "默认：%@" } }
+      }
+    },
+    "（默认）": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": " (default)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "（默认）" } }
+      }
+    },
+    "默认模型": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Default model" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "默认模型" } }
+      }
+    },
+    "测试连接": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Test Connection" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "测试连接" } }
+      }
+    },
+    "设置改动会自动保存。这里只检查本地工具能否启动，不消耗模型额度。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Changes save automatically. This only checks that the local tool starts and uses no model quota." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "设置改动会自动保存。这里只检查本地工具能否启动，不消耗模型额度。" } }
+      }
+    },
+    "设置改动会自动保存。这里给快速、深入模式实际使用的模型各发送一张 64×64 测试图，验证连接和图片输入。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Changes save automatically. This sends one 64×64 test image to each model Quick and Deep actually use, checking the connection and image input." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "设置改动会自动保存。这里给快速、深入模式实际使用的模型各发送一张 64×64 测试图，验证连接和图片输入。" } }
+      }
+    },
+    "连接正常，%@ 都接受图片输入。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Connected, and %@ both accept image input." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "连接正常，%@ 都接受图片输入。" } }
+      }
+    },
+    "连接正常，这个模型接受图片输入。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Connected, and this model accepts image input." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "连接正常，这个模型接受图片输入。" } }
+      }
+    },
+    "本地模型": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Local models" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本地模型" } }
+      }
+    },
+    "重新扫描": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Rescan" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "重新扫描" } }
+      }
+    },
+    "找到 %lld 个": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld found" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "找到 %lld 个" } }
+      }
+    },
+    "没有找到模型": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "No models found" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "没有找到模型" } }
+      }
+    },
+    "文件夹不存在": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Folder not found" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "文件夹不存在" } }
+      }
+    },
+    "所选模型不可用": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Selected model unavailable" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "所选模型不可用" } }
+      }
+    },
+    "找不到：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not found: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "找不到：%@" } }
+      }
+    },
+    "模型自动识别": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Detected by the model" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "模型自动识别" } }
+      }
+    },
+    "可识别的模型架构：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Recognized model architectures: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "可识别的模型架构：%@" } }
+      }
+    },
+    "所有引擎都在本机转写。本地模型从 ~/Documents/huggingface/models 自动发现：放入新的 sherpa-onnx 模型文件夹后点「重新扫描」即可选用，不需要重装 Wisp。第一次扫描时 macOS 可能询问是否允许访问「文稿」文件夹。Wisp 不会下载、复制或删除模型。Apple Speech 使用系统语言资源。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Every engine transcribes on this Mac. Local models are discovered in ~/Documents/huggingface/models: add a sherpa-onnx model folder and click Rescan to use it, with no need to reinstall Wisp. The first scan may make macOS ask whether Wisp can access your Documents folder. Wisp never downloads, copies or deletes models. Apple Speech uses system language resources." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "所有引擎都在本机转写。本地模型从 ~/Documents/huggingface/models 自动发现：放入新的 sherpa-onnx 模型文件夹后点「重新扫描」即可选用，不需要重装 Wisp。第一次扫描时 macOS 可能询问是否允许访问「文稿」文件夹。Wisp 不会下载、复制或删除模型。Apple Speech 使用系统语言资源。" } }
+      }
+    },
+    "找不到所选的本地模型。请在设置 → 音频中重新扫描，或换一个识别引擎。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The selected local model cannot be found. Rescan in Settings → Audio, or choose another recognition engine." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "找不到所选的本地模型。请在设置 → 音频中重新扫描，或换一个识别引擎。" } }
+      }
+    },
+    "所选的本地模型文件不完整或格式不受支持。请重新下载，或换一个识别引擎。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The selected local model is incomplete or in an unsupported format. Download it again, or choose another recognition engine." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "所选的本地模型文件不完整或格式不受支持。请重新下载，或换一个识别引擎。" } }
+      }
+    },
+    "未扫描": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not scanned" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "未扫描" } }
+      }
+    },
+    "扫描": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Scan" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "扫描" } }
+      }
+    },
+    "「按住说话提问」：按住快捷键说出问题，松开后连同当前屏幕上下文，用当前回答模式直接发送。只用麦克风，不写进录音记录；录音进行中不可用。按一下就松开不会发送。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hold to ask: hold the shortcut, say your question, and release to send it with the current screen context in the current response mode. Microphone only, not saved to listening records, and unavailable while recording. A quick tap sends nothing." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "「按住说话提问」：按住快捷键说出问题，松开后连同当前屏幕上下文，用当前回答模式直接发送。只用麦克风，不写进录音记录；录音进行中不可用。按一下就松开不会发送。" } }
+      }
+    },
+    "中文字形": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Chinese script" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "中文字形" } }
+      }
+    },
+    "保持模型输出": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "As the model writes it" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "保持模型输出" } }
+      }
+    },
+    "删除选中的指令": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Delete Selected Command" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "删除选中的指令" } }
+      }
+    },
+    "名称": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Name" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "名称" } }
+      }
+    },
+    "已允许语音识别，再按住说一次。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Speech Recognition is allowed. Hold the shortcut and speak again." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已允许语音识别，再按住说一次。" } }
+      }
+    },
+    "已允许麦克风，再按住说一次。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Microphone access is allowed. Hold the shortcut and speak again." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已允许麦克风，再按住说一次。" } }
+      }
+    },
+    "常用指令": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Commands" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "常用指令" } }
+      }
+    },
+    "常用指令：": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Commands:" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "常用指令：" } }
+      }
+    },
+    "总结这一页": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Summarize This Page" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "总结这一页" } }
+      }
+    },
+    "恢复默认": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Restore Defaults" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "恢复默认" } }
+      }
+    },
+    "恢复默认指令？": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Restore the default commands?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "恢复默认指令？" } }
+      }
+    },
+    "把我选中的文字翻译成中文；本来就是中文的话就翻译成英文。只给译文，不用解释。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Translate the text I selected into Chinese; if it is already Chinese, translate it into English. Give only the translation, no explanation." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "把我选中的文字翻译成中文；本来就是中文的话就翻译成英文。只给译文，不用解释。" } }
+      }
+    },
+    "指令": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Commands" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "指令" } }
+      }
+    },
+    "指令连同当前屏幕上下文一起发送，就像你亲手输入的问题。输入框里已经写了东西时，那段文字会作为材料跟在指令后面，比如先贴一段话再点「翻译」。快捷键在任何应用里都能用：先唤起面板读取当前窗口，再执行。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "A command is sent with the current screen context, just like a question you type. Text already in the input box follows the command as its material, so you can paste a paragraph and then click Translate. Shortcuts work in any app: Wisp opens the panel to read the current window, then runs the command." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "指令连同当前屏幕上下文一起发送，就像你亲手输入的问题。输入框里已经写了东西时，那段文字会作为材料跟在指令后面，比如先贴一段话再点「翻译」。快捷键在任何应用里都能用：先唤起面板读取当前窗口，再执行。" } }
+      }
+    },
+    "按住说话提问": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hold to ask" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "按住说话提问" } }
+      }
+    },
+    "按住说话最长 60 秒，这段话已放进输入框。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hold to ask lasts at most 60 seconds. What you said is in the input box." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "按住说话最长 60 秒，这段话已放进输入框。" } }
+      }
+    },
+    "提取要点与待办": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Key Points and To-Dos" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "提取要点与待办" } }
+      }
+    },
+    "提问内容": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Question" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "提问内容" } }
+      }
+    },
+    "新建指令": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "New Command" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "新建指令" } }
+      }
+    },
+    "新指令": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "New Command" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "新指令" } }
+      }
+    },
+    "有的本地模型会把普通话写成繁体字，这里统一换成你习惯的写法。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Some local models write Mandarin in Traditional characters. This converts their output to the script you use." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "有的本地模型会把普通话写成繁体字，这里统一换成你习惯的写法。" } }
+      }
+    },
+    "未命名": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Untitled" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "未命名" } }
+      }
+    },
+    "松开快捷键就发送；点这里放弃这次": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Release the shortcut to send; click here to discard" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "松开快捷键就发送；点这里放弃这次" } }
+      }
+    },
+    "正在听你的问题，松开就发送": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Listening to your question. Release to send" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在听你的问题，松开就发送" } }
+      }
+    },
+    "正在录音，先停下录音再按住说话。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "A recording is running. Stop it before using hold to ask." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在录音，先停下录音再按住说话。" } }
+      }
+    },
+    "正在收尾…": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Finishing…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在收尾…" } }
+      }
+    },
+    "没听清，请按住快捷键再说一次。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Nothing was heard. Hold the shortcut and speak again." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "没听清，请按住快捷键再说一次。" } }
+      }
+    },
+    "没有单独指定时，快速直接用默认模型；深入在 Antigravity 上自动换成默认模型的 High 思考档，在 Codex 和 API 上用同一个模型、调高思考强度。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Unless a mode has its own model, Quick sends the default model. Deep switches to the default model's High thinking level on Antigravity, and keeps the same model with higher reasoning effort on Codex and APIs." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "没有单独指定时，快速直接用默认模型；深入在 Antigravity 上自动换成默认模型的 High 思考档，在 Codex 和 API 上用同一个模型、调高思考强度。" } }
+      }
+    },
+    "深入重答": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Answer in Deep" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "深入重答" } }
+      }
+    },
+    "用深入模式重新回答这个问题：读全正文、提高思考强度，替换这条回答": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Answer this question again in Deep mode: read the whole page, think harder, and replace this answer" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "用深入模式重新回答这个问题：读全正文、提高思考强度，替换这条回答" } }
+      }
+    },
+    "简体": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Simplified" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "简体" } }
+      }
+    },
+    "繁體": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Traditional" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "繁體" } }
+      }
+    },
+    "编辑常用指令…": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Edit Commands…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "编辑常用指令…" } }
+      }
+    },
+    "翻译选中内容": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Translate Selection" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "翻译选中内容" } }
+      }
+    },
+    "自己加的和改过的指令都会被替换，它们的快捷键也会清掉。": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Commands you added or edited will be replaced, and their shortcuts cleared." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自己加的和改过的指令都会被替换，它们的快捷键也会清掉。" } }
+      }
+    },
+    "解释代码或报错": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Explain Code or Error" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "解释代码或报错" } }
+      }
+    },
+    "跟随当前模式": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Current mode" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "跟随当前模式" } }
+      }
+    },
+    "选择或新建一条指令": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Select or create a command" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "选择或新建一条指令" } }
+      }
+    },
+    "默认 · 高思考：%@": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Default, high thinking: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "默认 · 高思考：%@" } }
+      }
+    },
+    "（默认模型的 High 档）": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": " (default model, High level)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "（默认模型的 High 档）" } }
       }
     }
   }

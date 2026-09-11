@@ -11,6 +11,8 @@ extension KeyboardShortcuts.Name {
                                               default: .init(.return, modifiers: [.control, .option]))
     static let toggleAssistant = Self("toggleAssistant",
                                       default: .init(.space, modifiers: [.control, .option]))
+    /// Held, not pressed. Unassigned until the user records one, like the mode shortcuts.
+    static let pushToTalk = Self("pushToTalk")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -146,6 +148,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         onListeningShortcut(.stageListening) { $0.stageRecentSpeech() }
         onListeningShortcut(.analyzeListening) { $0.analyzeRecentSpeech() }
         onListeningShortcut(.stopAndAnalyzeListening) { $0.stopAndAnalyze() }
+        // The master switch is checked inside `begin()`; a key-up must always reach `end()`.
+        KeyboardShortcuts.onKeyDown(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.begin() } }
+        KeyboardShortcuts.onKeyUp(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.end() } }
+        MainActor.assumeIsolated { QuickCommandStore.shared.registerShortcuts() }
 
         AdvancedShortcutMonitor.shared.configure {
             Task { @MainActor in

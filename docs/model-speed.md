@@ -29,7 +29,7 @@ Validation: full XCTest passed 35 tests, zero failures, including preset order, 
 
 ## Response modes
 
-The composer offers Quick and Deep, with Quick as the default. Settings → Model lets you assign a shortcut to each mode and enter separate Quick/Deep model IDs for the current API connection or CLI. Shortcuts start unassigned to avoid taking over existing keys. They select a mode without sending a question. Blank model fields inherit the connection's default model; the panel model menu updates the selected mode's override. Overrides are isolated by connection, including API path or CLI provider/path.
+The composer offers Quick and Deep, with Quick as the default. Settings → Model lets you assign a shortcut to each mode and enter separate Quick/Deep model IDs for the current API connection or CLI. Shortcuts start unassigned to avoid taking over existing keys. They select a mode without sending a question. Blank model fields follow the connection's default model: Quick sends the default model itself, and Deep sends its High thinking level on Antigravity (for example `gemini-3.6-flash-low` → `gemini-3.6-flash-high`) when the CLI lists one. Antigravity names thinking levels in model IDs; Codex and the documented APIs keep one model and raise reasoning effort through request parameters instead, so their Deep keeps the default model. Claude Code has no verified per-mode thinking control, so its Deep keeps the default model too. An explicit per-mode model always wins. The panel model menu updates the selected mode's override. Overrides are isolated by connection, including API path or CLI provider/path.
 
 The Model settings page uses the same menu selection pattern as the panel. The Response mode row ends with an information button containing the active software, endpoint or CLI executable, and effective Quick/Deep models; only models for the current connection are offered in the table. API profiles are keyed by normalized scheme, host, port and path; CLI profiles include the CLI provider and executable path. Switching connections restores the matching Quick/Deep choices. A trailing slash or capitalization change in an endpoint does not create a duplicate profile.
 
@@ -38,7 +38,13 @@ Controls remain editable while preparing or streaming. The current question capt
 | Mode | Context and reasoning | Speed preference |
 | --- | --- | --- |
 | Quick (default) | Current screenshot if enabled, existing page text and transcript; skips waiting for new page text. Low reasoning on supported model families. Concise evidence-based answer. | Fast/priority; OpenRouter sorts by latency |
-| Deep | Waits for configured page capture; high reasoning where supported. Prompt asks for evidence and explicit uncertainty. | Fast/priority; existing routing |
+| Deep | Waits for configured page capture; high reasoning where supported (Antigravity: the default model's High level). Prompt asks for evidence and explicit uncertainty. | Fast/priority; existing routing |
+
+A Quick answer carries an **Answer in Deep** button while it is the last answer. It keeps the question and replaces that answer with a Deep one without using another turn. If the question's page is still the one open, Wisp reads the whole page and attaches a fresh screenshot first; if the user has moved on, the question's recorded context is used instead of the new page. When the Deep answer produces no text (error or Stop), the Quick answer is put back.
+
+## Commands
+
+Settings → Commands holds saved questions (four defaults: Summarize This Page in Deep, Translate Selection in Quick, Explain Code or Error in Deep, Key Points and To-Dos in the current mode). Each has a name, the question text, a mode (current, Quick or Deep) and an optional shortcut. Commands run from the ✦ menu beside the send button, from the empty chat, or by shortcut from any app, which opens the panel and captures that app first. Text already in the input box follows the command as its material. A command runs in its own mode for that question only; the Quick/Deep toggle is not changed.
 
 Fast is a service tier, independent of reasoning depth. Deep can still use Fast. API flags are restricted to documented endpoints; Codex uses advertised capabilities. Supported Claude selections retain their existing Fast setting; account and CLI restrictions still apply. Other CLIs and unknown endpoints retain native behavior. Wisp never changes a free model to a paid model to obtain Fast. Paid accelerated tiers may cost more.
 

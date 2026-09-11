@@ -126,15 +126,13 @@ struct ProviderConfig: Sendable {
         return result
     }
 
-    static func current(mode: ResponseMode? = nil) throws -> ProviderConfig {
-        let settings = AppSettings.shared
-        let baseline = selection(settings: settings)
-        let mode = mode ?? settings.responseMode
-        var config = baseline.selecting(mode, model: settings.responseModel(for: mode, connection: baseline.responseConnectionKey))
-        if config.kind == .openAICompatible {
-            guard let key = KeychainStore.load(for: settings.cloudProvider) else { throw ProviderError.missingKey }
-            config.apiKey = key
-        }
+    /// Adds the stored API key to a config that already carries its mode and model
+    /// (`ActiveModels.config(for:)` decides those, so the UI and the request agree).
+    static func authorized(_ config: ProviderConfig, settings: AppSettings = .shared) throws -> ProviderConfig {
+        guard config.kind == .openAICompatible else { return config }
+        guard let key = KeychainStore.load(for: settings.cloudProvider) else { throw ProviderError.missingKey }
+        var config = config
+        config.apiKey = key
         return config
     }
 

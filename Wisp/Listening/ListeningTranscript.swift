@@ -7,21 +7,85 @@ struct ListeningPreferences: Codable, Equatable {
     var locale = "en-US"
     var savesAudio = false
     // Optional keys preserve preferences saved before alternative engines existed.
-    var recognitionEngine: ListeningRecognitionEngine?
-    var senseVoiceLanguage: String?
+    var recognitionEngine: ListeningEngine?
+    /// Language hint for local models. Each model falls back to its own default when it does not
+    /// accept the saved hint, so the value survives switching between models.
+    var localLanguage: String?
+    var chineseScript: ChineseScript?
+
+    private enum CodingKeys: String, CodingKey {
+        case mode, locale, savesAudio, recognitionEngine, chineseScript
+        // 0.3 had SenseVoice as its only local model and saved its language under this key.
+        case localLanguage = "senseVoiceLanguage"
+    }
 
     static func load(from defaults: UserDefaults) -> Self {
         guard let data = defaults.data(forKey: key),
               var value = try? JSONDecoder().decode(Self.self, from: data) else { return Self() }
         if !locales.contains(value.locale) { value.locale = "en-US" }
-        if let language = value.senseVoiceLanguage, !SenseVoiceRecognition.languages.contains(language) {
-            value.senseVoiceLanguage = "auto"
-        }
         return value
     }
 
     func save(to defaults: UserDefaults) {
         if let data = try? JSONEncoder().encode(self) { defaults.set(data, forKey: Self.key) }
+    }
+}
+
+/// The recognizer a session uses: the system's, or a local model found by `LocalSpeechCatalog`.
+enum ListeningEngine: Hashable, RawRepresentable, Codable {
+    case appleSpeech
+    /// A model folder, by its path relative to `LocalSpeechCatalog.root`.
+    case local(String)
+
+    init?(rawValue: String) {
+        switch rawValue {
+        case "appleSpeech": self = .appleSpeech
+        // 0.3 saved its only local engine by name rather than by folder.
+        case "senseVoice": self = .local(LocalSpeechCatalog.legacySenseVoiceID)
+        default:
+            guard rawValue.hasPrefix(Self.localPrefix), rawValue.count > Self.localPrefix.count else { return nil }
+            self = .local(String(rawValue.dropFirst(Self.localPrefix.count)))
+        }
+    }
+
+    var rawValue: String {
+        switch self {
+        case .appleSpeech: return "appleSpeech"
+        case .local(let id): return Self.localPrefix + id
+        }
+    }
+
+    var requiresSpeechAuthorization: Bool { self == .appleSpeech }
+
+    private static let localPrefix = "local:"
+}
+
+/// How local models write Chinese. Measured: Qwen3-ASR sometimes writes Mandarin in Traditional
+/// characters ("開放時間"), SenseVoice in Simplified. Conversion is ICU's transform via Foundation.
+/// https://unicode-org.github.io/icu/userguide/transforms/general/#script-transliteration
+enum ChineseScript: String, Codable, CaseIterable, Identifiable {
+    case simplified, traditional, original
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .simplified:  return String(localized: "简体")
+        case .traditional: return String(localized: "繁體")
+        case .original:    return String(localized: "保持模型输出")
+        }
+    }
+
+    /// Wisp's Chinese interface is Simplified, and SenseVoice already writes Simplified, so this
+    /// default changes nothing for it. Not guessed from system languages: a Mac listing Traditional
+    /// before Simplified would otherwise turn a Simplified writer's transcripts Traditional.
+    static let `default` = ChineseScript.simplified
+
+    func apply(to text: String) -> String {
+        switch self {
+        case .original:    return text
+        case .simplified:  return text.applyingTransform(StringTransform("Hant-Hans"), reverse: false) ?? text
+        case .traditional: return text.applyingTransform(StringTransform("Hans-Hant"), reverse: false) ?? text
+        }
     }
 }
 
@@ -259,4 +323,7 @@ enum ListeningStorageBudget {
 struct ListeningFailure: LocalizedError {
     let message: String
     var errorDescription: String? { message }
+
+    static var microphoneDenied: Self { .init(message: String(localized: "请在系统设置 → 隐私与安全性 → 麦克风中允许 Wisp。")) }
+    static var speechRecognitionDenied: Self { .init(message: String(localized: "请在系统设置 → 隐私与安全性 → 语音识别中允许 Wisp。")) }
 }

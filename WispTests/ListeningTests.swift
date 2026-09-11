@@ -516,6 +516,41 @@ final class ListeningTests: XCTestCase {
     }
 
     @MainActor
+    func testLongHeaderFitsNarrowPanelInBothLanguagesAndAppearances() throws {
+        let model = AssistantModel.shared
+        let settings = AppSettings.shared
+        let originalPacket = model.packet
+        let originalKind = settings.providerKind
+        let originalModel = settings.model
+        let originalOverrides = UserDefaults.standard.object(forKey: "responseModels")
+        defer {
+            model.packet = originalPacket
+            settings.providerKind = originalKind
+            settings.model = originalModel
+            UserDefaults.standard.set(originalOverrides, forKey: "responseModels")
+        }
+        settings.providerKind = ProviderKind.openAICompatible.rawValue
+        settings.model = "Gemini 3.6 Flash (Low) — a deliberately long model name"
+        settings.setResponseModel("", for: settings.responseMode,
+                                  connection: ProviderConfig.selection().responseConnectionKey)
+        var packet = ContextPacket(appName: "System Settings", bundleID: "com.apple.systempreferences")
+        packet.screenshotJPEG = ScreenCapturer.tinyTestJPEG()
+        packet.pageText = String(repeating: "x", count: 13229)
+        packet.notes = [.info("Fixture capture detail")]
+        model.packet = packet
+        for width: CGFloat in [380, 620] {
+            let language = Bundle.main.preferredLocalizations.first ?? "en"
+            for scheme: ColorScheme in [.light, .dark] {
+                let name = "wisp-header-\(Int(width))-\(language)-\(scheme == .light ? "light" : "dark").png"
+                try render(ContextHeaderView().environmentObject(model).environmentObject(model.store)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .environment(\.locale, Locale(identifier: language))
+                    .environment(\.colorScheme, scheme), filename: name, width: width, height: 60)
+            }
+        }
+    }
+
+    @MainActor
     func testPanelHostingDoesNotImposeContentDrivenResizeLimits() throws {
         let host = PanelController.makePanelContentView(ListeningView())
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 180),

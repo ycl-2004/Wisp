@@ -3,18 +3,21 @@ import SwiftUI
 /// 语音是提问的输入，不是另一个目的地：永远一行，永远不接管回答区域。
 struct ListeningView: View {
     @ObservedObject private var listening = ListeningModel.shared
+    @ObservedObject private var pushToTalk = PushToTalk.shared
     @ObservedObject private var assistant = AssistantModel.shared
 
     var body: some View {
         // 关掉语音就整行让位：面板本来就窄，留一行空着的麦克风只是在占地方。
-        if listening.isEnabled { bar }
+        if listening.isEnabled {
+            if pushToTalk.isActive { pushToTalkBar } else { bar }
+        }
     }
 
     private var bar: some View {
         ListeningBar(state: listening.state,
                      startedAt: listening.startedAt,
                      caption: listening.liveLine,
-                     error: listening.error,
+                     error: pushToTalk.error ?? listening.error,
                      mode: listening.mode,
                      hasTranscript: listening.hasTranscript,
                      canTransfer: listening.canTransfer,
@@ -27,8 +30,30 @@ struct ListeningView: View {
             case .copy:             listening.copyText(listening.transcript?.text ?? "")
             case .openFiles:        listening.showFiles()
             case .toggleTranscript: assistant.toggleTranscriptView()
-            case .dismissError:     listening.clearError()
+            case .dismissError:     pushToTalk.clearError(); listening.clearError()
             }
+        }
+    }
+
+    /// 按住说话借用同一行：红点和实时字幕，没有会议那几个动作。点麦克风等于放弃这次。
+    private var pushToTalkBar: some View {
+        let state: ListeningModel.State
+        let caption: String
+        switch pushToTalk.state {
+        case .idle, .preparing:
+            state = .starting
+            caption = String(localized: "正在准备…")
+        case .listening:
+            state = .recording
+            caption = pushToTalk.caption.isEmpty ? String(localized: "正在听你的问题，松开就发送") : pushToTalk.caption
+        case .finishing:
+            state = .stopping
+            caption = String(localized: "正在收尾…")
+        }
+        return ListeningBar(state: state, startedAt: pushToTalk.startedAt, caption: caption, error: nil,
+                            mode: .microphone, hasTranscript: false, canTransfer: false,
+                            showsTranscript: assistant.showsTranscript, isPushToTalk: true) { action in
+            if action == .toggle { pushToTalk.cancel() }
         }
     }
 }
@@ -47,6 +72,8 @@ struct ListeningBar: View {
     var hasTranscript: Bool
     var canTransfer: Bool
     var showsTranscript: Bool
+    /// 按住说话占用这一行时只留状态和字幕。
+    var isPushToTalk = false
     var perform: (Action) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -95,6 +122,7 @@ struct ListeningBar: View {
     }
 
     private var micHelp: String {
+        if isPushToTalk { return String(localized: "松开快捷键就发送；点这里放弃这次") }
         switch state {
         case .idle:      return String(localized: "开始录音（⌃⌥R）")
         case .starting:  return String(localized: "正在准备…")
@@ -137,7 +165,9 @@ struct ListeningBar: View {
 
     @ViewBuilder
     private var actions: some View {
-        if isRecording {
+        if isPushToTalk {
+            EmptyView()
+        } else if isRecording {
             Chip(icon: "sparkles", text: String(localized: "停止并分析"), active: true, enabled: !isBusy) {
                 perform(.stopAndAnalyze)
             }
@@ -151,7 +181,7 @@ struct ListeningBar: View {
             .help("把刚录到的转写发给 AI 分析（⌃⌥A）")
         }
 
-        if hasTranscript {
+        if hasTranscript, !isPushToTalk {
             Button { perform(.toggleTranscript) } label: {
                 Image(systemName: showsTranscript ? "bubble.left" : "text.alignleft")
             }
@@ -160,7 +190,7 @@ struct ListeningBar: View {
             .accessibilityLabel(showsTranscript ? "回到 AI 回答" : "看转写原文")
         }
 
-        menu
+        if !isPushToTalk { menu }
     }
 
     private var menu: some View {

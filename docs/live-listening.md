@@ -58,8 +58,8 @@ change only the single caption line, never the draft.
 
 ## Settings and cleanup
 
-Settings → Audio groups source/application selection, language, retention, the four
-keyboard shortcuts (start/stop, add to draft, stop & analyze, analyze now),
+Settings → Audio groups source/application selection, language, retention, the five
+keyboard shortcuts (start/stop, add to draft, stop & analyze, analyze now, hold to ask),
 device-language support and permission checks. Source/language/retention
 persist across restarts; the particular application is selected for each session.
 These choices are locked during recording. macOS Sound settings remain the location
@@ -77,37 +77,84 @@ labels are not speaker identification.
 
 ## Recognition engines
 
-Choose **Settings → Audio → Transcription → Recognition engine → SenseVoice Small**.
-Apple Speech remains the default and can be selected again when recording is stopped.
-Engine and language choices persist; SenseVoice defaults to automatic detection with
-Chinese, English, Japanese, Korean and Cantonese hints available separately. Chinese
-output script is chosen by the model, not a Simplified/Traditional conversion option.
+**Settings → Audio → Transcription → Recognition engine** lists Apple Speech (the
+default) and every local model Wisp finds under `~/Documents/huggingface/models/`.
+Engines can be switched while recording is stopped. The choice is saved as the
+model's folder path relative to that root, so renaming a folder shows it as
+"Not found" instead of silently switching engines. Settings from 0.3 that chose
+SenseVoice by name migrate to the folder 0.3 always loaded.
 
-SenseVoice uses sherpa-onnx 1.13.7 on CPU and reads the existing shared files at:
+### Adding a model
 
-```text
-~/Documents/huggingface/models/k2-fsa/
-  sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17/
-    model.int8.onnx
-    tokens.txt
-```
+Copy a sherpa-onnx model folder anywhere up to three levels under the root, usually
+`<organization>/<model>`, then return to Settings → Audio or click **Rescan**. No
+rebuild or reinstall is needed for another model of an architecture Wisp already
+recognizes. Wisp never downloads, copies or deletes models, and shared models are
+excluded from listening-data cleanup.
 
-Wisp does not copy, download or delete these weights. The settings check verifies
-readable files; the model is loaded on a background queue only when starting a
-SenseVoice session. Missing/invalid files produce an error, with no engine or cloud
-fallback. SenseVoice requires no Apple Speech authorization; selected capture
-sources still require microphone or screen/system-audio access.
+| Architecture | Files Wisp looks for | Language |
+| --- | --- | --- |
+| SenseVoice | `model.int8.onnx` or `model.onnx`, whose metadata carries the SenseVoice keys, plus `tokens.txt` | Auto, or a zh / en / ja / ko / yue hint |
+| Qwen3-ASR | `conv_frontend`, `encoder` and `decoder` `.onnx` files (int8 preferred), plus `tokenizer/` with `vocab.json`, `merges.txt` and `tokenizer_config.json` | Detected by the model |
 
-Input is converted to 16 kHz mono and decoded in the existing 1–4-second batches.
-Captions are final batch results with approximate batch timestamps, not word-level
-alignment. A hard batch boundary can split words. CPU inference runs serially away
-from capture and UI queues. Stop drains with the existing ten-second deadline;
-a native decode already running cannot be interrupted, but its late callbacks are
-ignored after cancellation. Shared models are excluded from listening-data cleanup.
+A folder is offered only when one of these layouts matches completely. Before
+offering it, Wisp reads each ONNX file's header without loading weights: the file
+must be structurally complete, and a SenseVoice model must carry every metadata key
+sherpa-onnx reads. This matters because sherpa-onnx ends the whole process instead
+of returning an error when a model lacks a key it expects, and ONNX Runtime throws
+through the C API on a truncated download. A Paraformer or other CTC export has the
+same file names as SenseVoice but not its keys, so it is not offered. A new
+architecture needs one `LocalSpeechFamily` type plus one line in
+`LocalSpeechCatalog.families`, followed by a rebuild.
+
+The saved folder is re-checked when a session starts; missing or incomplete files
+stop with an error and no engine or cloud fallback. Local models require no Apple
+Speech authorization; selected capture sources still require microphone or
+screen/system-audio access.
+
+### Decoding
+
+Input is converted to 16 kHz mono and decoded in the existing 1–4-second batches
+through sherpa-onnx 1.13.7 on CPU. Captions are final batch results with approximate
+batch timestamps, not word-level alignment. A hard batch boundary can split words.
+Inference runs serially away from capture and UI queues. Stop drains with the
+existing ten-second deadline; a native decode already running cannot be interrupted,
+but its late callbacks are ignored after cancellation.
+
+Batches that stay below the quiet threshold used for batch boundaries (peak 0.008)
+are not decoded. Measured on the shipped SenseVoice model, silence and room noise at
+every level up to that threshold transcribe as a stray syllable ("그."), and
+application audio delivers silence continuously between turns. Across the two
+models' own sample recordings, one of 318 one-second slices fell under the gate, and
+that slice was the silence before the first word.
+
+Local output is converted to the Chinese script chosen in Settings → Audio → Chinese script:
+Simplified (the default), Traditional, or as the model writes it. Measured: Qwen3-ASR sometimes
+writes Mandarin in Traditional characters ("開放時間"); SenseVoice writes Simplified, so the
+default changes nothing for it. Conversion uses ICU's Hant/Hans transform through Foundation.
+
+### Hold to ask
+
+Settings → Audio → Shortcuts → Hold to ask (unassigned by default). Holding the shortcut opens
+the panel (capturing the frontmost app) and listens on the microphone only, whatever the
+recording source setting says; releasing drains the last batch and sends the words with the
+current screen context in the current response mode. Nothing is written to listening records,
+so questions never use the archive's 100-session budget. It is unavailable while a recording
+runs, since both would need the microphone. A tap shorter than 0.3 s sends nothing; after 60 s
+the words are placed in the input box without sending, in case the key-up was missed. With a
+local model, listening starts before the model finishes loading: decoding waits for the load on
+the same serial queue, so the first words are not lost (measured: SenseVoice about 0.9 s,
+Qwen3-ASR about 3 s from press to first result).
+
+Measured with `LocalSpeechTests` on an Apple Silicon Mac (a smoke test, not an
+accuracy benchmark): SenseVoice loads in about 0.9 s and decodes a 4-second batch in
+about 0.1 s; Qwen3-ASR 0.6B int8 loads in about 3 s and decodes a 4-second batch in
+under 1 s. The model is loaded each time a session starts.
 
 Sources: [official runtime package](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.7/Package.swift),
-[Swift/C recognition API](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.7/swift-api-examples/SherpaOnnx.swift),
-[model card](https://huggingface.co/FunAudioLLM/SenseVoiceSmall).
+[C API](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.7/sherpa-onnx/c-api/c-api.h),
+[SenseVoice](https://k2-fsa.github.io/sherpa/onnx/sense-voice/index.html),
+[Qwen3-ASR](https://k2-fsa.github.io/sherpa/onnx/qwen3-asr/index.html).
 
 ## Local records and limits
 
@@ -200,7 +247,7 @@ No video frames are saved.
 - The app displays only the latest caption line, with bounded full session text on
   disk and available by opening the session folder. Recognition handles speech/silence; there is no
   identity recognition or acoustic echo cancellation. Apple Speech uses a fixed
-  locale; SenseVoice can automatically detect the language per batch.
+  locale; local models can detect the language per batch.
 - Errors stop both tracks. Reset invalidates callbacks before deleting files, so
   late recognition results cannot recreate a deleted session. At process exit,
   the last known text is checkpointed; the final partial phrase may be incomplete.

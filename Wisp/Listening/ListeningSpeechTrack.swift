@@ -192,7 +192,9 @@ final class ListeningSpeechTrack {
         quietDuration = 0
     }
 
-    /// Only chooses batch boundaries, never discards input based on a threshold.
+    /// Chooses batch boundaries; the track itself never discards input. Local models also skip a
+    /// batch that is quiet throughout (`LocalSpeechRecognition.isSilent`); Apple Speech reports
+    /// such a batch as "no speech" on its own.
     static func isQuiet(_ buffer: AVAudioPCMBuffer) -> Bool {
         guard buffer.frameLength > 0, let channels = buffer.floatChannelData else { return false }
         var peak: Float = 0

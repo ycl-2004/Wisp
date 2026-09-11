@@ -65,23 +65,7 @@ struct ResponseModeToggle: View {
 struct ResponseModeSettings: View {
     @ObservedObject private var settings = AppSettings.shared
     @StateObject private var modelState = ModelMenuState.shared
-    private var baseline: ProviderConfig { ProviderConfig.selection() }
-
-    private var connectionName: String {
-        switch baseline.kind {
-        case .openAICompatible:
-            return settings.cloudProvider.title
-        case .ollama:
-            return "Ollama"
-        case .codexCLI:
-            return settings.cliProvider.title
-        }
-    }
-
-    private func effectiveModel(for mode: ResponseMode) -> String {
-        baseline.selecting(mode,
-            model: settings.responseModel(for: mode, connection: baseline.responseConnectionKey)).model
-    }
+    private var models: ActiveModels { ActiveModels(settings: settings, state: modelState) }
 
     private var cliPath: String {
         switch settings.cliProvider {
@@ -92,8 +76,9 @@ struct ResponseModeSettings: View {
     }
 
     private var responseInfo: String {
-        var lines = [String(localized: "当前连接：\(connectionName)")]
-        switch baseline.kind {
+        let models = self.models
+        var lines = [String(localized: "当前连接：\(models.connectionTitle)")]
+        switch models.baseline.kind {
         case .openAICompatible:
             lines.append(String(localized: "接口：\(settings.baseURL)"))
         case .ollama:
@@ -104,30 +89,19 @@ struct ResponseModeSettings: View {
             if !path.isEmpty { lines.append(String(localized: "可执行文件：\(path)")) }
         }
 
+        let presets = models.presets
         for mode in ResponseMode.allCases {
-            let model = effectiveModel(for: mode)
+            let model = models.effectiveModel(for: mode)
             let title = mode == .quick ? String(localized: "快速模型：") : String(localized: "深入模型：")
-            lines.append(title + (model.isEmpty ? String(localized: "未选择模型") : model))
-            if let note = modelPresets.first(where: { $0.slug == model })?.note, !note.isEmpty {
+            let source = !models.choice(for: mode).isEmpty ? ""
+                : models.defaultRaisesThinking(for: mode) ? String(localized: "（默认模型的 High 档）")
+                : String(localized: "（默认）")
+            lines.append(title + (model.isEmpty ? models.defaultTitle : model) + source)
+            if let note = presets.first(where: { $0.slug == model })?.note, !note.isEmpty {
                 lines.append(note)
             }
         }
         return lines.joined(separator: "\n")
-    }
-
-    private var modelPresets: [ModelCatalog.Preset] {
-        switch baseline.kind {
-        case .openAICompatible:
-            return ModelCatalog.cloudPresets(provider: settings.cloudProvider, baseURL: settings.baseURL)
-        case .ollama:
-            return modelState.ollamaModels.map { .init(slug: $0, title: $0, note: "") }
-        case .codexCLI:
-            switch settings.cliProvider {
-            case .codex: return ModelCatalog.codexPresets()
-            case .agy: return modelState.agyModels.isEmpty ? AgyCLIProvider.fallbackModels : modelState.agyModels
-            case .claudeCode: return ClaudeCodeCLIProvider.presets
-            }
-        }
     }
 
     var body: some View {
@@ -136,6 +110,7 @@ struct ResponseModeSettings: View {
                 Text("速度与准确性").font(.system(size: 13, weight: .semibold))
                 InfoButton(message: [
                     settings.responseMode.explanation,
+                    String(localized: "没有单独指定时，快速直接用默认模型；深入在 Antigravity 上自动换成默认模型的 High 思考档，在 Codex 和 API 上用同一个模型、调高思考强度。"),
                     String(localized: "所有模式均优先请求可用的 Fast／Priority；模型不因加速自动更换。"),
                     String(localized: "回答期间可修改；下次提问生效。")
                 ].joined(separator: "\n\n"))
@@ -168,23 +143,25 @@ struct ResponseModeSettings: View {
             }
         }
         .onAppear {
-            if baseline.kind == .ollama { modelState.refreshOllamaIfStale() }
-            if baseline.kind == .codexCLI, settings.cliProvider == .agy { modelState.refreshAgyIfStale() }
+            let kind = models.baseline.kind
+            if kind == .ollama { modelState.refreshOllamaIfStale() }
+            if kind == .codexCLI, settings.cliProvider == .agy { modelState.refreshAgyIfStale() }
         }
     }
 
     private func responseModeRow(_ mode: ResponseMode) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        let models = self.models
+        return HStack(alignment: .top, spacing: 10) {
             Label(mode.title, systemImage: mode.symbol)
                 .frame(width: 100, alignment: .leading)
             KeyboardShortcuts.Recorder("", name: shortcutName(for: mode))
                 .frame(width: 150, alignment: .leading)
             ResponseModeModelPicker(
-                presets: modelPresets,
-                placeholder: String(localized: "使用默认模型"),
+                presets: models.presets,
+                placeholder: models.defaultChoiceTitle(for: mode),
                 value: Binding(
-                    get: { settings.responseModel(for: mode, connection: baseline.responseConnectionKey) },
-                    set: { settings.setResponseModel($0, for: mode, connection: baseline.responseConnectionKey) }))
+                    get: { models.choice(for: mode) },
+                    set: { models.setChoice($0, for: mode) }))
         }
     }
 
