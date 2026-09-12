@@ -218,7 +218,7 @@ struct IslandView: View {
                         .frame(width: 8, height: 8)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PrivacyPlainButtonStyle())
             .accessibilityLabel(Text("停止生成"))
             .help("停止生成")
         }
@@ -310,7 +310,7 @@ struct IslandView: View {
                         .padding(.horizontal, 7).padding(.vertical, 2)
                         .background(Capsule().fill(Color.white.opacity(0.14)))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrivacyPlainButtonStyle())
                 .accessibilityLabel(Text("停止生成"))
             } else {
                 Text(shortcutLabel)

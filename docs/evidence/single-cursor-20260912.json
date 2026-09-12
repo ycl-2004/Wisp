@@ -1,0 +1,123 @@
+{
+  "date": "2026-09-12",
+  "os": "macOS 26.6.2 (25G83)",
+  "presentation": "single-private",
+  "scope": "Synthetic native fixture compiled with production sources; single-display independent captures, not an all-recorder or whole-app certification.",
+  "native": {
+    "resultPath": "/private/tmp/wisp-single-cursor.7AFr2v/verified-native-r2/result.json",
+    "exitCode": 0,
+    "verdict": "PASS_SINGLE_CURSOR",
+    "issues": [],
+    "transitionFrames": 480,
+    "interactionFrames": {
+      "button": 4,
+      "drag-resize": 31,
+      "menu-selection": 21,
+      "scrolling": 9,
+      "text-selection": 17,
+      "typing": 8
+    },
+    "frames": {
+      "off": 15,
+      "on": 15,
+      "restored": 15
+    },
+    "localSamples": {
+      "off": 528,
+      "on": 504,
+      "restored": 498
+    },
+    "scope": "One private local arrow; independent sampled video omits system and shared arrows in lock mode. Recorder overlays remain separate.",
+    "buttonFeedback": {
+      "samples": 6,
+      "issues": []
+    },
+    "validatorCounterexamples": "11/11 rejected"
+  },
+  "activation": {
+    "resultPath": "/private/tmp/wisp-single-cursor.7AFr2v/final-activation/result.json",
+    "exitCode": 0,
+    "verdict": "PASS_SINGLE_CURSOR",
+    "issues": [],
+    "transitionFrames": 401,
+    "interactionFrames": {},
+    "frames": {
+      "off": 15,
+      "inactive": 15,
+      "on": 14,
+      "restored": 14
+    },
+    "localSamples": {
+      "off": 417,
+      "inactive": 371,
+      "on": 432,
+      "restored": 443
+    },
+    "scope": "One private local arrow; independent sampled video omits system and shared arrows in lock mode. Recorder overlays remain separate."
+  },
+  "recorderClickCounterexample": {
+    "resultPath": "/private/tmp/wisp-single-cursor.7AFr2v/recorder-click-control/result.json",
+    "exitCode": 1,
+    "verdict": "FAIL",
+    "issues": [
+      "on: system/extra cursor or recorder click overlay visible beside the private local pointer"
+    ],
+    "transitionFrames": 555,
+    "interactionFrames": {
+      "button": 4,
+      "drag-resize": 31,
+      "menu-selection": 22,
+      "scrolling": 9,
+      "text-selection": 17,
+      "typing": 8
+    },
+    "frames": {
+      "off": 41,
+      "on": 40,
+      "restored": 40
+    },
+    "localSamples": {
+      "off": 638,
+      "on": 606,
+      "restored": 600
+    },
+    "scope": "One private local arrow; independent sampled video omits system and shared arrows in lock mode. Recorder overlays remain separate."
+  },
+  "xctest": {
+    "passed": 25,
+    "failed": 0,
+    "selection": "13 cursor + 9 non-audio acceptance + 3 related window tests",
+    "resultBundle": "/private/tmp/wisp-single-cursor.7AFr2v/final-regression.xcresult",
+    "log": "/private/tmp/wisp-single-cursor.7AFr2v/final-regression.log"
+  },
+  "localEditingHints": "Native text selection, insertion caret and menu selection remain enabled; actual typing and 11-character selection verified.",
+  "limitations": [
+    "Recorder-side click overlays still visible in 27 of 40 locked frames with showMouseClicks=true.",
+    "No guarantee for other recorders, separate pointer metadata, system/foreign UI, independent event records or hardware capture.",
+    "Local pointer-window samples plus independent recorded system-pointer pixels are not camera verification of every local display frame."
+  ],
+  "sourceSHA256": {
+    "Wisp/Support/LocalCursorController.swift": "792937c2c2dcc49af7ab2e8e086614515733dfa1480799c51d6be0a9f8e99e3e",
+    "Wisp/Support/ScreenPrivacy.swift": "c09dfc7c48096a9f88a466a221a0638e5d2220f9a398ce266a305f3bbcc35137",
+    "WispTests/LocalCursorTests.swift": "f77876910f02eac02c9a3b1bab6201244ed76602f89d31b5b639f8f10ab22af6",
+    "tools/screen-privacy/LocalCursorProbe.swift": "183339135d3f524e2d540c25979ba674740b62ba936f2d7828a218e146501ab4",
+    "tools/screen-privacy/validate-cursor.py": "ffb4f1cb46c57d6bb1203acd5920831b2620ced51dfff6f88b2cb7e89732b434"
+  },
+  "installation": {
+    "status": "installed-and-launched",
+    "app": "/Applications/Wisp.app",
+    "version": "0.4.0",
+    "build": "6",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "strictSignatureVerified": true,
+    "matchesBuildBinary": true,
+    "binarySHA256": "d2a00eafbbdcbec36cc4f855581b70c693217749cae4538d3243ef9b4dc8f705",
+    "backup": "/var/folders/bj/_6886nzd0rd2f4vvw_2bdq7h0000gn/T/wisp-install-backup.Xxa34U/previous-Wisp.app",
+    "debuggerEntitlement": false,
+    "log": "/private/tmp/wisp-single-cursor.7AFr2v/install.log",
+    "uiSmoke": "Installed Wisp launched; settings opened; Privacy cursor lock and window hiding observed on. No permission or recorder preference changes."
+  }
+}

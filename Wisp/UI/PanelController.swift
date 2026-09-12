@@ -8,6 +8,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     static let shared = PanelController()
 
     private var panel: NSPanel?
+    private var presentationGeneration = UUID()
 
     static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
@@ -32,6 +33,8 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// `then` runs once the panel is on screen with this capture done, so an action started from a
     /// shortcut in another app reads that app rather than a stale context.
     func show(then: (@MainActor () -> Void)? = nil) {
+        presentationGeneration = UUID()
+        let generation = presentationGeneration
         let model = AssistantModel.shared
         // 必须在激活自己之前记住目标应用。
         if let front = NSWorkspace.shared.frontmostApplication,
@@ -50,6 +53,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         Task {
             // 只等第一阶段：截图必须赶在浮窗出现之前，否则浮窗会进画面。
             await model.captureShot()
+            // Hide or a newer show can arrive while capture is suspended. An old
+            // completion must not reopen a dismissed window or run its send action.
+            guard self.presentationGeneration == generation else { return }
             position(panel)
             panel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -64,6 +70,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     func hide() {
+        presentationGeneration = UUID()
         ListeningModel.shared.stop()
         PushToTalk.shared.cancel()
         guard let panel else { return }

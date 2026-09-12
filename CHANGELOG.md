@@ -1,5 +1,42 @@
 # Wisp release notes
 
+## Unreleased
+
+### Fixed
+
+- Privacy cursor lock is no longer disabled when window hiding is off. Enabling the lock
+  enables its required window hiding; turning off window hiding also turns off the lock.
+  Disabling only the lock restores the system pointer and keeps windows hidden.
+- Privacy cursor lock now creates only one private moving arrow. Removed the shared
+  parked-arrow window, which could show through translucent hosts or remain behind when
+  they moved. Hide the system pointer before showing its replacement, and remove the
+  replacement before restoring it. Attach the arrow to its host so dismissal hides it
+  immediately. Menu tracking cannot consume the private cursor's hide count and expose
+  another system arrow. Local text selections, insertion carets and menu state remain
+  visible and usable. Compatible recordings now omit the pointer
+  while interacting with Wisp; see [single-cursor verification](docs/single-cursor-20260912.md).
+- The privacy cursor switch now also controls arrow normalization, resize cursor artwork,
+  and custom/plain-button press feedback. Added coverage for non-key floating panels,
+  settings title bars, protected in-process menus/popovers and native drag ownership.
+  Background hover keeps the system pointer; an explicit click activates Wisp and saves
+  the external capture target before cursor replacement.
+  Recorder-generated click circles remain a recording-tool setting; independent
+  ScreenCaptureKit testing with click highlighting enabled confirms this boundary.
+  See [the original click-effect evidence](docs/cursor-lock-repair-20260912.md).
+- A pending panel capture can no longer reopen a dismissed panel or run its stale action.
+
+### Validation
+
+- Added isolated conversation/composer/lifecycle acceptance tests and
+  `bash tools/verify-non-audio.sh unit|native|release`. The current non-audio suite passes
+  80 main tests plus 10 window tests. Installer rollback/cleanup passes eight synthetic cases.
+- Earlier sampled ScreenCaptureKit video retained a stationary arrow, but those checks
+  missed duplicate local cursors. Current single-cursor checks supersede that behavior;
+  native input is preserved. Third-party receivers,
+  multi-display/Space transitions and long-duration performance remain separate gates.
+  No audio tests, real inference, installation or publication are included in this audit.
+  See the [full plan, evidence and remaining checks](docs/non-audio-acceptance-20260911.md).
+
 ## 0.4.0 — 2026-09-11
 
 ### Changed

@@ -142,7 +142,7 @@ private struct CodeBlockView: View {
                             .fill(copied ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.05))
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrivacyPlainButtonStyle())
                 .help("复制代码块")
             }
             .padding(.horizontal, 8)

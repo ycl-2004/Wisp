@@ -114,7 +114,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         MainActor.assumeIsolated {
             // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
+            WispCursorPolicy.install()
             ScreenPrivacy.start()
+            LocalCursorController.shared.beforeActivating = {
+                if let front = NSWorkspace.shared.frontmostApplication,
+                   front.bundleIdentifier != Bundle.main.bundleIdentifier {
+                    AssistantModel.shared.targetApp = front
+                }
+            }
             configureLocalCursor()
             cursorSettingsObservation = AppSettings.shared.objectWillChange.sink { [weak self] _ in
                 Task { @MainActor in self?.configureLocalCursor() }

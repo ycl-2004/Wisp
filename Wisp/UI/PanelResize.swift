@@ -16,7 +16,25 @@ enum PanelResize {
 
     /// Resizing is still handled by the overlay, but its pointer stays an arrow.
     /// This keeps the local-cursor experiment and ordinary Wisp use visually stable.
-    static func cursor(for _: Edges) -> NSCursor { .arrow }
+    @MainActor static func cursor(for edges: Edges) -> NSCursor {
+        guard !WispCursorPolicy.isEnabled, !edges.isEmpty else { return .arrow }
+        if #available(macOS 15.0, *) {
+            let position: NSCursor.FrameResizePosition
+            switch edges {
+            case [.left, .top]: position = .topLeft
+            case [.right, .top]: position = .topRight
+            case [.left, .bottom]: position = .bottomLeft
+            case [.right, .bottom]: position = .bottomRight
+            case .left: position = .left
+            case .right: position = .right
+            case .top: position = .top
+            default: position = .bottom
+            }
+            // https://developer.apple.com/documentation/appkit/nscursor/frameresize(position:directions:)
+            return .frameResize(position: position, directions: .all)
+        }
+        return edges.contains(.left) || edges.contains(.right) ? .resizeLeftRight : .resizeUpDown
+    }
 
     struct Edges: OptionSet {
         let rawValue: Int

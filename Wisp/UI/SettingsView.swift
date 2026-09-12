@@ -59,7 +59,7 @@ struct InfoButton: View {
                 .font(.system(size: 11, weight: .medium))
                 .frame(width: 18, height: 18)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PrivacyPlainButtonStyle())
         .foregroundStyle(.secondary)
         .help(Text(message))
         .accessibilityLabel(Text("信息"))
@@ -628,7 +628,7 @@ private struct ProviderCard: View {
                                   lineWidth: selected ? 1.2 : 0.5)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PrivacyPlainButtonStyle())
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -774,7 +774,7 @@ private struct CaptureOptionCard: View {
             .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PrivacyPlainButtonStyle())
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(selected ? Color.accentColor.opacity(0.10)
@@ -1264,7 +1264,11 @@ private struct PrivacySettingsView: View {
             Section {
                 Toggle(isOn: Binding(
                     get: { settings.hideFromScreenCapture },
-                    set: { ScreenPrivacy.setEnabled($0) }
+                    set: {
+                        // Restore the pointer before making its host capture-visible.
+                        if !$0 { LocalCursorController.shared.setEnabled(false) }
+                        ScreenPrivacy.setEnabled($0)
+                    }
                 )) {
                     HStack(spacing: 5) {
                         Text("在共享和录屏中隐藏 Wisp")
@@ -1273,14 +1277,23 @@ private struct PrivacySettingsView: View {
                 }
                 Toggle(isOn: Binding(
                     get: { settings.localCursorEnabled },
-                    set: { settings.localCursorEnabled = $0 }
+                    set: {
+                        settings.localCursorEnabled = $0
+                        ScreenPrivacy.applyToAllWindows()
+                        LocalCursorController.shared.setEnabled($0)
+                    }
                 )) {
                     HStack(spacing: 5) {
-                        Text("本地光标（实验）")
-                        InfoButton(message: String(localized: "Wisp 活跃时，在窗口内绘制光标并隐藏系统指针，点击照常进行。离开窗口或打开原生菜单时恢复。需要开启窗口隐藏；不同共享工具仍可能显示鼠标或点击标记，请先检查接收端。"))
+                        Text("隐私光标锁定（实验）")
+                        InfoButton(message: String(localized: "开启后，本机使用一个移动箭头并关闭按钮按压特效；兼容录屏中隐藏鼠标，不再补画会残留的静止箭头。后台悬停保留系统指针，点击激活 Wisp 后生效；离开、关闭窗口或关闭选项后恢复。录屏工具另加的鼠标与点击提示需在该工具中关闭。开启时会同时开启窗口隐藏；关闭窗口隐藏也会关闭此选项。请检查实际接收端。"))
                     }
                 }
-                .disabled(!settings.hideFromScreenCapture)
+                .accessibilityLabel(Text("隐私光标锁定（实验）"))
+                if !settings.hideFromScreenCapture {
+                    Text("开启光标锁定时，会同时开启窗口隐藏。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Toggle(isOn: Binding(
                     get: { settings.showsMenuBarIcon },
                     // 关掉之前先问一句：这是没有 Dock 图标的应用唯一看得见的入口。
@@ -1752,7 +1765,7 @@ private struct CompactStepper: View {
                 .frame(width: 23, height: 20)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PrivacyPlainButtonStyle())
         .foregroundStyle(enabled ? Color.secondary : Color.primary.opacity(0.24))
         .disabled(!enabled)
         .accessibilityLabel(Text(label))

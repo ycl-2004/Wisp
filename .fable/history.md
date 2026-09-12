@@ -578,3 +578,95 @@ Prioritize preventing capture of Wisp over availability. Research macOS boundari
 ## Delivery / outstanding items
 Research, reproducible tests, bounded hardening and documentation requirements 1–6 delivered. The universal-invisibility objective is not achieved and cannot be represented as a supported macOS guarantee.
 Outstanding: strict-mode product choice; real Wisp lifecycle/Space animations and multi-display testing; Mission Control leak remediation with positive pixel evidence; other meeting receivers and current-session remote desktop; protected video interaction prototype. These are not marked as passed by the matrix.
+
+# Wisp local cursor experiment — 2026-09-11
+
+## Goal
+Test whether hiding the system cursor and drawing it inside Wisp preserves mouse interaction while omitting the pointer from compatible capture paths.
+
+## Acceptance criteria / append-only requirements
+1. Optional local cursor mode, default off, with existing screen privacy required.
+2. Keep native mouse clicks, selection, scrolling, dragging and resizing; restore the cursor on exit, deactivation, menus, disable and termination.
+3. Validate in independent capture processes with cursor inclusion ON and positive controls; report unsupported/untested sharing paths honestly.
+4. Build and install the tested version at /Applications/Wisp.app for user evaluation.
+5. General sharing/recording compatibility is the target, not a guarantee inferred from a single recorder.
+6. Keep the visible Wisp cursor as an arrow everywhere while preserving resize and drag gestures.
+7. Show a thin, pale-blue rounded inner guide with edge markers so the resize area is discoverable.
+
+## Decisions
+- User approved testing the local cursor proposal; no whole-window duplicate or mouse position warping in production.
+- AppKit/SwiftUI, macOS 14 minimum. Use NSCursor hide/unhide with balanced ownership and a click-through local drawing view.
+- Resize hit-testing remains unchanged; all cursor artwork now resolves to `NSCursor.arrow`.
+- The resize guide is drawn inside the panel bounds and remains click-through; it is an affordance, not a larger hit box.
+- Experiments use synthetic content, local capture only, no meeting transmission or model calls.
+- Commit and push the verified experiment together with its tests, probe, and user-facing documentation.
+
+## Evidence
+- `xcodebuild test` passed 127 tests in `/private/tmp/wisp-local-cursor-tests/Logs/Test/Test-Wisp-2026.09.11_07-21-20--0700.xcresult`, including the arrow-only resize regression check.
+- `/private/tmp/wisp-local-cursor-capture-2/result.json` has off/on/restored groups with cursor-including ScreenCaptureKit, system screenshot and system video captures. Dark cursor pixels were 49/0/49 in the SCK shots and 234/0/234 in system screenshots; native interaction recorded clicks=1, text=`cursor test`, selectionLength=11, scrollY=140.
+- Release build, signing, and replacement completed with `tools/install-local.sh`; `/Applications/Wisp.app` now contains the arrow-only revision at version 0.3.0 build 5.
+- Browser `getDisplayMedia` probe was prepared and opened, but the OS screen-picker was not counted as completed because no user selection was made.
+- The latest Release bundle includes the inner guide; `codesign --verify --deep --strict /Applications/Wisp.app` passes after replacement.
+
+## Delivery / outstanding items
+Requirements 1–7 are implemented and locally verified. Third-party sharing tools remain unverified; user-facing docs and changelog describe the mode as experimental and off by default.
+
+Outstanding: verify the browser picker with the user's explicit screen selection; test Zoom, Meet, Teams, Feishu, OBS, Screen Studio and remote desktop; decide whether to keep the experiment after those results. No universal capture guarantee is claimed.
+
+## Release follow-up — 2026-09-11
+
+### Added requirement
+8. Fast-forward local `main` to the already merged remote PR, update Wisp to `0.4.0`, build and verify the Universal 2 release, push `main` and the `v0.4.0` tag, and leave the worktree on `main`.
+
+### Decisions
+- Remote `main` already contains the feature branch as squash commit `a474a3c`; use a fast-forward locally rather than creating a duplicate merge commit.
+- Use build number 6 for the new marketing version 0.4.0, keeping `project.yml` as the version source of truth.
+- Produce the public artifact with the documented ad-hoc Universal 2 build and keep the local app team-signed for permission testing.
+
+### Evidence
+- Local `main` fast-forwarded from `d83d15a` to remote squash commit `a474a3c`; release metadata is committed in `3d7d61a`.
+- `xcodegen generate` completed, and `xcodebuild test ... CODE_SIGNING_ALLOWED=NO` passed 127/127 tests. The local privacy preference used for the synthetic cursor test was restored afterward.
+- The ad-hoc Release build passed Universal 2 (`arm64` and `x86_64`), strict code-signature validation, no `com.apple.security.get-task-allow`, and bundle version 0.4.0/build 6. The packaged checksum is recorded in `dist/Wisp-macOS-universal.zip.sha256`.
+- `tools/install-local.sh` installed the team-signed 0.4.0/build 6 app at `/Applications/Wisp.app`; its Universal 2 slices and strict signature validation pass with system trust access.
+
+
+# Wisp cursor repair and non-audio end-to-end audit — 2026-09-11
+
+## Goal
+Repair local pointer visibility, captured pointer parking and app-wide arrow artwork, then deliver and execute a repeatable non-audio acceptance plan.
+
+## Acceptance criteria / append-only requirements
+1. In privacy cursor mode the user still sees a moving arrow and can operate Wisp normally.
+2. Compatible shared/recorded output retains a stationary arrow while the user operates Wisp.
+3. Every Wisp surface uses arrow artwork, including empty/filled input, selectable text, buttons, drag and resize.
+4. Preserve native click, typing, selection, scrolling, drag, resize and restoration on leave/menu/deactivate/disable/quit.
+5. Added: audit all non-audio app flows, configuration, context, requests/responses, conversations, privacy, pointer, window layout/expand/collapse, performance and resource release; repair discovered defects in scope.
+6. Added: provide a reproducible full-chain acceptance plan plus evidence and honest remaining limits.
+7. Added: skip audio testing in this phase.
+8. Added: build the repaired app and install the new version to `/Applications/Wisp.app`.
+
+## Decisions / authority
+- No Claude CLI access, including version/auth/session checks. Pure parser and fake-executable unit tests are allowed; inspect them before running.
+- No commit, push or publication was requested. The user later explicitly authorized replacing `/Applications/Wisp.app`; the old bundle was moved to a unique `/private/tmp` rollback directory before installation.
+- Ask asynchronously before live model requests that may spend API credits. All such requests must use synthetic content only; pending answer.
+- Preserve user preferences and existing sessions; isolate new tests rather than changing saved privacy settings.
+- Private moving arrow uses a click-through nonactivating window. Public parked arrow contains only arrow artwork and stays at the entry point. No input event rewriting or mouse warping in production.
+- AppKit NSCursor set/push normalization affects Wisp's process only, independent of privacy setting.
+- Do not claim universal capture protection or zero bugs from bounded checks.
+
+## Evidence / status
+- Initial worktree was clean. Relevant SwiftUI/AppKit implementation, adjacent docs and Apple cursor/runtime/window documentation were inspected before edits.
+- Root causes were fixed: active-app-only gating missed nonactivating key panels; in-content cursor drawing competed with layer-backed UI; native text/control requests bypassed the arrow; the old mode removed the pointer instead of parking a shared one.
+- Focused cursor XCTest is now 8/8, including direct enable/disable dependency transitions. The current non-audio script reports 80 main XCTest plus 10 selected window tests, all passing; installer rollback/cleanup has 8/8 synthetic cases. No audio capture was performed.
+- Native cursor evidence: `/private/tmp/wisp-nonaudio.DJthrv/cursor/result.json` with summary `PASS_SAMPLED_VIDEO` (16/15/14 frames, 7/7 validator counterexamples rejected). Local clicks, text insertion/selection, scrolling, drag, resize and restore passed. Static on-mode screenshots omit the parked arrow and are documented as a limitation.
+- Privacy matrix evidence: 115 synthetic capture groups pass with no marker leaks; protected windows remain enumerable. Surface probe has 4/5 positive controls and one inconclusive zero-control surface, so it is not promoted to a full pass.
+- Chromium 152 used synthetic media and synthetic page rows only; 22 integrity checks passed. Universal2 Release passed strict signature verification with no debugger entitlement. The final ad-hoc candidate was then installed to `/Applications/Wisp.app` at the user's explicit request; rollback is preserved at `/private/tmp/wisp-install-backup.GpWsfK/Wisp.app`.
+- Reproducible plan and limitations: `docs/non-audio-acceptance-20260911.md`; raw JSON: `docs/evidence/non-audio-20260911.json`.
+- Remaining gates are real model requests, actual desktop `getDisplayMedia` selection and third-party receivers, multi-display/Space/Mission Control/sleep transitions, permission prompts, and long-duration production resource measurements. Audio remains explicitly skipped.
+- The cursor-toggle repair was built as a Universal2 Release, installed at `/Applications/Wisp.app`, and verified with matching SHA-256 binaries and `codesign --verify --deep --strict`. The replaced bundle is recoverable at `/private/tmp/wisp-cursor-toggle-backup.IKFcw4/Wisp.app`.
+
+## Delivery status
+Implementation, the bounded non-audio audit, and the user-requested `/Applications` installation
+are complete. The requested cursor behavior is implemented and evidenced for the sampled
+continuous-video path; the explicit limitations above remain open gates rather than hidden
+assumptions.

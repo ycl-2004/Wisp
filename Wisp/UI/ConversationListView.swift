@@ -117,7 +117,7 @@ struct ConversationListView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrivacyPlainButtonStyle())
                 .accessibilityLabel(Text("清除"))
                 .help("清除")
             }

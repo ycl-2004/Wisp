@@ -161,7 +161,7 @@ struct ContextHeaderView: View {
                     .background(RoundedRectangle(cornerRadius: DS.chipCorner)
                         .fill(settings.sendScreenshot ? Color.blue.opacity(0.14) : .clear))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PrivacyPlainButtonStyle())
             .help(screenshotChipText)
             .accessibilityLabel("附带截图")
             .accessibilityValue(settings.sendScreenshot ? "On" : "Off")

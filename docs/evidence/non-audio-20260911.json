@@ -1,0 +1,1171 @@
+{
+  "date": "2026-09-11",
+  "scope": "Current working tree; synthetic non-audio checks plus final user-authorized installation, not third-party compatibility certification.",
+  "environment": {
+    "os": "Version 26.6.2 (Build 25G83)",
+    "architecturesBuilt": [
+      "x86_64",
+      "arm64"
+    ]
+  },
+  "automated": {
+    "mainXCTest": {
+      "passed": 80,
+      "failed": 0,
+      "result": "/private/tmp/wisp-nonaudio.OVkg6P/unit.xcresult"
+    },
+    "windowXCTest": {
+      "passed": 10,
+      "failed": 0,
+      "result": "/private/tmp/wisp-nonaudio.OVkg6P/window.xcresult"
+    },
+    "installerSynthetic": {
+      "passed": 8,
+      "failed": 0,
+      "log": "/private/tmp/wisp-nonaudio.OVkg6P/installer.log"
+    }
+  },
+  "native": {
+    "cursorValidation": {
+      "verdict": "PASS_SAMPLED_VIDEO",
+      "issues": [],
+      "frames": {
+        "off": 16,
+        "on": 15,
+        "restored": 14
+      },
+      "scope": "Synthetic SCK continuous video plus one system-video sample per mode. No third-party receiver guarantee.",
+      "staticScreenshotPointerPresent": {
+        "off": true,
+        "on": false,
+        "restored": true
+      },
+      "fixtureCPUPercent": {
+        "off": 4.23,
+        "on": 4.04,
+        "restored": 2.17
+      },
+      "validatorCounterexamples": "7/7 rejected",
+      "latestProbe": "/private/tmp/wisp-nonaudio.DJthrv/cursor/result.json"
+    },
+    "cursorReportPreviousPass": {
+      "afterLeaving": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "localVisible": false,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.28440400000000005,
+        "phaseSeconds": 2.8000926249997065,
+        "replacing": false,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      },
+      "modes": [
+        {
+          "distinctPointerPositions": 12,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{0, 0}, {0, 0}}",
+            "localVisible": false,
+            "parkedFrame": "{{0, 0}, {0, 0}}",
+            "phase": "off",
+            "phaseCPUSeconds": 0.09038999999999997,
+            "phaseSeconds": 3.077883791666409,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          },
+          "mode": "off",
+          "sckFrames": [
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 50,
+              "darkMaxX": 72,
+              "darkMaxY": 91,
+              "darkMinX": 65,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209471,
+              "dark": 51,
+              "darkMaxX": 79,
+              "darkMaxY": 91,
+              "darkMinX": 72,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209471,
+              "dark": 51,
+              "darkMaxX": 79,
+              "darkMaxY": 91,
+              "darkMinX": 72,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209471,
+              "dark": 53,
+              "darkMaxX": 86,
+              "darkMaxY": 91,
+              "darkMinX": 79,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209473,
+              "dark": 56,
+              "darkMaxX": 93,
+              "darkMaxY": 91,
+              "darkMinX": 86,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209482,
+              "dark": 56,
+              "darkMaxX": 100,
+              "darkMaxY": 91,
+              "darkMinX": 93,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209487,
+              "dark": 57,
+              "darkMaxX": 107,
+              "darkMaxY": 91,
+              "darkMinX": 100,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209487,
+              "dark": 57,
+              "darkMaxX": 114,
+              "darkMaxY": 91,
+              "darkMinX": 107,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209487,
+              "dark": 57,
+              "darkMaxX": 114,
+              "darkMaxY": 91,
+              "darkMinX": 107,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 57,
+              "darkMaxX": 121,
+              "darkMaxY": 91,
+              "darkMinX": 114,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 56,
+              "darkMaxX": 128,
+              "darkMaxY": 91,
+              "darkMinX": 121,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 52,
+              "darkMaxX": 135,
+              "darkMaxY": 91,
+              "darkMinX": 128,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 52,
+              "darkMaxX": 135,
+              "darkMaxY": 91,
+              "darkMinX": 128,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209475,
+              "dark": 50,
+              "darkMaxX": 142,
+              "darkMaxY": 91,
+              "darkMinX": 135,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            }
+          ],
+          "sckScreenshot": {
+            "cyan": 209470,
+            "dark": 49,
+            "darkMaxX": 65,
+            "darkMaxY": 91,
+            "darkMinX": 58,
+            "darkMinY": 79,
+            "magenta": 0,
+            "total": 209612
+          },
+          "systemExit": 0,
+          "systemScreenshot": {
+            "cyan": 838003,
+            "dark": 234,
+            "darkMaxX": 285,
+            "darkMaxY": 184,
+            "darkMinX": 270,
+            "darkMinY": 156,
+            "magenta": 0,
+            "total": 838448
+          },
+          "systemVideo": {
+            "cyan": 837958,
+            "dark": 232,
+            "darkMaxX": 285,
+            "darkMaxY": 184,
+            "darkMinX": 270,
+            "darkMinY": 156,
+            "magenta": 0,
+            "total": 838448
+          },
+          "systemVideoExit": 0
+        },
+        {
+          "distinctPointerPositions": 1,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "localVisible": true,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "on",
+            "phaseCPUSeconds": 0.115319,
+            "phaseSeconds": 2.800581083333327,
+            "replacing": true,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          },
+          "mode": "on",
+          "sckFrames": [
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            }
+          ],
+          "sckScreenshot": {
+            "cyan": 209612,
+            "dark": 0,
+            "darkMaxX": -1,
+            "darkMaxY": -1,
+            "darkMinX": 556,
+            "darkMinY": 377,
+            "magenta": 0,
+            "total": 209612
+          },
+          "systemExit": 0,
+          "systemScreenshot": {
+            "cyan": 838448,
+            "dark": 0,
+            "darkMaxX": -1,
+            "darkMaxY": -1,
+            "darkMinX": 1112,
+            "darkMinY": 754,
+            "magenta": 0,
+            "total": 838448
+          },
+          "systemVideo": {
+            "cyan": 837958,
+            "dark": 233,
+            "darkMaxX": 131,
+            "darkMaxY": 184,
+            "darkMinX": 116,
+            "darkMinY": 156,
+            "magenta": 0,
+            "total": 838448
+          },
+          "systemVideoExit": 0
+        },
+        {
+          "distinctPointerPositions": 12,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{531, 550}, {28, 40}}",
+            "localVisible": false,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "restored",
+            "phaseCPUSeconds": 0.06314999999999998,
+            "phaseSeconds": 2.8001207083329973,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          },
+          "mode": "restored",
+          "sckFrames": [
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 49,
+              "darkMaxX": 65,
+              "darkMaxY": 91,
+              "darkMinX": 58,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209470,
+              "dark": 50,
+              "darkMaxX": 72,
+              "darkMaxY": 91,
+              "darkMinX": 65,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209471,
+              "dark": 51,
+              "darkMaxX": 79,
+              "darkMaxY": 91,
+              "darkMinX": 72,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209473,
+              "dark": 53,
+              "darkMaxX": 86,
+              "darkMaxY": 91,
+              "darkMinX": 79,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209473,
+              "dark": 56,
+              "darkMaxX": 93,
+              "darkMaxY": 91,
+              "darkMinX": 86,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209473,
+              "dark": 56,
+              "darkMaxX": 93,
+              "darkMaxY": 91,
+              "darkMinX": 86,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209482,
+              "dark": 56,
+              "darkMaxX": 100,
+              "darkMaxY": 91,
+              "darkMinX": 93,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209487,
+              "dark": 57,
+              "darkMaxX": 107,
+              "darkMaxY": 91,
+              "darkMinX": 100,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209487,
+              "dark": 57,
+              "darkMaxX": 114,
+              "darkMaxY": 91,
+              "darkMinX": 107,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209487,
+              "dark": 57,
+              "darkMaxX": 114,
+              "darkMaxY": 91,
+              "darkMinX": 107,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 57,
+              "darkMaxX": 121,
+              "darkMaxY": 91,
+              "darkMinX": 114,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 56,
+              "darkMaxX": 128,
+              "darkMaxY": 91,
+              "darkMinX": 121,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209488,
+              "dark": 52,
+              "darkMaxX": 135,
+              "darkMaxY": 91,
+              "darkMinX": 128,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            },
+            {
+              "cyan": 209475,
+              "dark": 50,
+              "darkMaxX": 142,
+              "darkMaxY": 91,
+              "darkMinX": 135,
+              "darkMinY": 79,
+              "magenta": 0,
+              "total": 209612
+            }
+          ],
+          "sckScreenshot": {
+            "cyan": 209470,
+            "dark": 49,
+            "darkMaxX": 65,
+            "darkMaxY": 91,
+            "darkMinX": 58,
+            "darkMinY": 79,
+            "magenta": 0,
+            "total": 209612
+          },
+          "systemExit": 0,
+          "systemScreenshot": {
+            "cyan": 838003,
+            "dark": 234,
+            "darkMaxX": 285,
+            "darkMaxY": 184,
+            "darkMinX": 270,
+            "darkMinY": 156,
+            "magenta": 0,
+            "total": 838448
+          },
+          "systemVideo": {
+            "cyan": 837958,
+            "dark": 232,
+            "darkMaxX": 285,
+            "darkMaxY": 184,
+            "darkMinX": 270,
+            "darkMinY": 156,
+            "magenta": 0,
+            "total": 838448
+          },
+          "systemVideoExit": 0
+        }
+      ],
+      "nativeInteraction": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.275662,
+        "phaseSeconds": 2.6000979166665275,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      },
+      "os": "Version 26.6.2 (Build 25G83)",
+      "recorderExcludesWindows": false,
+      "scrolling": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{701, 489}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.16315700000000005,
+        "phaseSeconds": 1.5501032083329847,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "showsCursor": true,
+      "textSelection": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{647, 395}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.11498500000000006,
+        "phaseSeconds": 1.249577749999844,
+        "replacing": true,
+        "scrollY": 0,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      }
+    },
+    "matrixValidation": {
+      "verdict": "PASS_SAMPLED_PATHS",
+      "sampleGroups": 115,
+      "leaks": [],
+      "issues": [],
+      "scope": "Synthetic steady-state/selected filter transitions only. No universal guarantee; Mission Control excluded."
+    },
+    "matrixArtifacts": "/private/tmp/wisp-nonaudio.DJthrv/",
+    "surfaces": {
+      "visible": {
+        "appWindows": [
+          {
+            "number": 4294967296,
+            "sharingType": 1,
+            "title": "Item-0",
+            "visible": true
+          },
+          {
+            "number": 808,
+            "sharingType": 1,
+            "title": "WispSurfaceProbe-host",
+            "visible": true
+          },
+          {
+            "number": 809,
+            "sharingType": 1,
+            "title": "",
+            "visible": true
+          },
+          {
+            "number": 810,
+            "sharingType": 1,
+            "title": "",
+            "visible": true
+          },
+          {
+            "number": 813,
+            "sharingType": 1,
+            "title": "",
+            "visible": true
+          },
+          {
+            "number": 8589934592,
+            "sharingType": 1,
+            "title": "",
+            "visible": true
+          }
+        ],
+        "capturePaths": {
+          "cgDisplayCreateImage": true,
+          "cgWindowListCreateImage": true,
+          "screenCaptureKit": true
+        },
+        "fixturePid": 12466,
+        "fixtureUsesProductionScreenPrivacy": true,
+        "menuBarStripMarkerFraction": 0,
+        "mode": "visible",
+        "onScreenWindowsOwnedByFixture": 5,
+        "os": "Version 26.6.2 (Build 25G83)",
+        "surfaces": [
+          {
+            "bounds": {
+              "h": 80,
+              "w": 200,
+              "x": 876,
+              "y": 406
+            },
+            "layer": 101,
+            "markerFraction": 0.862625,
+            "markerFractionDisplayImage": 0.865171875,
+            "markerFractionWindowListImage": 0.865171875,
+            "name": "",
+            "reachableByAppKitProtection": false,
+            "windowNumber": 814
+          },
+          {
+            "bounds": {
+              "h": 172,
+              "w": 260,
+              "x": 526,
+              "y": 389
+            },
+            "layer": 3,
+            "markerFraction": 0.29224060822898035,
+            "markerFractionDisplayImage": 0.2928834973166369,
+            "markerFractionWindowListImage": 0.2928834973166369,
+            "name": "",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 813
+          },
+          {
+            "bounds": {
+              "h": 120,
+              "w": 280,
+              "x": 516,
+              "y": 415
+            },
+            "layer": 3,
+            "markerFraction": 0.38895833333333335,
+            "markerFractionDisplayImage": 0.3898139880952381,
+            "markerFractionWindowListImage": 0.3898139880952381,
+            "name": "",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 810
+          },
+          {
+            "bounds": {
+              "h": 116,
+              "w": 226,
+              "x": 546,
+              "y": 523
+            },
+            "layer": 3,
+            "markerFraction": 0,
+            "markerFractionDisplayImage": 0,
+            "markerFractionWindowListImage": 0,
+            "name": "",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 809
+          },
+          {
+            "bounds": {
+              "h": 272,
+              "w": 320,
+              "x": 496,
+              "y": 339
+            },
+            "layer": 3,
+            "markerFraction": 0.15014935661764706,
+            "markerFractionDisplayImage": 0.15047966452205883,
+            "markerFractionWindowListImage": 0.15047966452205883,
+            "name": "WispSurfaceProbe-host",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 808
+          }
+        ]
+      },
+      "hidden": {
+        "appWindows": [
+          {
+            "number": 4294967296,
+            "sharingType": 1,
+            "title": "Item-0",
+            "visible": true
+          },
+          {
+            "number": 822,
+            "sharingType": 0,
+            "title": "WispSurfaceProbe-host",
+            "visible": true
+          },
+          {
+            "number": 823,
+            "sharingType": 0,
+            "title": "",
+            "visible": true
+          },
+          {
+            "number": 824,
+            "sharingType": 0,
+            "title": "",
+            "visible": true
+          },
+          {
+            "number": 827,
+            "sharingType": 0,
+            "title": "",
+            "visible": true
+          },
+          {
+            "number": 8589934592,
+            "sharingType": 1,
+            "title": "",
+            "visible": true
+          }
+        ],
+        "capturePaths": {
+          "cgDisplayCreateImage": true,
+          "cgWindowListCreateImage": true,
+          "screenCaptureKit": true
+        },
+        "fixturePid": 12829,
+        "fixtureUsesProductionScreenPrivacy": true,
+        "menuBarStripMarkerFraction": 0,
+        "mode": "hidden",
+        "onScreenWindowsOwnedByFixture": 5,
+        "os": "Version 26.6.2 (Build 25G83)",
+        "surfaces": [
+          {
+            "bounds": {
+              "h": 80,
+              "w": 200,
+              "x": 876,
+              "y": 406
+            },
+            "layer": 101,
+            "markerFraction": 0,
+            "markerFractionDisplayImage": 0,
+            "markerFractionWindowListImage": 0,
+            "name": "",
+            "reachableByAppKitProtection": false,
+            "windowNumber": 828
+          },
+          {
+            "bounds": {
+              "h": 172,
+              "w": 260,
+              "x": 526,
+              "y": 389
+            },
+            "layer": 3,
+            "markerFraction": 0,
+            "markerFractionDisplayImage": 0,
+            "markerFractionWindowListImage": 0,
+            "name": "",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 827
+          },
+          {
+            "bounds": {
+              "h": 120,
+              "w": 280,
+              "x": 516,
+              "y": 415
+            },
+            "layer": 3,
+            "markerFraction": 0,
+            "markerFractionDisplayImage": 0,
+            "markerFractionWindowListImage": 0,
+            "name": "",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 824
+          },
+          {
+            "bounds": {
+              "h": 116,
+              "w": 226,
+              "x": 546,
+              "y": 523
+            },
+            "layer": 3,
+            "markerFraction": 0,
+            "markerFractionDisplayImage": 0,
+            "markerFractionWindowListImage": 0,
+            "name": "",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 823
+          },
+          {
+            "bounds": {
+              "h": 272,
+              "w": 320,
+              "x": 496,
+              "y": 339
+            },
+            "layer": 3,
+            "markerFraction": 0,
+            "markerFractionDisplayImage": 0,
+            "markerFractionWindowListImage": 0,
+            "name": "WispSurfaceProbe-host",
+            "reachableByAppKitProtection": true,
+            "windowNumber": 822
+          }
+        ]
+      },
+      "verdict": "PARTIAL: 4 of 5 captured fixture windows had positive visible controls; the zero-control surface is inconclusive."
+    }
+  },
+  "browserDeterministic": {
+    "scope": "synthetic DOM, media events and monotonic clock; not real browser/OS revocation or external monitor",
+    "results": [
+      {
+        "name": "capture rejection is explicit and retry is enabled",
+        "pass": true,
+        "health": "报警：捕获失败，NotAllowedError: injected failure；本次无法判断。"
+      },
+      {
+        "name": "no success before first frame",
+        "pass": true,
+        "health": "待确认：等待新的预览帧。"
+      },
+      {
+        "name": "first frame observed",
+        "pass": true,
+        "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+      },
+      {
+        "name": "startup without frames warns after deadline",
+        "pass": true,
+        "health": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。"
+      },
+      {
+        "name": "frame updates cease: alarm replaces fresh status",
+        "pass": true,
+        "health": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。"
+      },
+      {
+        "name": "fresh frames recover missing-frame warning",
+        "pass": true,
+        "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+      },
+      {
+        "name": "muted track warns immediately",
+        "pass": true,
+        "health": "报警：捕获源暂时不可用；缺失画面不能判为正常。"
+      },
+      {
+        "name": "already muted capture warns immediately",
+        "pass": true,
+        "health": "报警：捕获源暂时不可用；缺失画面不能判为正常。"
+      },
+      {
+        "name": "unmute waits for a fresh frame",
+        "pass": true,
+        "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+      },
+      {
+        "name": "frames while muted cannot clear warning",
+        "pass": true,
+        "health": "报警：捕获源暂时不可用；缺失画面不能判为正常。"
+      },
+      {
+        "name": "unexpected end alarms and clears resources",
+        "pass": true,
+        "health": "报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。"
+      },
+      {
+        "name": "watchdog also detects ended without event",
+        "pass": true,
+        "health": "报警：共享意外中断，可能已撤销授权或结束捕获；本次无法判断。"
+      },
+      {
+        "name": "explicit stop is not an alarm",
+        "pass": true,
+        "health": "共享已停止（主动停止）"
+      },
+      {
+        "name": "blur and focus preserve fresh status, never classify violation",
+        "pass": true,
+        "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+      },
+      {
+        "name": "background is unknown; return requires new frame",
+        "pass": true,
+        "health": "已观察到预览帧更新；内容是否冻结仍需用共享源的可见变化复核。"
+      },
+      {
+        "name": "unsupported frame API cannot report healthy",
+        "pass": true,
+        "health": "待确认：浏览器不支持帧更新检测，无法确认画面是否冻结。"
+      },
+      {
+        "name": "wrong capture surface is invalid and released",
+        "pass": true,
+        "health": "无效测试：未选择整个屏幕。请重新选择。"
+      },
+      {
+        "name": "queued stale callbacks cannot revive stopped session",
+        "pass": true,
+        "health": "共享已停止（主动停止）"
+      },
+      {
+        "name": "pagehide cleans up capture",
+        "pass": true,
+        "health": "共享已停止（页面离开）"
+      },
+      {
+        "name": "repeated warning does not flood log",
+        "pass": true,
+        "health": "报警：超过 3 秒未观察到新预览帧，可能冻结、静态画面或浏览器节流；无法判为正常，请让共享源产生可见变化后复核。"
+      },
+      {
+        "name": "pending picker after stop is discarded",
+        "pass": true
+      },
+      {
+        "name": "pending picker after pagehide is discarded",
+        "pass": true
+      }
+    ],
+    "passed": 22,
+    "failed": 0
+  },
+  "chromiumObservations": {
+    "scope": "Real Chromium 152 UI, synthetic canvas media track and synthetic 50-row page. Observations recorded from browser tool results; no actual desktop getDisplayMedia or AppleEvents bridge.",
+    "preview": [
+      "fresh frame detected",
+      "warning after 3 seconds with no new frames",
+      "new frame cleared warning",
+      "stopped track plus explicit ended event raised alarm and released preview srcObject"
+    ],
+    "productionPageScripts": {
+      "title": "Wisp synthetic context",
+      "selectedText": "Selected synthetic words",
+      "firstAndLastRowsPresent": true,
+      "scrollOffsets": [
+        70,
+        270,
+        70
+      ],
+      "collectorNullAfterFinish": true,
+      "cleanup": true
+    },
+    "taskClosed": true
+  },
+  "release": {
+    "path": "/private/tmp/wisp-nonaudio.FuU8pQ/products/Release/Wisp.app",
+    "buildExit": 0,
+    "signature": "ad-hoc; codesign --verify --deep --strict passed",
+    "signingMode": "ad-hoc (team development certificate unavailable)",
+    "debuggerEntitlementAbsent": true,
+    "installed": true,
+    "installedPath": "/Applications/Wisp.app",
+    "rollbackBackup": "/private/tmp/wisp-install-backup.GpWsfK/Wisp.app",
+    "published": false,
+    "postInstallCodesignVerify": true,
+    "postInstallArchitectures": ["x86_64", "arm64"],
+    "postInstallVersion": "0.4.0 (6)"
+  },
+  "excluded": [
+    "Audio capture/transcription/listening/voice playback",
+    "Actual Claude CLI access",
+    "Real model requests; credit approval unanswered",
+    "Target third-party shared-screen receivers",
+    "Multiple displays, Spaces, Mission Control and sleep/wake",
+    "Long-duration production CPU/RSS/energy measurements"
+  ]
+}

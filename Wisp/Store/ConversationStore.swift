@@ -35,7 +35,8 @@ final class ConversationStore: ObservableObject {
     /// 读到了更新版本的文件时置位。置位期间一律不写盘，否则会把用户的数据覆盖掉。
     private var persistenceBlocked = false
 
-    private let fileURL = AppSettings.supportDirectory.appendingPathComponent("conversations.json")
+    private let fileURL: URL
+    private let settings: AppSettings
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -48,9 +49,12 @@ final class ConversationStore: ObservableObject {
         return d
     }()
 
-    private init() {
+    /// Inject both storage and preferences for isolated acceptance tests.
+    init(fileURL: URL? = nil, settings: AppSettings? = nil) {
+        self.fileURL = fileURL ?? AppSettings.supportDirectory.appendingPathComponent("conversations.json")
+        self.settings = settings ?? .shared
         load()
-        if let saved = AppSettings.shared.lastActiveConversationID,
+        if let saved = self.settings.lastActiveConversationID,
            let uuid = UUID(uuidString: saved),
            conversations.contains(where: { $0.id == uuid }) {
             activeID = uuid
@@ -137,7 +141,7 @@ final class ConversationStore: ObservableObject {
         loadIssue = nil
         conversations = []
         activeID = nil
-        AppSettings.shared.lastActiveConversationID = nil
+        settings.lastActiveConversationID = nil
         persist()
         return backup.lastPathComponent
     }
@@ -146,8 +150,8 @@ final class ConversationStore: ObservableObject {
 
     // MARK: - 上限
 
-    var maxConversations: Int { AppSettings.shared.maxConversations }
-    var maxUserTurns: Int { AppSettings.shared.maxUserTurns }
+    var maxConversations: Int { settings.maxConversations }
+    var maxUserTurns: Int { settings.maxUserTurns }
 
     var canCreateNew: Bool { conversations.count < maxConversations }
 
@@ -174,7 +178,7 @@ final class ConversationStore: ObservableObject {
         let conversation = Conversation()
         conversations.insert(conversation, at: 0)
         activeID = conversation.id
-        AppSettings.shared.lastActiveConversationID = conversation.id.uuidString
+        settings.lastActiveConversationID = conversation.id.uuidString
         persist()
         return conversation
     }
@@ -193,7 +197,7 @@ final class ConversationStore: ObservableObject {
     func select(_ id: UUID) {
         guard conversations.contains(where: { $0.id == id }) else { return }
         activeID = id
-        AppSettings.shared.lastActiveConversationID = id.uuidString
+        settings.lastActiveConversationID = id.uuidString
     }
 
     /// 确保有一个可用的当前对话；已满且没有活跃对话时返回 nil。
@@ -243,7 +247,7 @@ final class ConversationStore: ObservableObject {
         conversations.removeAll { $0.id == id }
         if activeID == id {
             activeID = conversations.first?.id
-            AppSettings.shared.lastActiveConversationID = activeID?.uuidString
+            settings.lastActiveConversationID = activeID?.uuidString
         }
         persist()
     }
@@ -255,7 +259,7 @@ final class ConversationStore: ObservableObject {
         loadIssue = nil
         conversations.removeAll()
         activeID = nil
-        AppSettings.shared.lastActiveConversationID = nil
+        settings.lastActiveConversationID = nil
         persist()
     }
 

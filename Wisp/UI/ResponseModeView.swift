@@ -24,7 +24,7 @@ struct ResponseModeToggle: View {
                                 .fill(settings.responseMode == mode ? Color.accentColor.opacity(0.14) : .clear)
                         )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrivacyPlainButtonStyle())
                 .help(mode.title + " · " + mode.explanation)
                 .accessibilityLabel(Text(mode.title))
                 .accessibilityAddTraits(settings.responseMode == mode ? .isSelected : [])
@@ -33,7 +33,7 @@ struct ResponseModeToggle: View {
                 Button { showsTiming.toggle() } label: {
                     Image(systemName: "stopwatch").font(DS.meta)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrivacyPlainButtonStyle())
                 .foregroundStyle(.secondary)
                 .help("本次回答耗时")
                 .accessibilityLabel("本次回答耗时")

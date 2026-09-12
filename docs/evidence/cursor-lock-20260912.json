@@ -1,0 +1,783 @@
+{
+  "date": "2026-09-12",
+  "captureScope": "Independent local ScreenCaptureKit recorder, synthetic fixture crop, no exclusions or upload",
+  "cases": {
+    "baseline": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "showsCursor": true,
+      "recorderExcludesWindows": false,
+      "showMouseClicks": false,
+      "modes": {
+        "off": {
+          "frameCount": 16,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{0, 0}, {0, 0}}",
+            "localVisible": false,
+            "parkedFrame": "{{0, 0}, {0, 0}}",
+            "phase": "off",
+            "phaseCPUSeconds": 0.09838100000000002,
+            "phaseSeconds": 3.2475564166670665,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "on": {
+          "frameCount": 15,
+          "distinctPointerBounds": 1,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "localVisible": true,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "on",
+            "phaseCPUSeconds": 0.10584500000000002,
+            "phaseSeconds": 3.04999933333238,
+            "replacing": true,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "restored": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{531, 550}, {28, 40}}",
+            "localVisible": false,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "restored",
+            "phaseCPUSeconds": 0.08032099999999998,
+            "phaseSeconds": 3.000182958332516,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        }
+      },
+      "validation": {
+        "verdict": "PASS_SAMPLED_VIDEO",
+        "issues": [],
+        "frames": {
+          "off": 16,
+          "on": 15,
+          "restored": 15
+        },
+        "scope": "Synthetic SCK continuous video plus one system-video sample per mode. No third-party receiver guarantee.",
+        "staticScreenshotPointerPresent": {
+          "off": true,
+          "on": false,
+          "restored": true
+        },
+        "fixtureCPUPercent": {
+          "off": 3.03,
+          "on": 3.47,
+          "restored": 2.68
+        }
+      },
+      "nativeInteraction": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.19275400000000004,
+        "phaseSeconds": 2.649983749999592,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      },
+      "textSelection": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{647, 395}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.07565300000000003,
+        "phaseSeconds": 1.2997726666653762,
+        "replacing": true,
+        "scrollY": 0,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "scrolling": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{701, 489}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.11518,
+        "phaseSeconds": 1.5998181249997288,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "afterLeaving": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "localVisible": false,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.19883599999999996,
+        "phaseSeconds": 2.8499990000000253,
+        "replacing": false,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      }
+    },
+    "click_highlights": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "showsCursor": true,
+      "recorderExcludesWindows": false,
+      "showMouseClicks": true,
+      "modes": {
+        "off": {
+          "frameCount": 42,
+          "distinctPointerBounds": 24,
+          "minPointerPixels": 49,
+          "minControlPixels": 208210,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{0, 0}, {0, 0}}",
+            "localVisible": false,
+            "parkedFrame": "{{0, 0}, {0, 0}}",
+            "phase": "off",
+            "phaseCPUSeconds": 0.12031499999999998,
+            "phaseSeconds": 4.1281028333323775,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "on": {
+          "frameCount": 41,
+          "distinctPointerBounds": 13,
+          "minPointerPixels": 49,
+          "minControlPixels": 208210,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "localVisible": true,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "on",
+            "phaseCPUSeconds": 0.166688,
+            "phaseSeconds": 3.950106833332029,
+            "replacing": true,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "restored": {
+          "frameCount": 41,
+          "distinctPointerBounds": 24,
+          "minPointerPixels": 49,
+          "minControlPixels": 208210,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{531, 550}, {28, 40}}",
+            "localVisible": false,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "restored",
+            "phaseCPUSeconds": 0.09926499999999994,
+            "phaseSeconds": 3.9000084166655142,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        }
+      },
+      "validation": {
+        "verdict": "FAIL",
+        "issues": [
+          "on: recorder click overlay or pointer motion detected"
+        ],
+        "frames": {
+          "off": 42,
+          "on": 41,
+          "restored": 41
+        },
+        "scope": "Synthetic SCK continuous video plus one system-video sample per mode. No third-party receiver guarantee.",
+        "staticScreenshotPointerPresent": {
+          "off": true,
+          "on": false,
+          "restored": true
+        },
+        "fixtureCPUPercent": {
+          "off": 2.91,
+          "on": 4.22,
+          "restored": 2.55
+        }
+      },
+      "nativeInteraction": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.29441800000000007,
+        "phaseSeconds": 2.6503186249992723,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      },
+      "textSelection": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{647, 395}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.11906500000000009,
+        "phaseSeconds": 1.3003767083337152,
+        "replacing": true,
+        "scrollY": 0,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "scrolling": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{701, 489}, {28, 40}}",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.16399300000000006,
+        "phaseSeconds": 1.600314958333911,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "afterLeaving": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "localVisible": false,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.30469,
+        "phaseSeconds": 2.8498327500001324,
+        "replacing": false,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      }
+    },
+    "buttons_and_native_input": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "showsCursor": true,
+      "recorderExcludesWindows": false,
+      "showMouseClicks": false,
+      "modes": {
+        "off": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{0, 0}, {0, 0}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "localVisible": false,
+            "parkedFrame": "{{0, 0}, {0, 0}}",
+            "phase": "off",
+            "phaseCPUSeconds": 0.09446599999999997,
+            "phaseSeconds": 3.209394624998822,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "on": {
+          "frameCount": 15,
+          "distinctPointerBounds": 1,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "localVisible": true,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "on",
+            "phaseCPUSeconds": 0.11371300000000001,
+            "phaseSeconds": 3.0500415833339503,
+            "replacing": true,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "restored": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{531, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "localVisible": false,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "restored",
+            "phaseCPUSeconds": 0.07772899999999999,
+            "phaseSeconds": 3.049985416666459,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        }
+      },
+      "validation": {
+        "verdict": "PASS_SAMPLED_VIDEO",
+        "issues": [],
+        "frames": {
+          "off": 15,
+          "on": 15,
+          "restored": 15
+        },
+        "scope": "Synthetic SCK continuous video plus one system-video sample per mode. No third-party receiver guarantee.",
+        "staticScreenshotPointerPresent": {
+          "off": true,
+          "on": false,
+          "restored": true
+        },
+        "fixtureCPUPercent": {
+          "off": 2.94,
+          "on": 3.73,
+          "restored": 2.55
+        }
+      },
+      "nativeInteraction": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "feedbackClicks": 0,
+        "feedbackHash": "",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.268825,
+        "phaseSeconds": 2.650306374998763,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      },
+      "textSelection": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{647, 395}, {28, 40}}",
+        "feedbackClicks": 0,
+        "feedbackHash": "",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.10565199999999997,
+        "phaseSeconds": 1.250162124999406,
+        "replacing": true,
+        "scrollY": 0,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "scrolling": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{701, 489}, {28, 40}}",
+        "feedbackClicks": 0,
+        "feedbackHash": "",
+        "localVisible": true,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.14975899999999998,
+        "phaseSeconds": 1.6001563333320519,
+        "replacing": true,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{466, 274}, {580, 401}}"
+      },
+      "afterLeaving": {
+        "active": true,
+        "arrow": true,
+        "clicks": 1,
+        "cursorFrame": "{{1098, 207}, {28, 40}}",
+        "feedbackClicks": 0,
+        "feedbackHash": "",
+        "localVisible": false,
+        "parkedFrame": "{{608, 550}, {28, 40}}",
+        "phase": "on",
+        "phaseCPUSeconds": 0.279054,
+        "phaseSeconds": 2.8502914999990026,
+        "replacing": false,
+        "scrollY": 140,
+        "selectionLength": 11,
+        "text": "cursor test",
+        "windowFrame": "{{501, 239}, {605, 416}}"
+      }
+    },
+    "background_false_lock": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "showsCursor": true,
+      "recorderExcludesWindows": false,
+      "showMouseClicks": false,
+      "modes": {
+        "off": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{0, 0}, {0, 0}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": true,
+            "localVisible": false,
+            "parkedFrame": "{{0, 0}, {0, 0}}",
+            "phase": "off",
+            "phaseCPUSeconds": 0.12904999999999997,
+            "phaseSeconds": 3.31639770833317,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "on": {
+          "frameCount": 15,
+          "distinctPointerBounds": 9,
+          "minPointerPixels": 1194,
+          "minControlPixels": 2239,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": false,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": false,
+            "localVisible": true,
+            "parkedFrame": "{{608, 550}, {28, 40}}",
+            "phase": "on",
+            "phaseCPUSeconds": 0.13718799999999998,
+            "phaseSeconds": 3.2000233750004554,
+            "replacing": true,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "restored": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": true,
+            "localVisible": false,
+            "parkedFrame": "{{608, 550}, {28, 40}}",
+            "phase": "restored",
+            "phaseCPUSeconds": 0.100078,
+            "phaseSeconds": 3.050055625000823,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        }
+      }
+    },
+    "corrected_activation": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "showsCursor": true,
+      "recorderExcludesWindows": false,
+      "showMouseClicks": false,
+      "modes": {
+        "off": {
+          "frameCount": 15,
+          "distinctPointerBounds": 11,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{0, 0}, {0, 0}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": true,
+            "localVisible": false,
+            "parkedFrame": "{{0, 0}, {0, 0}}",
+            "phase": "off",
+            "phaseCPUSeconds": 0.13771399999999998,
+            "phaseSeconds": 3.1664697916658042,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "inactive": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": false,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": false,
+            "localVisible": false,
+            "parkedFrame": "{{608, 550}, {28, 40}}",
+            "phase": "inactive",
+            "phaseCPUSeconds": 0.13467999999999997,
+            "phaseSeconds": 3.200070416667586,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "on": {
+          "frameCount": 15,
+          "distinctPointerBounds": 1,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{608, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": true,
+            "localVisible": true,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "on",
+            "phaseCPUSeconds": 0.125282,
+            "phaseSeconds": 3.000000750000254,
+            "replacing": true,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        },
+        "restored": {
+          "frameCount": 15,
+          "distinctPointerBounds": 12,
+          "minPointerPixels": 49,
+          "minControlPixels": 209470,
+          "maxPrivatePixels": 0,
+          "fixture": {
+            "active": true,
+            "arrow": true,
+            "clicks": 0,
+            "cursorFrame": "{{531, 550}, {28, 40}}",
+            "feedbackClicks": 0,
+            "feedbackHash": "",
+            "key": true,
+            "localVisible": false,
+            "parkedFrame": "{{531, 550}, {28, 40}}",
+            "phase": "restored",
+            "phaseCPUSeconds": 0.08541900000000002,
+            "phaseSeconds": 3.0500627083329164,
+            "replacing": false,
+            "scrollY": 0,
+            "selectionLength": 0,
+            "text": "",
+            "windowFrame": "{{466, 274}, {580, 401}}"
+          }
+        }
+      },
+      "validation": {
+        "verdict": "PASS_SAMPLED_ACTIVATION",
+        "issues": [],
+        "frames": {
+          "off": 15,
+          "inactive": 15,
+          "on": 15,
+          "restored": 15
+        },
+        "scope": "Background hover keeps the real pointer; an explicit click activates the fixture before locking."
+      }
+    }
+  },
+  "buttonFeedback": {
+    "samples": [
+      {
+        "afterClicks": 1,
+        "before": "7506381752239476606",
+        "beforeClicks": 0,
+        "held": "3646250120232275892",
+        "mode": "feedback-off",
+        "style": "press"
+      },
+      {
+        "afterClicks": 2,
+        "before": "16865777281963668288",
+        "beforeClicks": 1,
+        "held": "16866523350318558903",
+        "mode": "feedback-off",
+        "style": "icon"
+      },
+      {
+        "afterClicks": 3,
+        "before": "7506381752239476606",
+        "beforeClicks": 2,
+        "held": "6531462508024273378",
+        "mode": "feedback-off",
+        "style": "plain"
+      },
+      {
+        "afterClicks": 4,
+        "before": "7506381752239476606",
+        "beforeClicks": 3,
+        "held": "7506381752239476606",
+        "mode": "feedback-on",
+        "style": "press"
+      },
+      {
+        "afterClicks": 5,
+        "before": "16865777281963668288",
+        "beforeClicks": 4,
+        "held": "16865777281963668288",
+        "mode": "feedback-on",
+        "style": "icon"
+      },
+      {
+        "afterClicks": 6,
+        "before": "7506381752239476606",
+        "beforeClicks": 5,
+        "held": "7506381752239476606",
+        "mode": "feedback-on",
+        "style": "plain"
+      }
+    ],
+    "verdict": "PASS_6_SAMPLES"
+  },
+  "release": {
+    "app": "/private/tmp/wisp-cursor-repair-20260912/products/Release/Wisp.app",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "strictSignatureVerification": "pass",
+    "debuggerEntitlement": false,
+    "binarySHA256": "a3dd00ed1b738592b0c58a531ed67c84de489d61e4d1b5b9b9da9b648968a390",
+    "installed": false
+  },
+  "xctest": {
+    "passed": 24,
+    "failed": 0,
+    "bundle": "/private/tmp/wisp-cursor-repair-20260912/final-regression.xcresult"
+  }
+}

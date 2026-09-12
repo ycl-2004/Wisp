@@ -829,7 +829,9 @@ final class ListeningTests: XCTestCase {
     }
 
     @MainActor
-    func testPanelResizeAlwaysUsesArrowCursor() {
+    func testPanelResizeCursorFollowsPrivacySwitch() {
+        WispCursorPolicy.setEnabled(true)
+        defer { WispCursorPolicy.setEnabled(false) }
         XCTAssertFalse(PanelController.panelStyleMask.contains(.resizable),
                        "The AppKit resizable style would reinstall the system resize cursor")
         XCTAssertEqual(PanelResize.guideInset, 4)
@@ -839,6 +841,11 @@ final class ListeningTests: XCTestCase {
         ]
         for edges in edgeCombinations {
             XCTAssertTrue(PanelResize.cursor(for: edges) === NSCursor.arrow)
+        }
+        WispCursorPolicy.setEnabled(false)
+        XCTAssertTrue(PanelResize.cursor(for: []) === NSCursor.arrow)
+        for edges in edgeCombinations where !edges.isEmpty {
+            XCTAssertFalse(PanelResize.cursor(for: edges) === NSCursor.arrow)
         }
     }
 

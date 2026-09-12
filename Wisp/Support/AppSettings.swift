@@ -80,7 +80,7 @@ enum CaptureScope: String, CaseIterable, Identifiable, Codable {
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
-    private let d = UserDefaults.standard
+    private let d: UserDefaults
 
     private enum K {
         static let providerKind = "providerKind"
@@ -126,7 +126,8 @@ final class AppSettings: ObservableObject {
         static let listeningEnabled = "listeningEnabled"
     }
 
-    private init() {
+    init(defaults: UserDefaults = .standard) {
+        d = defaults
         d.register(defaults: [
             K.providerKind: ProviderKind.openAICompatible.rawValue,
             K.baseURL: CloudProvider.openRouter.baseURL ?? "",
@@ -405,13 +406,23 @@ final class AppSettings: ObservableObject {
     /// 请求兼容捕获路径排除 Wisp；不代表全局防录屏保证，也不覆盖系统生成的预览。
     var hideFromScreenCapture: Bool {
         get { d.bool(forKey: K.hideFromScreenCapture) }
-        set { d.set(newValue, forKey: K.hideFromScreenCapture); objectWillChange.send() }
+        set {
+            d.set(newValue, forKey: K.hideFromScreenCapture)
+            // A checked cursor lock must never silently remain inactive.
+            if !newValue { d.set(false, forKey: K.localCursorEnabled) }
+            objectWillChange.send()
+        }
     }
 
     /// Opt-in experiment; effective only while screen privacy is enabled.
     var localCursorEnabled: Bool {
         get { d.bool(forKey: K.localCursorEnabled) }
-        set { d.set(newValue, forKey: K.localCursorEnabled); objectWillChange.send() }
+        set {
+            // Enabling the lock also enables its required window protection.
+            if newValue { d.set(true, forKey: K.hideFromScreenCapture) }
+            d.set(newValue, forKey: K.localCursorEnabled)
+            objectWillChange.send()
+        }
     }
 
     var islandPosition: String {

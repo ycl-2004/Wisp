@@ -241,7 +241,7 @@ struct ChatView: View {
                     .frame(width: 27, height: 27)
                     .background(Circle().fill(Color.secondary))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PrivacyPlainButtonStyle())
             .keyboardShortcut(".", modifiers: .command)
             .help("停止（⌘.）")
         } else {
@@ -253,7 +253,7 @@ struct ChatView: View {
                         Circle().fill(model.canSend ? Color.accentColor : Color.primary.opacity(0.10))
                     )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PrivacyPlainButtonStyle())
             .disabled(!model.canSend)
             .keyboardShortcut(.return, modifiers: .command)
             .help("发送（⌘↩）· \(providerLabel)")
@@ -507,7 +507,7 @@ private struct MessageRow: View {
                             .fill(copied ? Color.accentColor.opacity(0.12) : Color.clear)
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrivacyPlainButtonStyle())
                 .foregroundStyle(copied ? Color.accentColor : Color.secondary.opacity(0.7))
                 .contentShape(Rectangle())
                 .accessibilityLabel(Text("复制回答"))

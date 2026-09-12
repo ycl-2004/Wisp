@@ -202,16 +202,26 @@ open "$HOME/Applications/Wisp.app"
   setting does not conceal application identity, focus changes, clipboard
   events, or third-party activity records. Cameras and hardware capture are
   unaffected. Verify the actual receiving-side view before relying on it.
-- **Local cursor (experimental).** Settings → Permissions → Screen sharing can draw the
-  cursor inside Wisp while hiding the system cursor. Wisp remains clickable, selectable,
-  scrollable and draggable locally. The drawn pointer is always an arrow, including over resize
-  edges. The option is off by default and only works with Wisp's
-  window-hiding request enabled. ScreenCaptureKit, system screenshots and local video tests
-  showed no cursor pixels while it was enabled and restored them after disabling it; this does
-  not establish behavior for every browser, meeting app, recorder or remote desktop tool.
+- **Privacy cursor lock (experimental).** Settings → Permissions → Screen sharing uses a
+  single private moving arrow after hiding the system pointer. Wisp no longer creates a
+  stationary shared arrow: it could show through translucent windows or remain visible
+  when they moved, producing two cursors. While enabled, the option also
+  uses arrow artwork over text/resize controls and removes custom and plain-button press
+  effects. Turning it off restores native cursor requests and button feedback. Protected
+  panels, settings title bars, non-key floating panels and in-process menus/popovers use
+  the same policy; native drags keep their owner until release. Background hover keeps the
+  system pointer. Clicking activates Wisp before replacing it, preserving the external
+  capture target. Local text selection, insertion carets and menu selection remain usable
+  and visible; their containing windows request exclusion from compatible recordings.
+  The lock defaults off. Enabling it turns on window hiding; turning off window hiding
+  disables the lock, while disabling only the lock keeps windows hidden.
+  **Recording tools can still add click circles or transmit pointer metadata independently.**
+  Disable click highlighting in the recording tool; Wisp cannot switch it off in other apps.
+  Compatible recordings omit the pointer during Wisp interaction; they no longer receive
+  an artificial parked arrow. See [single-cursor verification](docs/single-cursor-20260912.md).
 - **Resize guide.** A thin pale-blue rounded line and small edge markers inside the panel show
   where the custom resize gesture can start. They are visual hints only; the panel remains
-  clickable and the pointer stays an arrow.
+  clickable; resize cursors become arrows while privacy cursor lock is enabled.
 
 **Shortcuts**
 

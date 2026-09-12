@@ -2,7 +2,8 @@ from pathlib import Path
 import subprocess,tempfile
 source=Path('tools/install-local.sh').read_text()
 block=source[source.index('# Prepare and verify'):]
-for failure in ['none','copy','staged-signature','installed-signature']:
+for failure,keep_backup in [(failure,keep) for keep in [False,True]
+                            for failure in ['none','copy','staged-signature','installed-signature']]:
     with tempfile.TemporaryDirectory(prefix='wisp-installer-test-') as tmp:
         root=Path(tmp)
         app=root/'Applications'/'Wisp.app'; app.mkdir(parents=True)
@@ -15,6 +16,7 @@ APP="$1/Applications/Wisp.app"
 BUILT="$1/Built.app"
 TMPDIR="$1"
 failure="$2"
+shift 2
 sign_calls=0
 ditto() {
     [[ "$failure" != copy ]] || return 17
@@ -27,10 +29,14 @@ codesign() {
     return 0
 }
 '''+block)
-        result=subprocess.run(['bash',str(script),str(root),failure],capture_output=True,text=True,errors="replace")
+        args=['bash',str(script),str(root),failure]+(['--keep-backup'] if keep_backup else [])
+        result=subprocess.run(args,capture_output=True,text=True,errors="replace")
         expected='new' if failure=='none' else 'previous'
         assert (app/'marker').read_text()==expected,(failure,result.stdout,result.stderr)
         assert (result.returncode==0)==(failure=='none'),(failure,result.returncode,result.stdout,result.stderr)
         if failure=='none':
-            assert any(p.read_text()=='previous' for p in root.glob('wisp-install-backup.*/previous-Wisp.app/marker'))
-        print(f'{failure}: PASS (installed={expected}, exit={result.returncode})')
+            backups=list(root.glob('wisp-install-backup.*/previous-Wisp.app/marker'))
+            assert bool(backups)==keep_backup,(keep_backup,backups)
+            assert all(p.read_text()=='previous' for p in backups)
+            assert not list((root/'Applications').glob('.Wisp-install.*'))
+        print(f'{failure}, keep_backup={keep_backup}: PASS (installed={expected}, exit={result.returncode})')
