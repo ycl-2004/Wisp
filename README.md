@@ -30,7 +30,7 @@
   ·
   <a href="#build-from-source">Build from source</a>
   ·
-  <a href="README.zh-CN.md">简体中文</a>
+  <a href="README.zh-TW.md">繁體中文</a>
 </p>
 
 Wisp lives in the menu bar. Press `⌃⌥Space`, and it remembers the frontmost
@@ -756,4 +756,4 @@ Wisp is copyright © 2026 YC and available under the [MIT License](LICENSE).
 - [Release notes](CHANGELOG.md)
 - [Privacy policy](PRIVACY.md)
 - [Third-party notices](THIRD-PARTY-NOTICES.txt)
-- [Simplified Chinese README](README.zh-CN.md)
+- [Traditional Chinese README](README.zh-TW.md)
