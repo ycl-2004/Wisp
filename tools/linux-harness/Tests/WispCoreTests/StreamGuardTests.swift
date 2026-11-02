@@ -116,3 +116,44 @@ final class SSELineSplitterTests: XCTestCase {
                        .lineTooLong(limit: SSELineSplitter.maxLineBytes))
     }
 }
+
+final class StreamByteBudgetTests: XCTestCase {
+
+    func testUnderLimitAccountsEveryByte() throws {
+        var budget = StreamByteBudget(limit: 10)
+        for _ in 0..<10 { try budget.add() }
+        XCTAssertEqual(budget.total, 10)
+    }
+
+    func testExactlyAtLimitIsAccepted() throws {
+        var budget = StreamByteBudget(limit: 4)
+        try budget.add(4)
+        XCTAssertEqual(budget.total, 4)
+    }
+
+    func testBytePastLimitThrows() {
+        var budget = StreamByteBudget(limit: 3)
+        XCTAssertNoThrow(try budget.add(3))
+        XCTAssertThrowsError(try budget.add()) { error in
+            XCTAssertEqual(error as? StreamByteBudget.Failure,
+                           .totalTooLarge(limit: 3))
+        }
+        // 抛错后 total 停在上限，不再往上长。
+        XCTAssertEqual(budget.total, 3)
+    }
+
+    func testBulkAddCrossingLimitThrowsAtomically() {
+        var budget = StreamByteBudget(limit: 10)
+        XCTAssertNoThrow(try budget.add(7))
+        XCTAssertThrowsError(try budget.add(4)) { error in
+            XCTAssertEqual(error as? StreamByteBudget.Failure,
+                           .totalTooLarge(limit: 10))
+        }
+        XCTAssertEqual(budget.total, 10)
+    }
+
+    func testDefaultLimitIs32MiB() {
+        XCTAssertEqual(StreamByteBudget.maxTotalBytes, 32 << 20)
+        XCTAssertEqual(StreamByteBudget().limit, StreamByteBudget.maxTotalBytes)
+    }
+}

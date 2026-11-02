@@ -191,10 +191,14 @@ struct OpenAICompatibleProvider: ChatProvider {
 
                         // 不用 `bytes.lines`：它把整行攒齐才交出来，单行没有
                         // 上限。改走有上限的 SSELineSplitter，超长行直接报错。
+                        // 整条流另有累计上限（#52）：无数条合法短行同样能把
+                        // 一次回答喂到失控，按原始字节计数，超限同样中断。
                         var splitter = SSELineSplitter()
+                        var byteBudget = StreamByteBudget()
                         var sawDone = false
                         for try await byte in bytes {
                             if Task.isCancelled { break }
+                            try byteBudget.add()
                             guard let line = try splitter.feed(byte) else { continue }
                             switch SSEParser.parse(line: line) {
                             case .delta(let text): continuation.yield(text)
@@ -217,6 +221,8 @@ struct OpenAICompatibleProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError.cancelled)
                 } catch is SSELineSplitter.Failure {
                     continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的单行数据过长，已中断。")))
+                } catch is StreamByteBudget.Failure {
+                    continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的数据总量过大，已中断。")))
                 } catch let error as ProviderError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError {

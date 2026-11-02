@@ -46,6 +46,40 @@ struct SSELineSplitter {
     }
 }
 
+/// 一次流式回答累计收到的原始字节上限（#52）。
+///
+/// #10 给单行和错误体都设了上限，但一条永不结束的流可以靠无数条合法
+/// 短行无限累积：答案文本、内存、按量计费的额度都跟着涨，最后只剩
+/// 300 秒的资源超时兜底。这里按收到的原始字节（含 SSE 帧开销）累计
+/// 计数，超限按网络错误中断整条流。32 MiB 的取值：最长的合法 Deep
+/// 回答正文在 1 MiB 量级，逐 token 的 SSE 帧开销再放大几倍也远在
+/// 10 MiB 以下，32 MiB 留了数倍余量，同时让失控的流在烧掉更多额度
+/// 之前就停下（慢速滴流的时长仍由 300 秒资源超时管）。
+struct StreamByteBudget {
+    static let maxTotalBytes = 32 << 20
+
+    enum Failure: Error, Equatable {
+        case totalTooLarge(limit: Int)
+    }
+
+    let limit: Int
+    private(set) var total = 0
+
+    init(limit: Int = StreamByteBudget.maxTotalBytes) {
+        self.limit = limit
+    }
+
+    /// 记一笔新收到的字节。累计超过上限时抛 `Failure.totalTooLarge`，
+    /// 调用方应中断这条流；抛错后 total 停在上限，不再增长。
+    mutating func add(_ count: Int = 1) throws {
+        if count > limit - total {
+            total = limit
+            throw Failure.totalTooLarge(limit: limit)
+        }
+        total += count
+    }
+}
+
 /// 解析 OpenAI 风格的 SSE 行，取出 choices[0].delta.content。
 enum SSEParser {
     enum Event {

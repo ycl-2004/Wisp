@@ -5414,6 +5414,50 @@
         }
       }
     },
+    "服务端返回的单行数据过长，已中断。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server returned a single line of data that was too long, so the stream was stopped."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端返回的单行数据过长，已中断。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "服務端返回的單行數據過長，已中斷。"
+          }
+        }
+      }
+    },
+    "服务端返回的数据总量过大，已中断。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server returned too much data in total, so the stream was stopped."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端返回的数据总量过大，已中断。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "服務端返回的數據總量過大，已中斷。"
+          }
+        }
+      }
+    },
     "服务端没有返回说明。": {
       "localizations": {
         "en": {
