@@ -16921,6 +16921,28 @@
           }
         }
       }
+    },
+    "已保存的指令读不出来，下面是默认指令。原始数据还没有被覆盖；在你点「恢复默认」之前，修改不会保存。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your saved commands could not be read, so the defaults are shown below. The original data has not been overwritten; changes will not be saved until you choose Restore Defaults."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存的指令读不出来，下面是默认指令。原始数据还没有被覆盖；在你点「恢复默认」之前，修改不会保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已保存的指令讀不出來，下面是默認指令。原始數據還沒有被覆蓋；在你點「恢復默認」之前，修改不會保存。"
+          }
+        }
+      }
     }
   }
 }

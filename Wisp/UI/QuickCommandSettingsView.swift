@@ -38,6 +38,18 @@ struct QuickCommandSettingsView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
+            if store.loadFailed {
+                // 存着的指令解不开时明说，别让用户以为被「重置」了（#48）。
+                HStack(alignment: .top, spacing: 5) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("已保存的指令读不出来，下面是默认指令。原始数据还没有被覆盖；在你点「恢复默认」之前，修改不会保存。")
+                        .font(.system(size: 11))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
+            }
             List(selection: $selection) {
                 ForEach(store.commands) { command in
                     Label(command.displayTitle,

@@ -59,14 +59,24 @@ final class QuickCommandStore: ObservableObject {
         }
     }
 
+    /// 存着的数据解不开时为真（#48）。以前 init 用 try? 解码、失败就当
+    /// 第一次启动装默认指令，用户会以为指令被「重置」了，而随后任何一次
+    /// 编辑都会把原始数据覆盖掉。现在：内存里照样给默认指令用，但保存
+    /// 被压住，界面上明说，只有用户显式「恢复默认」才清掉这个状态。
+    @Published private(set) var loadFailed = false
+
     private let defaults: UserDefaults
     private var registered: [KeyboardShortcuts.Name] = []
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        if let data = defaults.data(forKey: Self.key),
-           let saved = try? JSONDecoder().decode([QuickCommand].self, from: data) {
-            commands = saved
+        if let data = defaults.data(forKey: Self.key) {
+            if let saved = try? JSONDecoder().decode([QuickCommand].self, from: data) {
+                commands = saved
+            } else {
+                commands = QuickCommand.defaults
+                loadFailed = true
+            }
         } else {
             commands = QuickCommand.defaults
         }
@@ -87,6 +97,8 @@ final class QuickCommandStore: ObservableObject {
     }
 
     func restoreDefaults() {
+        // 显式恢复是解开 loadFailed 的唯一出口：先清状态，didSet 的保存才会落盘。
+        loadFailed = false
         KeyboardShortcuts.reset(commands.map(\.shortcutName))
         commands = QuickCommand.defaults
     }
@@ -116,6 +128,8 @@ final class QuickCommandStore: ObservableObject {
     }
 
     private func save() {
+        // 解码失败后存着的原始数据还在，不能被默认指令默默覆盖（#48）。
+        guard !loadFailed else { return }
         if let data = try? JSONEncoder().encode(commands) { defaults.set(data, forKey: Self.key) }
     }
 }
