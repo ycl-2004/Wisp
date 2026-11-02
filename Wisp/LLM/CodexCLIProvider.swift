@@ -4,8 +4,8 @@ import Foundation
 /// 每轮使用独立的临时目录和 ephemeral thread，不连接用户正在运行的服务。
 struct CodexCLIProvider: ChatProvider {
 
-    /// 一次调用的硬上限。codex 卡住不出声时，读循环阻塞在 availableData 上叫不醒，
-    /// 唯一可靠的解法是从外面把进程杀掉，让管道立刻 EOF。
+    /// 一次调用的硬上限。codex 卡住不出声时，轮询管道的读循环自己退不出来，
+    /// 唯一可靠的解法是从外面把进程杀掉，让读循环在下一片就收尾。
     static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// GUI 应用拿不到登录 shell 的 PATH，只能自己找。
@@ -28,7 +28,7 @@ struct CodexCLIProvider: ChatProvider {
 
     // MARK: - 子进程的跨线程句柄
 
-    /// 读循环跑在 detached task 里、阻塞在 availableData 上，Task.isCancelled 它看不见。
+    /// 读循环跑在 detached task 里轮询管道，Task.isCancelled 它看不见。
     /// 所以取消和超时都不去「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
     private final class RunBox: @unchecked Sendable {
         enum Stop { case cancelled, timedOut }
@@ -147,13 +147,26 @@ struct CodexCLIProvider: ChatProvider {
                     try send(AppServerSession.initializeRequest)
                     var lines = CLIJSONLines()
                     let handle = stdout.fileHandleForReading
-                    while !session.completed {
-                        let chunk = handle.availableData
-                        for object in try lines.append(chunk, endOfFile: chunk.isEmpty) {
+                    func consume(_ objects: [[String: Any]]) throws {
+                        for object in objects {
                             let update = try session.receive(object)
                             for message in update.requests { try send(message) }
                             for text in update.text { continuation.yield(text) }
                         }
+                    }
+                    while !session.completed {
+                        // 不无条件阻塞在 availableData 上（#36）：切片等可读；
+                        // 进程已退出且管道读干时，把残行按 EOF 冲出再收尾 —
+                        // 管道被子进程的后代占着时，真 EOF 永远不会来。
+                        if !PipePoll.waitReadable(handle) {
+                            if !process.isRunning {
+                                try consume(lines.append(Data(), endOfFile: true))
+                                break
+                            }
+                            continue
+                        }
+                        let chunk = handle.availableData
+                        try consume(lines.append(chunk, endOfFile: chunk.isEmpty))
                         if chunk.isEmpty { break }
                     }
 

@@ -132,6 +132,13 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     let handle = stdout.fileHandleForReading
 
                     while true {
+                        // 不无条件阻塞在 availableData 上（#36）：切片等可读，
+                        // 进程已退出且管道读干时按 EOF 收尾 — 管道被子进程的
+                        // 后代占着时，真 EOF 永远不会来。
+                        if !PipePoll.waitReadable(handle) {
+                            if !process.isRunning { break }
+                            continue
+                        }
                         let chunk = handle.availableData
                         if chunk.isEmpty { break }
                         buffer.append(chunk)
@@ -356,8 +363,8 @@ struct ClaudeCodeCLIProvider: ChatProvider {
 
     // MARK: - 子进程的跨线程句柄
 
-    /// 读循环阻塞在 availableData 上，Task.isCancelled 它看不见。取消和超时都不去
-    /// 「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
+    /// 读循环在 detached task 里轮询管道，Task.isCancelled 它看不见。取消和超时都不去
+    /// 「通知」那个循环，而是直接杀进程：进程一死，轮询的读循环自然收尾退出。
     private final class RunBox: @unchecked Sendable {
         enum Stop { case cancelled, timedOut }
 

@@ -178,6 +178,46 @@ struct ProviderConfig: Sendable {
     }
 }
 
+/// 在管道上等「可读」，每次最多等一个短切片（#36）。
+///
+/// 三个 CLI 读循环原本都无条件阻塞在 availableData 上，靠子进程退出后的
+/// EOF 退场。但子进程 fork 出的后代占着管道写端时，EOF 永远不来：主进程
+/// 早已退出，看门狗的 stop(onlyIfRunning:) 因「没在跑」空转，取消也叫
+/// 不醒阻塞中的读。改成 poll 切片后，读循环每片都能重新判断：进程还在
+/// 就继续等，进程不在且管道读干，就按流结束收尾。
+enum PipePoll {
+    static func waitReadable(_ handle: FileHandle, slice: TimeInterval = 0.25) -> Bool {
+        var descriptor = pollfd(fd: handle.fileDescriptor, events: Int16(POLLIN), revents: 0)
+        let result = poll(&descriptor, 1, Int32(max(0, slice) * 1000))
+        // POLLIN / POLLHUP / POLLERR 都意味着该去读一次：
+        // availableData 会给出数据、或空数据（真 EOF），由读循环定夺。
+        return result > 0 && descriptor.revents != 0
+    }
+}
+
+/// 读线程往里灌、调用方在锁下取快照的管道汇合点（#36）。CLICommand 用它
+/// 代替 readDataToEndOfFile：管道被后代进程占着时 EOF 不来，快照至少能
+/// 把已经到的部分交出去，而不是无限等。
+final class PipeSnapshotBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedOut = Data()
+    private var storedErr = Data()
+    private var outReachedEOF = false
+    private var errReachedEOF = false
+
+    func appendOut(_ chunk: Data) { lock.lock(); storedOut.append(chunk); lock.unlock() }
+    func appendErr(_ chunk: Data) { lock.lock(); storedErr.append(chunk); lock.unlock() }
+    func markOutEOF() { lock.lock(); outReachedEOF = true; lock.unlock() }
+    func markErrEOF() { lock.lock(); errReachedEOF = true; lock.unlock() }
+
+    var out: Data { lock.lock(); defer { lock.unlock() }; return storedOut }
+    var err: Data { lock.lock(); defer { lock.unlock() }; return storedErr }
+    var bothReachedEOF: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return outReachedEOF && errReachedEOF
+    }
+}
+
 /// 跑一条短命令并把输出收全。两个本地 CLI provider 的辅助调用
 /// （`--version`、列模型）都走这里，别再各写一份。
 enum CLICommand {
@@ -212,9 +252,28 @@ enum CLICommand {
             return nil
         }
 
-        // 两条管道并行读到 EOF。进程一死管道就关，两个读随之返回。
-        async let outData = readToEnd(stdout.fileHandleForReading)
-        async let errData = readToEnd(stderr.fileHandleForReading)
+        // 两条管道各由一个线程用 availableData 抽到 EOF、边读边存快照。
+        // 不能 await 读完才返回：进程退出后管道可能被它的后代占着，EOF
+        // 永远不来（#36）— 那时拿快照走人，迟到的字节不是这条命令自己的
+        // 输出。readabilityHandler 在 Linux 语义不靠谱，这里用的是三个
+        // provider 读循环同款的阻塞读，两个平台都验证过。
+        let box = PipeSnapshotBox()
+        let outHandle = stdout.fileHandleForReading
+        let errHandle = stderr.fileHandleForReading
+        DispatchQueue.global(qos: .utility).async {
+            while true {
+                let chunk = outHandle.availableData
+                if chunk.isEmpty { box.markOutEOF(); return }
+                box.appendOut(chunk)
+            }
+        }
+        DispatchQueue.global(qos: .utility).async {
+            while true {
+                let chunk = errHandle.availableData
+                if chunk.isEmpty { box.markErrEOF(); return }
+                box.appendErr(chunk)
+            }
+        }
 
         var timedOut = false
         let deadline = Date().addingTimeInterval(timeout)
@@ -224,8 +283,8 @@ enum CLICommand {
         if process.isRunning {
             timedOut = true
             process.terminate()
-            // SIGTERM 不一定收得住，而收不住就是死局：管道一直开着，上面两个读
-            // 永远回不来，这个调用再也不返回，设置页会一直停在「测试中…」。
+            // SIGTERM 不一定收得住，而收不住就是死局：管道一直开着，这个
+            // 调用再也不返回，设置页会一直停在「测试中…」。
             let killDeadline = Date().addingTimeInterval(1)
             while process.isRunning && Date() < killDeadline {
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -233,20 +292,27 @@ enum CLICommand {
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
         }
 
-        let (out, err) = await (outData, errData)
-        process.waitUntilExit()
-        return Result(status: process.terminationStatus,
-                      stdout: String(data: out, encoding: .utf8) ?? "",
-                      stderr: String(data: err, encoding: .utf8) ?? "",
-                      timedOut: timedOut)
-    }
-
-    private static func readToEnd(_ handle: FileHandle) async -> Data {
-        await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                continuation.resume(returning: handle.readDataToEndOfFile())
-            }
+        // 进程已经不在了：再给管道一个短暂的收尾窗口把存量读干。窗口过了
+        // 还没 EOF（后代占着管道）就拿快照返回 — 迟到的字节不是这条命令
+        // 自己的输出，等它没有意义。
+        let drainDeadline = Date().addingTimeInterval(2)
+        while !box.bothReachedEOF && Date() < drainDeadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
         }
+        // 杀到这一步还活着的进程，status 本来就没有参考价值（见 Result 的
+        // timedOut 说明）；不要再 waitUntilExit 赌它退场 — 某些平台上光是
+        // 回收一个不肯死的子进程就能再堵上几十秒。
+        let status: Int32
+        if process.isRunning {
+            status = -1
+        } else {
+            process.waitUntilExit()
+            status = process.terminationStatus
+        }
+        return Result(status: status,
+                      stdout: String(data: box.out, encoding: .utf8) ?? "",
+                      stderr: String(data: box.err, encoding: .utf8) ?? "",
+                      timedOut: timedOut)
     }
 }
 
