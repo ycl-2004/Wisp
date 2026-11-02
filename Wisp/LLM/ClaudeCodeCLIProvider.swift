@@ -113,9 +113,12 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                         }
                     }
 
-                    guard box.adopt(process) else { throw ProviderError.cancelled }
                     do {
-                        try process.run()
+                        try box.start(process)
+                    } catch let error as ProviderError {
+                        // 已被取消/超时收尾：start 在锁内拒绝了启动，直接上报。
+                        stderrHandle.readabilityHandler = nil
+                        throw error
                     } catch {
                         stderrHandle.readabilityHandler = nil
                         box.finish()
@@ -363,11 +366,15 @@ struct ClaudeCodeCLIProvider: ChatProvider {
         private var stopReason: Stop?
         private var settled = false
 
-        func adopt(_ process: Process) -> Bool {
+        /// 启动与取消共用同一把锁（#37）：以前 adopt 与 run() 是两步，
+        /// 取消落在中间时 stop() 看到进程还没跑起来就直接返回，随后
+        /// run() 却把 claude 拉起来了 — 一个谁也杀不掉的孤儿进程。
+        /// 与 Codex 的 RunBox 同一写法：锁内登记并启动，已被收尾就拒绝。
+        func start(_ process: Process) throws {
             lock.lock(); defer { lock.unlock() }
-            guard !settled else { return false }
+            guard !settled else { throw ProviderError.cancelled }
             self.process = process
-            return true
+            try process.run()
         }
 
         /// - Parameter onlyIfRunning: 看门狗专用。进程已经自己退出了就什么都不做，
