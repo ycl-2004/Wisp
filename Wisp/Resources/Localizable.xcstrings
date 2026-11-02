@@ -16899,6 +16899,28 @@
           }
         }
       }
+    },
+    "服务有响应，但返回内容无法识别": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service responded, but its reply could not be recognized."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务有响应，但返回内容无法识别"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "服務有回應，但返回內容無法識別"
+          }
+        }
+      }
     }
   }
 }
