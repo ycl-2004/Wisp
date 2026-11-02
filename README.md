@@ -624,7 +624,7 @@ lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
 ditto --norsrc -c -k --keepParent \
   Build/Release/Wisp.app \
   dist/Wisp-macOS-universal.zip
-shasum -a 256 dist/Wisp-macOS-universal.zip > dist/Wisp-macOS-universal.zip.sha256
+(cd dist && shasum -a 256 Wisp-macOS-universal.zip > Wisp-macOS-universal.zip.sha256)
 ```
 
 `--norsrc` omits resource forks and AppleDouble `._` files. `--sequesterRsrc` is
@@ -645,7 +645,7 @@ plutil -p Build/Release/Wisp.app/Contents/Info.plist
 codesign --verify --deep --strict Build/Release/Wisp.app
 codesign -d --entitlements :- Build/Release/Wisp.app
 unzip -l dist/Wisp-macOS-universal.zip
-shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
+(cd dist && shasum -a 256 -c Wisp-macOS-universal.zip.sha256)
 ```
 
 The Release must not contain `com.apple.security.get-task-allow`. The repository
