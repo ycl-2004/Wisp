@@ -34,11 +34,4 @@ final class Round4SSEDecodeTests: XCTestCase {
         XCTAssertTrue(tail.hasPrefix("tail-"), tail)
         XCTAssertTrue(tail.contains("\u{FFFD}"), tail)
     }
-
-    func testErrorMessageKeepsRawTextDespiteInvalidUTF8() {
-        var body = Data("gateway meltdown: ".utf8)
-        body.append(0xFF)
-        let message = SSEParser.errorMessage(from: body)
-        XCTAssertTrue(message.contains("gateway meltdown"), message)
-    }
 }

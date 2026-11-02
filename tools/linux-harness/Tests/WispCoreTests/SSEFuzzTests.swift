@@ -163,10 +163,12 @@ final class SSELineSplitterBoundaryTests: XCTestCase {
         }
     }
 
-    /// Documents current behaviour: a line that is not valid UTF-8 decodes
-    /// to the empty string (the `?? ""` in feed/finish), which the parser
-    /// then ignores. The bytes are lost, but the stream survives — the
-    /// alternative (throwing) would kill a whole answer over one bad line.
+    /// Since audit #51 the splitter decodes lossily: a line with invalid
+    /// UTF-8 is delivered with U+FFFD in place of the bad bytes instead of
+    /// being silently emptied (the old `?? ""` behaviour this test used to
+    /// document). The parser still ignores the line — its payload is not
+    /// JSON — so the stream survives, and a corrupt byte inside real
+    /// answer text now costs one character, not the whole delta.
     func testInvalidUTF8LineDecodesAsEmptyAndStreamContinues() throws {
         var splitter = SSELineSplitter()
         var lines: [String] = []
@@ -175,7 +177,7 @@ final class SSELineSplitterBoundaryTests: XCTestCase {
         for byte in bytes {
             if let line = try splitter.feed(byte) { lines.append(line) }
         }
-        XCTAssertEqual(lines, ["", "data: [DONE]"])
+        XCTAssertEqual(lines, ["data: \u{FFFD}\u{FFFD}", "data: [DONE]"])
     }
 
     func testLoneCarriageReturnIsContentNotADelimiter() throws {

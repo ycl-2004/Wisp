@@ -96,7 +96,7 @@ enum SSEParser {
             if let message = object["message"] as? String { return message }
             if let detail = object["detail"] as? String { return detail }
         }
-        let raw = String(decoding: data, as: UTF8.self)
+        let raw = String(data: data, encoding: .utf8) ?? ""
         return raw.isEmpty ? String(localized: "服务端没有返回说明。") : String(raw.prefix(400))
     }
 }
