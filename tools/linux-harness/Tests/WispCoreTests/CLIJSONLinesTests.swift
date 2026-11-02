@@ -60,7 +60,7 @@ final class CLIJSONLinesTests: XCTestCase {
         }())
     }
 
-    func testLineExactlyAtTheCapIsAccepted() throws {
+    func testLineJustUnderTheCapIsAccepted() throws {
         var lines = CLIJSONLines()
         // A valid JSON object whose line is just under the cap parses fine.
         let padding = String(repeating: "x", count: CLIJSONLines.maxLineBytes - 16)
