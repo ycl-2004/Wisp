@@ -16,7 +16,7 @@ enum PageTextScript {
     private static let helpers = #"""
       function wClean(s) {
         return String(s || "")
-          .replace(/[ \t ​]+/g, " ")
+          .replace(/[ \t\u00A0\u200B]+/g, " ")
           .replace(/\n[ ]+/g, "\n")
           .replace(/\n{3,}/g, "\n\n")
           .trim();
@@ -71,7 +71,7 @@ enum PageTextScript {
         var lines = raw.split("\n");
         var added = 0;
         for (var i = 0; i < lines.length; i++) {
-          var ln = lines[i].replace(/[ \t ​]+/g, " ").trim();
+          var ln = lines[i].replace(/[ \t\u00A0\u200B]+/g, " ").trim();
           if (!ln || s.seen[ln]) continue;
           s.seen[ln] = 1;
           s.parts.push(ln);
