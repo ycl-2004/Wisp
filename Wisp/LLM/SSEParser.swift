@@ -19,7 +19,9 @@ struct SSELineSplitter {
     /// 否则返回 nil。单行超过上限时抛 `Failure.lineTooLong`，调用方应中断这条流。
     mutating func feed(_ byte: UInt8) throws -> String? {
         if byte == 0x0A {
-            let line = String(data: strippedCR(buffer), encoding: .utf8) ?? ""
+            // 有损解码：一个坏字节只坏它自己，不能整行消失（#51）——
+            // 严格解码失败会把 "" 交出去，答案里凭空少一段还会被存盘。
+            let line = String(decoding: strippedCR(buffer), as: UTF8.self)
             buffer.removeAll(keepingCapacity: true)
             return line
         }
@@ -34,7 +36,7 @@ struct SSELineSplitter {
     /// 没有残行时返回 nil。
     mutating func finish() -> String? {
         guard !buffer.isEmpty else { return nil }
-        let line = String(data: strippedCR(buffer), encoding: .utf8) ?? ""
+        let line = String(decoding: strippedCR(buffer), as: UTF8.self)
         buffer.removeAll()
         return line
     }
@@ -94,7 +96,7 @@ enum SSEParser {
             if let message = object["message"] as? String { return message }
             if let detail = object["detail"] as? String { return detail }
         }
-        let raw = String(data: data, encoding: .utf8) ?? ""
+        let raw = String(decoding: data, as: UTF8.self)
         return raw.isEmpty ? String(localized: "服务端没有返回说明。") : String(raw.prefix(400))
     }
 }
