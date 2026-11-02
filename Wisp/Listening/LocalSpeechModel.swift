@@ -74,8 +74,21 @@ struct LocalSpeechModel: Identifiable {
 final class CStringPool {
     private var storage: [UnsafeMutablePointer<CChar>] = []
 
+    /// 有一次 `strdup` 失败过（内存耗尽）。失败字段拿到的是空串指针，
+    /// config 表面上仍然完整，所以调用方必须在把 config 交给 sherpa-onnx
+    /// 之前检查这个标记，按模型加载失败处理，而不是让原生层报一个
+    /// 看不懂的错、甚至加载到错误的东西。
+    private(set) var allocationFailed = false
+
+    /// `strdup` 失败时的兜底：一字节的静态存储，进程存续期间地址不变，
+    /// 且不依赖再次分配内存（失败的当下恰恰分不出来）。
+    private static let emptyStorage: [CChar] = [0]
+
     func callAsFunction(_ string: String) -> UnsafePointer<CChar> {
-        let pointer = strdup(string)!
+        guard let pointer = strdup(string) else {
+            allocationFailed = true
+            return Self.emptyStorage.withUnsafeBufferPointer { $0.baseAddress! }
+        }
         storage.append(pointer)
         return UnsafePointer(pointer)
     }

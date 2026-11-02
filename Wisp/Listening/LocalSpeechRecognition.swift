@@ -59,6 +59,11 @@ final class LocalSpeechRecognition: @unchecked Sendable {
         config.model_config.num_threads = Int32(min(4, max(1, ProcessInfo.processInfo.activeProcessorCount / 2)))
         config.model_config.provider = strings("cpu")
         model.family.configure(&config.model_config, files: model.files, language: language, strings: strings)
+        // strdup 失败时 pool 里的指针指向空串，先在这里按加载失败处理，
+        // 别让一个残缺的 config 进原生层。
+        guard !strings.allocationFailed else {
+            throw ListeningFailure(message: String(localized: "\(title) 模型加载失败，请检查本地模型文件。") + "\n" + model.folder.path)
+        }
         let pointer = withExtendedLifetime(strings) { SherpaOnnxCreateOfflineRecognizer(&config) }
         guard let pointer else {
             throw ListeningFailure(message: String(localized: "\(title) 模型加载失败，请检查本地模型文件。") + "\n" + model.folder.path)
