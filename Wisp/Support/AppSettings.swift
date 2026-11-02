@@ -287,7 +287,9 @@ final class AppSettings: ObservableObject {
     }
 
     var pageTextLimit: Int {
-        get { max(2_000, d.integer(forKey: K.pageTextLimit)) }
+        // 下限防误设成 0；上限同样必要：设置里是自由输入框，调到几千万会
+        // 让唯一的网页文本裁剪点失效（云端/本地路径都没有第二道预算，#44）。
+        get { min(500_000, max(2_000, d.integer(forKey: K.pageTextLimit))) }
         set { d.set(newValue, forKey: K.pageTextLimit); objectWillChange.send() }
     }
 
@@ -316,12 +318,12 @@ final class AppSettings: ObservableObject {
     }
 
     var maxConversations: Int {
-        get { max(1, d.integer(forKey: K.maxConversations)) }
+        get { min(50, max(1, d.integer(forKey: K.maxConversations))) }
         set { d.set(newValue, forKey: K.maxConversations); objectWillChange.send() }
     }
 
     var maxUserTurns: Int {
-        get { max(1, d.integer(forKey: K.maxUserTurns)) }
+        get { min(200, max(1, d.integer(forKey: K.maxUserTurns))) }
         set { d.set(newValue, forKey: K.maxUserTurns); objectWillChange.send() }
     }
 
