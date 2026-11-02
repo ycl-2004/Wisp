@@ -16943,6 +16943,94 @@
           }
         }
       }
+    },
+    "API Key 没能存进钥匙串，这次输入没有保存下来。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The API key could not be saved to the Keychain; this entry was not stored."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key 没能存进钥匙串，这次输入没有保存下来。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "API Key 沒能存進鑰匙串，這次輸入沒有保存下來。"
+          }
+        }
+      }
+    },
+    "API Key 没能从钥匙串里删除。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The API key could not be deleted from the Keychain."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key 没能从钥匙串里删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "API Key 沒能從鑰匙串裡刪除。"
+          }
+        }
+      }
+    },
+    "全部数据已删除。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All data has been deleted."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部数据已删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "全部數據已刪除。"
+          }
+        }
+      }
+    },
+    "记录已删除，但 API Key 没能从钥匙串里全部删掉。请重启应用后再试一次清除。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Records were deleted, but the API keys could not all be removed from the Keychain. Restart the app and try clearing again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记录已删除，但 API Key 没能从钥匙串里全部删掉。请重启应用后再试一次清除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "記錄已刪除，但 API Key 沒能從鑰匙串裡全部刪掉。請重啟應用後再試一次清除。"
+          }
+        }
+      }
     }
   }
 }

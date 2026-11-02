@@ -283,7 +283,11 @@ struct ModelSettingsView: View {
     private func persistKey(_ value: String, for provider: CloudProvider) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != KeychainStore.load(for: provider) else { return }
-        _ = KeychainStore.save(trimmed, for: provider)
+        // 存不进去必须让用户知道（#43）：否则菜单照样显示「已配置」、
+        // 测试还会拿输入框里的 Key 蒙混过关，重启之后 Key 凭空消失。
+        if !KeychainStore.save(trimmed, for: provider) {
+            testResult = (ok: false, message: String(localized: "API Key 没能存进钥匙串，这次输入没有保存下来。"))
+        }
     }
 
     private var ollamaFields: some View {
@@ -497,9 +501,13 @@ struct ModelSettingsView: View {
                     .disabled(testing || (kind.needsAPIKey && apiKey.isEmpty))
                 if kind.needsAPIKey, KeychainStore.hasKey(for: settings.cloudProvider) {
                     Button("清除 Key") {
-                        KeychainStore.delete(for: settings.cloudProvider)
-                        apiKey = ""
-                        testResult = nil
+                        // 删不掉就明说，别清掉输入框假装删了（#43）。
+                        if KeychainStore.delete(for: settings.cloudProvider) {
+                            apiKey = ""
+                            testResult = nil
+                        } else {
+                            testResult = (ok: false, message: String(localized: "API Key 没能从钥匙串里删除。"))
+                        }
                     }
                 }
                 Spacer(minLength: 0)
@@ -541,7 +549,14 @@ struct ModelSettingsView: View {
         testResult = nil
         // 输入框里可能是还没失焦落盘的新 Key，测它，也顺手存下。
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if kind == .openAICompatible { _ = KeychainStore.save(trimmedKey, for: settings.cloudProvider) }
+        if kind == .openAICompatible, !trimmedKey.isEmpty,
+           !KeychainStore.save(trimmedKey, for: settings.cloudProvider) {
+            // 存不下就不要测了（#43）：拿没落盘的 Key 测出一个绿勾，
+            // 用户会以为一切正常，重启之后 Key 却不在。
+            testing = false
+            testResult = (ok: false, message: String(localized: "API Key 没能存进钥匙串，这次输入没有保存下来。"))
+            return
+        }
         // 测的是两个模式真正会发出去的模型。本地 CLI 只检查能否启动、与模型无关，测一次就够。
         let models = ActiveModels(settings: settings, state: modelState)
         var configs: [ProviderConfig] = []
@@ -1554,6 +1569,7 @@ struct DataSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @EnvironmentObject private var model: AssistantModel
     @State private var confirmWipe = false
+    @State private var wipeResult: String?
     @State private var confirmListeningWipe = false
     @State private var cleanupResult: String?
     @ObservedObject private var listening = ListeningModel.shared
@@ -1619,6 +1635,10 @@ struct DataSettingsView: View {
 
             Section {
                 Button("删除全部记录与 API Key", role: .destructive) { confirmWipe = true }
+                if let wipeResult {
+                    Text(wipeResult).font(.system(size: 11)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
             } header: {
                 SettingsSectionHeader("清除", info: String(localized: "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key；不可撤销。"))
             }
@@ -1639,8 +1659,12 @@ struct DataSettingsView: View {
             Button("全部删除", role: .destructive) {
                 ListeningModel.shared.discardForDataReset()
                 model.store.deleteAll()
-                KeychainStore.deleteAll()
+                // Key 删不干净必须留一句话，不能让用户以为已经全清了（#43）。
+                let keysRemoved = KeychainStore.deleteAll()
                 settings.wipeLocalData()
+                wipeResult = keysRemoved
+                    ? String(localized: "全部数据已删除。")
+                    : String(localized: "记录已删除，但 API Key 没能从钥匙串里全部删掉。请重启应用后再试一次清除。")
             }
             Button("取消", role: .cancel) {}
         } message: {
