@@ -429,6 +429,10 @@ struct CodexCLIProvider: ChatProvider {
 
 /// Frame bytes before decoding UTF-8: pipe reads can split a character or a JSON line.
 struct CLIJSONLines {
+    /// 单个事件行的上限。正常事件只有几 KB 到几百 KB（result 事件带全文），
+    /// 16 MiB 给足余量；一直攒不到换行的输入只会是抽风的 CLI，不能无限攒下去。
+    static let maxLineBytes = 16 * 1024 * 1024
+
     private var buffer = Data()
 
     mutating func append(_ data: Data, endOfFile: Bool = false) throws -> [[String: Any]] {
@@ -441,6 +445,12 @@ struct CLIJSONLines {
         if endOfFile && !buffer.isEmpty {
             lines.append(buffer)
             buffer = Data()
+        }
+        // 残行（还没等到换行）和已成行的都要过上限：前者防无限攒，
+        // 后者防单个超大事件直接进 JSON 解析。
+        guard buffer.count <= Self.maxLineBytes,
+              lines.allSatisfy({ $0.count <= Self.maxLineBytes }) else {
+            throw ProviderError.network("Oversized CLI JSON event")
         }
         return try lines.compactMap { line in
             if line.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0D }) { return nil }

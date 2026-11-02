@@ -147,6 +147,11 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                                 break
                             }
                         }
+                        // 残行和 CLIJSONLines 共用一个上限：一直等不到换行的
+                        // 单行事件只会是抽风的 CLI，不能无限攒下去。
+                        guard buffer.count <= CLIJSONLines.maxLineBytes else {
+                            throw ProviderError.network("Oversized CLI JSON event")
+                        }
                     }
                     // NDJSON 通常以换行收尾，但不要把“最后一行没有换行”误判成
                     // 缺失 result。那会把一条完整回答错误标成失败。
