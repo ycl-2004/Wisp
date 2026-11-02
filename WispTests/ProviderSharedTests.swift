@@ -34,3 +34,18 @@ final class UserAgentTests: XCTestCase {
         XCTAssertFalse(UpdateChecker.currentVersion.isEmpty)
     }
 }
+
+/// Round-2 audit #28 (found in the coverage pass): the Codex app-server
+/// handshake hardcoded its client version ("0.4.0") — the same drift class
+/// as #14. It happens to match today; the moment MARKETING_VERSION moves,
+/// the app-server would be told a version Wisp no longer is. Pin the
+/// payload to the bundle-derived version so a stale literal fails here.
+final class CodexClientInfoTests: XCTestCase {
+
+    func testInitializeRequestReportsTheBundleVersion() {
+        let params = CodexCLIProvider.AppServerSession.initializeRequest["params"] as? [String: Any]
+        let clientInfo = params?["clientInfo"] as? [String: String]
+        XCTAssertEqual(clientInfo?["version"], UpdateChecker.currentVersion)
+        XCTAssertEqual(clientInfo?["name"], "wisp")
+    }
+}
