@@ -20,7 +20,9 @@ struct SettingsView: View {
             DataSettingsView().tabItem { Label("数据", systemImage: "internaldrive") }.tag(Tab.data)
             GeneralSettingsView().tabItem { Label("通用", systemImage: "gearshape") }.tag(Tab.general)
         }
-        .frame(width: 620, height: 520)
+        // 只给下限不给死尺寸：窗口能放大，下限 620×520 与原来的固定
+        // 尺寸一致（配合 Scene 上的 windowResizability(.contentMinSize)）。
+        .frame(minWidth: 620, minHeight: 520)
     }
 }
 
