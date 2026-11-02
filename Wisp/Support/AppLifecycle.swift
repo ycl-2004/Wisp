@@ -123,6 +123,9 @@ enum UpdateChecker {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
     }
 
+    /// 所有对外请求共用的 User-Agent，从版本号现算，永远不会过期。
+    static var userAgent: String { "Wisp/\(currentVersion)" }
+
     enum Outcome: Equatable {
         case upToDate(current: String)
         case available(latest: String)
@@ -140,7 +143,7 @@ enum UpdateChecker {
     static func check() async -> Outcome {
         var request = URLRequest(url: latestReleaseAPI)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("Wisp/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
         request.cachePolicy = .reloadIgnoringLocalCacheData
 

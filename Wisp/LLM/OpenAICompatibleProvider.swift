@@ -68,7 +68,7 @@ struct OpenAICompatibleProvider: ChatProvider {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("Wisp/0.1", forHTTPHeaderField: "User-Agent")
+        request.setValue(UpdateChecker.userAgent, forHTTPHeaderField: "User-Agent")
         var payload = ResponsePolicy.applying(config.responseMode, to: Self.speedPreferredBody(body, endpoint: url), endpoint: url)
         if !allowPriority { payload.removeValue(forKey: "service_tier") }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
