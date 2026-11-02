@@ -22,7 +22,8 @@ enum OllamaSupport {
             let session = URLSession(configuration: OpenAICompatibleProvider.privateSessionConfiguration(),
                                      delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
             defer { session.invalidateAndCancel() }
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await OpenAICompatibleProvider.cappedData(
+                for: request, session: session, limit: OpenAICompatibleProvider.maxSmallResponseBytes)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 return .failed(String(localized: "服务有响应但返回异常"))
             }
