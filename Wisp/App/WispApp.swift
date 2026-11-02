@@ -52,6 +52,10 @@ private struct MenuContent: View {
             PanelController.shared.toggle()
         }
 
+        Button(String(localized: "录制笔记")) {
+            NotesPanelController.shared.toggle()
+        }
+
         if listening.isActive {
             Button("停止录音") { listening.stop() }
         }

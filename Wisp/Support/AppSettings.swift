@@ -109,6 +109,8 @@ final class AppSettings: ObservableObject {
         static let advancedShortcut = "advancedShortcut"
         static let lastActiveConversationID = "lastActiveConversationID"
         static let panelFrame = "panelFrame"
+        static let notesText = "notesText"
+        static let notesPanelFrame = "notesPanelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
         static let showIsland = "showIsland"
         static let showsMenuBarIcon = "showsMenuBarIcon"
@@ -523,6 +525,17 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.panelFrame) }
     }
 
+    /// 录制笔记面板的正文（纯文本）与位置，见 `NotesPanelController`。
+    var notesText: String {
+        get { d.string(forKey: K.notesText) ?? "" }
+        set { d.set(newValue, forKey: K.notesText) }
+    }
+
+    var notesPanelFrame: String? {
+        get { d.string(forKey: K.notesPanelFrame) }
+        set { d.set(newValue, forKey: K.notesPanelFrame) }
+    }
+
     func isExcluded(bundleID: String?) -> Bool {
         guard let bundleID else { return false }
         return excludedBundleIDs.contains(bundleID)
@@ -552,7 +565,7 @@ final class AppSettings: ObservableObject {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
         for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin,
-                    K.islandAnchor, K.cloudModels] {
+                    K.islandAnchor, K.cloudModels, K.notesText, K.notesPanelFrame] {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

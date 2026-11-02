@@ -908,6 +908,8 @@ private struct PanelSettingsView: View {
                         }
                     }
                 }
+
+                KeyboardShortcuts.Recorder("录制笔记：", name: .toggleNotes)
             } header: {
                 SettingsSectionHeader("快捷键", info: String(localized: "标准组合保持兼容；增强模式支持 Shift、Globe/Fn、单独修饰键和双击/三击。"))
             }

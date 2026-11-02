@@ -14,6 +14,8 @@ extension KeyboardShortcuts.Name {
                                       default: .init(.space, modifiers: [.control, .option]))
     /// Held, not pressed. Unassigned until the user records one, like the mode shortcuts.
     static let pushToTalk = Self("pushToTalk")
+    /// 录制笔记面板开关。默认不分配，和 pushToTalk 一样等用户自己录。
+    static let toggleNotes = Self("toggleNotes")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -164,6 +166,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The master switch is checked inside `begin()`; a key-up must always reach `end()`.
         KeyboardShortcuts.onKeyDown(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.begin() } }
         KeyboardShortcuts.onKeyUp(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.end() } }
+        KeyboardShortcuts.onKeyUp(for: .toggleNotes) {
+            Task { @MainActor in NotesPanelController.shared.toggle() }
+        }
         MainActor.assumeIsolated { QuickCommandStore.shared.registerShortcuts() }
 
         AdvancedShortcutMonitor.shared.configure {
