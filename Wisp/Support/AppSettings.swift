@@ -126,6 +126,25 @@ final class AppSettings: ObservableObject {
         static let islandAnchor = "islandAnchor"
         static let appLanguage = "appLanguage"
         static let listeningEnabled = "listeningEnabled"
+
+        /// 全部键的清单，wipeLocalData 靠它一次清干净（恢复出厂，#5）。
+        /// 新增键必须同步加进这里——漏一个，那项设置就会在「删除全部
+        /// 数据」之后留下来；AppSettingsWipeTests 用一份独立枚举对着它查。
+        static let all: [String] = [
+            providerKind, baseURL, cloudProvider, cloudModels,
+            ollamaBaseURL, ollamaModel, codexPath, codexModel,
+            cliProvider, agyPath, agyModel, claudeCodePath,
+            claudeCodeModel, model, excludedBundleIDs, pageTextLimit,
+            captureMode, captureScope, screenHiddenBundleIDs,
+            maxConversations, maxUserTurns, sendScreenshot,
+            shortcutTrigger, advancedShortcut, lastActiveConversationID,
+            panelFrame, notesText, notesPanelFrame, debugDumpEnabled,
+            showIsland, showsMenuBarIcon, hideFromScreenCapture,
+            localCursorEnabled, islandPosition, idleDismissSeconds,
+            panelBackgroundOpacity, panelOpaqueWhenActive,
+            checkForUpdates, lastUpdateCheck, islandOrigin,
+            islandAnchor, appLanguage, listeningEnabled,
+        ]
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -583,14 +602,17 @@ final class AppSettings: ObservableObject {
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
     }
 
-    /// 删除应用支持目录的全部内容（对话 JSON、聆听记录、调试文件），并清掉少数几个
-    /// UserDefaults 键（上次打开的对话、面板位置、云端模型缓存）。其余设置（服务商、
-    /// 端点、快捷键等）会保留，不要理解成「恢复出厂」。Keychain 由调用方另行清除。
+    /// 恢复出厂：删除应用支持目录的全部内容（对话 JSON、聆听记录、调试
+    /// 文件），并清掉 AppSettings 的每一个 UserDefaults 键。带注册默认
+    /// 值的键回到注册值、没注册的回到缺失——与全新安装第一次启动读到
+    /// 的状态逐键一致（init 的 register(defaults:) 是易失域，不落盘）。
+    /// 范围只到 AppSettings 自己的键：Keychain 由调用方另行清除；
+    /// KeyboardShortcuts 库自管的快捷键绑定、界面语言钉选
+    /// （AppleLanguages）、本地语音的扫描请求标记不在 K 里，不在此列。
     func wipeLocalData() {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
-        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin,
-                    K.islandAnchor, K.cloudModels, K.notesText, K.notesPanelFrame] {
+        for key in K.all {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

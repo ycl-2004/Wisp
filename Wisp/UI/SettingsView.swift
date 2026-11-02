@@ -1634,13 +1634,13 @@ struct DataSettingsView: View {
             }
 
             Section {
-                Button("删除全部记录与 API Key", role: .destructive) { confirmWipe = true }
+                Button("删除全部数据与设置", role: .destructive) { confirmWipe = true }
                 if let wipeResult {
                     Text(wipeResult).font(.system(size: 11)).foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
             } header: {
-                SettingsSectionHeader("清除", info: String(localized: "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key；不可撤销。"))
+                SettingsSectionHeader("清除", info: String(localized: "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。"))
             }
         }
         .formStyle(.grouped)
@@ -1668,7 +1668,7 @@ struct DataSettingsView: View {
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("所有对话、录音与转写记录和 API Key 都会被删除，无法撤销。")
+            Text("所有对话、录音与转写记录和 API Key 都会被删除，全部设置恢复为默认值，无法撤销。")
         }
     }
 }

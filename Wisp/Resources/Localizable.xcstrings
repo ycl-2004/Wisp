@@ -2818,6 +2818,28 @@
         }
       }
     },
+    "删除全部数据与设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete All Data & Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部数据与设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "刪除全部資料與設定"
+          }
+        }
+      }
+    },
     "删除全部数据？": {
       "localizations": {
         "en": {
@@ -11882,6 +11904,28 @@
         }
       }
     },
+    "所有对话、录音与转写记录和 API Key 都会被删除，全部设置恢复为默认值，无法撤销。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All conversations, audio recordings, transcripts, and API keys will be permanently deleted, and all settings will be reset to their defaults."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有对话、录音与转写记录和 API Key 都会被删除，全部设置恢复为默认值，无法撤销。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "所有對話、錄音與轉寫記錄和 API Key 都會被刪除，全部設定恢復為預設值，無法撤銷。"
+          }
+        }
+      }
+    },
     "所有对话、录音与转写记录和 API Key 都会被删除，无法撤销。": {
       "localizations": {
         "en": {
@@ -13058,6 +13102,28 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "開啟後，語音會逐段出現在這裡。"
+          }
+        }
+      }
+    },
+    "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently deletes conversations, audio recordings, transcripts, debug files, and API keys from Keychain, and resets all settings to their defaults."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "刪除對話、錄音與轉寫記錄、除錯檔案和鑰匙串中的 API Key，並把全部設定恢復為預設值；不可撤銷。"
           }
         }
       }
