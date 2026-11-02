@@ -412,7 +412,10 @@ final class CLIPromptTests: XCTestCase {
 
         XCTAssertEqual(fitted.count, 1)
         XCTAssertLessThan(fitted[0].count, original.count)
-        XCTAssertLessThanOrEqual(CLIPrompt.estimatedTokens(fitted[0]), 3_100)
+        // #32: fit 预留了截断标记自己的成本，结果必须落在预算之内——
+        // 不是预算 + slack。标记按运行语言解析（英文约 93、中文约 107
+        // token），预留也按同一语言算，所以这个断言在两个语言下都成立。
+        XCTAssertLessThanOrEqual(CLIPrompt.estimatedTokens(fitted[0]), 3_000)
     }
 }
 

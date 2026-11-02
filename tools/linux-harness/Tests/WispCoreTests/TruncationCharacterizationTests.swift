@@ -169,33 +169,54 @@ final class CLIPromptFitCharacterizationTests: XCTestCase {
         XCTAssertGreaterThan(CLIPrompt.estimatedTokens(fitted[0]), 2_000)
     }
 
-    /// DOCUMENTING CURRENT BEHAVIOUR (#32, the finding itself): `fit`
-    /// makes one proportional pass per section and never accounts for
-    /// the truncation marker `ContextCapture.truncate` appends, so the
-    /// result can exceed the budget by the marker's full token cost.
-    /// Measured here with the app's own estimator: the fitted prompt for
-    /// the pre-existing test's input estimates ABOVE its 3,000 budget,
-    /// and the overshoot equals the marker cost (~107 tokens for the
-    /// Chinese marker this harness resolves; ~93 for the English one —
-    /// which is why the original test's budget+100 slack passes only
-    /// on English-locale hosts). The fix is the owner's decision; this
-    /// test pins the numbers so the decision is made on evidence.
-    func testDocumentingCurrentBehavior_FitIgnoresMarkerCost_Finding32() {
+    /// INVARIANT (#32, fixed in round 5): `fit` reserves the truncation
+    /// marker's own estimated cost before cutting, so a fitted result no
+    /// longer lands above budget by the marker's cost. The reserve is
+    /// computed from the marker text in the locale that will actually be
+    /// appended — this harness resolves the Chinese marker (~107 tokens),
+    /// English hosts resolve the cheaper English one (~93) and reserve
+    /// correspondingly less — so the invariant is asserted identically
+    /// in both paths (the WispTests copy of the oversized case asserts
+    /// the same ≤ budget bound).
+    /// Scope note: the guarantee covers the marker's contribution. The
+    /// separate 2,000-character allowance floor (documented above) can
+    /// still leave a section above a *tiny* budget by design; that floor
+    /// predates #32 and is untouched.
+    func testFitReservesMarkerCost_ResultNeverExceedsBudget() {
         let original = String(repeating: "甲", count: 5_000)
         let fitted = CLIPrompt.fit([original], budget: 3_000)
         XCTAssertEqual(fitted.count, 1)
 
-        // fit's single pass truncates the one section to a 3,000-char
-        // allowance; the result is exactly truncate's output for it.
-        XCTAssertEqual(fitted[0], ContextCapture.truncate(original, limit: 3_000))
-
         let estimate = CLIPrompt.estimatedTokens(fitted[0])
-        let markerCost = estimate - 3_000
-        XCTAssertGreaterThan(estimate, 3_000, "fit output must be over budget today")
-        XCTAssertGreaterThan(markerCost, 100,
-                             "marker costs \(markerCost) tokens here — more than the original test's +100 slack")
-        // The overshoot is exactly the marker: head+tail estimate 3,000.
-        XCTAssertEqual(estimate, 3_000 + markerCost)
+        XCTAssertLessThanOrEqual(estimate, 3_000,
+                                 "marker-aware fit must land within budget, got \(estimate)")
+        // It did not fix the overshoot by butchering the content either:
+        // the reserve is ~120 tokens, so the result stays close to budget.
+        XCTAssertGreaterThan(estimate, 2_800)
+        // The fitted text is NOT the old single-pass output anymore.
+        XCTAssertNotEqual(fitted[0], ContextCapture.truncate(original, limit: 3_000))
+        // The marker is still present and functional.
+        XCTAssertTrue(fitted[0].contains("此处省略正文中间"))
+
+        // The reserve really covers the marker this locale appends:
+        // measured cost of the marker in the fitted output is the total
+        // minus the kept head+tail characters (all wide here).
+        let reserve = CLIPrompt.truncationMarkerReserve(for: original)
+        XCTAssertGreaterThan(reserve, 100,
+                             "reserve \(reserve) must cover the ~107-token Chinese marker")
+        XCTAssertLessThan(reserve, 200)
+    }
+
+    /// Same invariant for narrow (Latin) content: the marker's prose is
+    /// locale text, not content, so the reserve must be charged there too.
+    func testFitReservesMarkerCost_NarrowContent() {
+        let original = String(repeating: "lorem ipsum dolor sit amet ", count: 400) // 10,800 chars ≈ 2,700 tokens
+        let fitted = CLIPrompt.fit([original], budget: 1_000)
+        XCTAssertEqual(fitted.count, 1)
+        let estimate = CLIPrompt.estimatedTokens(fitted[0])
+        XCTAssertLessThanOrEqual(estimate, 1_000,
+                                 "narrow content must also land within budget, got \(estimate)")
+        XCTAssertGreaterThan(estimate, 600)
     }
 
     /// With wildly unequal sections, the small one is never touched and

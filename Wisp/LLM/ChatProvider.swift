@@ -382,8 +382,12 @@ enum CLIPrompt {
             let section = sections[index]
             let tokens = estimatedTokens(section)
             guard tokens > 0 else { break }
-            // 要砍掉的 token 数按字符等比折算回字符数。
-            let keep = Double(max(tokens - (total - budget), 1)) / Double(tokens)
+            // 要砍掉的 token 数按字符等比折算回字符数。除了超出预算的部分，
+            // 还要算上截断标记自己：truncate 会在正文中间插一段标记，它不在
+            // 账上时，砍完的总量会被标记顶回预算之上（#32——标记按当前语言
+            // 解析，英文约 93 token、中文约 107，此前正好卡在测试 slack 两边）。
+            let excess = total - budget + truncationMarkerReserve(for: section)
+            let keep = Double(max(tokens - excess, 1)) / Double(tokens)
             let allowance = max(2_000, Int(Double(section.count) * keep))
             guard allowance < section.count else { break }
 
@@ -393,6 +397,22 @@ enum CLIPrompt {
             total = updated
         }
         return sections
+    }
+
+    /// 截断标记自己的估算 token 成本，fit 砍之前先预留出来（#32）。
+    ///
+    /// 按最坏情况取：真实标记里的两个样本是断点前后各 24 个字符的原文，
+    /// 这里按每侧 32 个宽字计，覆盖常见文字与多标量字素；省略字数的位数
+    /// 取正文总字数，真实值不会更大。用当前语言的那份标记文本算——fit 砍
+    /// 的和 truncate 插的是同一次本地化解析，英文环境预留英文的成本、
+    /// 中文环境预留中文的，两个语言下结果都不会被标记顶出预算。
+    /// （估算器本身是粗算，这里保证的是在估算器自己的账上不超。）
+    static func truncationMarkerReserve(for section: String) -> Int {
+        let sample = String(repeating: "字", count: 32)
+        let marker = ContextCapture.omissionMarker(omitted: section.count,
+                                                   previousEnd: sample,
+                                                   nextStart: sample)
+        return estimatedTokens(marker)
     }
 
     /// 粗算 token：中日韩按一字一 token，其余按四字符一 token。

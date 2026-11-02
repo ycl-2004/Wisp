@@ -2,7 +2,7 @@
 """Extracts pure functions VERBATIM from AppKit/ScreenCaptureKit-bound app
 files and wraps them in their real type names for the harness:
 
-  ContextCapture.swift  -> truncate + snapBackward/snapForward/tailSample/headSample
+  ContextCapture.swift  -> truncate + omissionMarker + snapBackward/snapForward/tailSample/headSample
   ScreenCapturer.swift  -> maxLongEdge + displayIndex
 
 Extraction is mechanical (brace-matched, by function name) and runs on
@@ -15,7 +15,7 @@ JOBS = [
     ("../../Wisp/Capture/ContextCapture.swift",
      "Sources/WispCore/ContextCaptureExtract.swift",
      "ContextCapture",
-     ["truncate", "snapBackward", "snapForward", "tailSample", "headSample"]),
+     ["truncate", "omissionMarker", "snapBackward", "snapForward", "tailSample", "headSample"]),
     ("../../Wisp/Capture/ScreenCapturer.swift",
      "Sources/WispCore/ScreenCapturerExtract.swift",
      "ScreenCapturer",
