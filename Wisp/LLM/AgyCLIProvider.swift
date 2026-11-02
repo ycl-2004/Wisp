@@ -302,20 +302,6 @@ struct AgyCLIProvider: ChatProvider {
         }
     }
 
-    private final class DrainBuffer: @unchecked Sendable {
-        private let lock = NSLock()
-        private var data = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock(); data.append(chunk); lock.unlock()
-        }
-
-        var text: String {
-            lock.lock(); defer { lock.unlock() }
-            return String(data: data, encoding: .utf8) ?? ""
-        }
-    }
-
     private static func pathForUse(_ configured: String) async -> String? {
         let trimmed = configured.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty, FileManager.default.isExecutableFile(atPath: trimmed) { return trimmed }

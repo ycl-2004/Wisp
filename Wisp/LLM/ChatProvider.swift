@@ -349,6 +349,38 @@ enum CLIPrompt {
     }
 }
 
+/// CLI 子进程的 stderr 累积。三个 CLI provider 共用这一份，别再各抄一份。
+///
+/// 只留尾巴：报错信息都在最后，各 provider 的 `condense` 也只读最后几行。
+/// 以前是无限累积——CLI 卡在报错循环里刷 stderr 的话，内存会一直涨到
+/// 300 秒看门狗动手为止。
+final class DrainBuffer: @unchecked Sendable {
+    /// 只留最后 256 KiB。
+    static let maxBytes = 256 * 1024
+
+    private let lock = NSLock()
+    private var data = Data()
+
+    func append(_ chunk: Data) {
+        lock.lock()
+        data.append(chunk)
+        if data.count > Self.maxBytes {
+            data.removeFirst(data.count - Self.maxBytes)
+            // 裁剪点可能落在一个多字节字符中间。开头的续接字节（10xxxxxx）
+            // 留着会让整个 text 解码失败、变成空串，把报错信息全丢掉，必须跳过。
+            while let first = data.first, (first & 0xC0) == 0x80 {
+                data.removeFirst()
+            }
+        }
+        lock.unlock()
+    }
+
+    var text: String {
+        lock.lock(); defer { lock.unlock() }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+}
+
 protocol ChatProvider {
     /// 流式回答，逐段吐出增量文本。
     func stream(messages: [[String: Any]], config: ProviderConfig) -> AsyncThrowingStream<String, Error>

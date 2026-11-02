@@ -78,27 +78,13 @@ struct CodexCLIProvider: ChatProvider {
         }
     }
 
-    /// 后台把 stderr 抽干。只读 stdout 的话，codex 往 stderr 写满管道缓冲区就会卡死，
-    /// 而它启动时正好会刷一批 skill 扫描的告警。
-    private final class DrainBuffer: @unchecked Sendable {
-        private let lock = NSLock()
-        private var data = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock(); data.append(chunk); lock.unlock()
-        }
-
-        var text: String {
-            lock.lock(); defer { lock.unlock() }
-            return String(data: data, encoding: .utf8) ?? ""
-        }
-    }
-
     // MARK: - App-server streaming
 
     func stream(messages: [[String: Any]], config: ProviderConfig) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let box = RunBox()
+            // stderr 必须在后台抽干：只读 stdout 的话，codex 往 stderr 写满
+            // 管道缓冲区就会卡死，而它启动时正好会刷一批 skill 扫描的告警。
             let stderrBuffer = DrainBuffer()
 
             let work = Task.detached {

@@ -394,18 +394,4 @@ struct ClaudeCodeCLIProvider: ChatProvider {
             return stopReason
         }
     }
-
-    private final class DrainBuffer: @unchecked Sendable {
-        private let lock = NSLock()
-        private var data = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock(); data.append(chunk); lock.unlock()
-        }
-
-        var text: String {
-            lock.lock(); defer { lock.unlock() }
-            return String(data: data, encoding: .utf8) ?? ""
-        }
-    }
 }
