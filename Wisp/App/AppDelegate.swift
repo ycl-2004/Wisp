@@ -134,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // 启动更新检查默认关闭，用户可以在设置里主动开启。
-        // 只请求一次版本号，不带任何标识信息，也不自动下载。
+        // 只请求一次版本号：User-Agent 是 Wisp/<版本>，不带其他标识信息，也不自动下载。
         if AppSettings.shared.checkForUpdates {
             Task { @MainActor in
                 if case .available(let latest) = await UpdateChecker.check() {
