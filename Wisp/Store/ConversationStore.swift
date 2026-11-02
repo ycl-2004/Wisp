@@ -114,7 +114,7 @@ final class ConversationStore: ObservableObject {
 
         // 模型层是容错解码的：个别消息坏掉只会丢那一条，不会带走整个文件。
         if let file = try? decoder.decode(ConversationFile.self, from: data) {
-            conversations = file.conversations
+            conversations = Self.deduplicated(file.conversations)
             return
         }
 
@@ -127,6 +127,20 @@ final class ConversationStore: ObservableObject {
             // 否则下一次 persist 就会把唯一一份（虽然损坏的）记录覆盖掉。
             loadIssue = .backupFailed
             persistenceBlocked = true
+        }
+    }
+
+    /// 加载时按 id 去重、保留第一份（#49）：其余查找全是 first-match，
+    /// 唯独 delete 是 removeAll — 重复 id（手改或合并出来的文件）会让
+    /// 一份记录永远写不进去、删除时却被连带清掉。
+    private static func deduplicated(_ input: [Conversation]) -> [Conversation] {
+        var seenConversations = Set<UUID>()
+        return input.compactMap { conversation in
+            guard seenConversations.insert(conversation.id).inserted else { return nil }
+            var seenMessages = Set<UUID>()
+            var copy = conversation
+            copy.messages = conversation.messages.filter { seenMessages.insert($0.id).inserted }
+            return copy
         }
     }
 

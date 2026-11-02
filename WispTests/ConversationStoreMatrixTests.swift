@@ -131,18 +131,23 @@ final class ConversationStoreMatrixTests: XCTestCase {
 
     @MainActor
     func testDuplicateIDsAreKeptAndDeleteRemovesAllCopies() throws {
-        // Nothing in the load path dedupes. Documents current behaviour:
-        // a file with two conversations sharing an ID loads both, and
-        // delete(id) — a removeAll — takes both. (Hand-edited or merged
-        // files are the only way to get here; the app never writes dupes.)
+        // Since audit #49 the load path dedupes: the app's own lookups
+        // are all first-match (append/update) except delete's removeAll,
+        // so duplicate IDs made one copy unreachable-but-deletable.
+        // First copy wins, at both conversation and message level.
         let shared = UUID()
         var first = Conversation(id: shared); first.title = "first copy"
         var second = Conversation(id: shared); second.title = "second copy"
+        let messageID = UUID()
+        first.messages = [Message(id: messageID, role: .user, text: "kept"),
+                          Message(id: messageID, role: .user, text: "dropped")]
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(ConversationFile(conversations: [first, second]))
         try withStore(prewritten: data) { store, _, _ in
-            XCTAssertEqual(store.conversations.count, 2)
+            XCTAssertEqual(store.conversations.count, 1)
+            XCTAssertEqual(store.conversations.first?.title, "first copy")
+            XCTAssertEqual(store.conversations.first?.messages.map(\.text), ["kept"])
             store.delete(shared)
             XCTAssertTrue(store.conversations.isEmpty)
         }
