@@ -100,7 +100,8 @@ final class UpdateNotice: ObservableObject {
     private init() {}
 }
 
-/// 检查 GitHub 上有没有更新版本。只读一次 releases 接口，不带任何标识信息，
+/// 检查 GitHub 上有没有更新版本。只读一次 releases 接口，请求只带
+/// `Wisp/<版本>` 的 User-Agent，不带其他标识信息（与 PRIVACY.md 的说明一致），
 /// 也不自动下载或安装——发现新版本只是给个链接。
 enum UpdateChecker {
 

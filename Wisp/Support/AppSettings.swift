@@ -464,7 +464,7 @@ final class AppSettings: ObservableObject {
         return min(1, max(minimumPanelBackgroundOpacity, value))
     }
 
-    /// 启动时去 GitHub 看一眼有没有新版本。只发一个不带标识的请求，不自动下载。
+    /// 启动时去 GitHub 看一眼有没有新版本。请求只带 `Wisp/<版本>` 的 User-Agent，不自动下载。
     var checkForUpdates: Bool {
         get { d.bool(forKey: K.checkForUpdates) }
         set { d.set(newValue, forKey: K.checkForUpdates); objectWillChange.send() }
