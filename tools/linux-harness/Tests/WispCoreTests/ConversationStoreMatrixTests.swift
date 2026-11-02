@@ -39,7 +39,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     func testDeleteAllUnblocksNewerVersionStore() throws { try Self.bridge { try self.impl_testDeleteAllUnblocksNewerVersionStore() } }
     func testArchiveWithoutBlockIsANoOp() throws { try Self.bridge { try self.impl_testArchiveWithoutBlockIsANoOp() } }
     func testCorruptBackupsArePrunedToThree() throws { try Self.bridge { try self.impl_testCorruptBackupsArePrunedToThree() } }
-    func testSecondRecoveryWithinTheSameSecondIsSilentlyDropped() throws { try Self.bridge { try self.impl_testSecondRecoveryWithinTheSameSecondIsSilentlyDropped() } }
+    func testSecondRecoveryWithinTheSameSecondStillRecovers() throws { try Self.bridge { try self.impl_testSecondRecoveryWithinTheSameSecondStillRecovers() } }
     func testNoOpsOnUnknownIDsDoNotRewriteTheFile() throws { try Self.bridge { try self.impl_testNoOpsOnUnknownIDsDoNotRewriteTheFile() } }
     func testCreateNewEvictingOldestWhenNotFullJustCreates() throws { try Self.bridge { try self.impl_testCreateNewEvictingOldestWhenNotFullJustCreates() } }
 
@@ -251,19 +251,16 @@ final class ConversationStoreMatrixTests: XCTestCase {
         XCTAssertTrue(backups.contains("conversations.corrupt-1000000003.json"))
     }
 
-    /// FINDING (round 4, minor): the recovery backup name has one-second
+    /// Audit round 4, #33: the recovery backup name has one-second
     /// granularity (`corrupt-\(Int(Date().timeIntervalSince1970))`). If a
     /// second corrupt file is recovered within the same second, the
-    /// backup destination already exists, `moveItem` fails, and load()
-    /// then sets NO loadIssue and creates NO backup — the store starts
-    /// empty, the corrupt file stays in place, and the next persist()
-    /// overwrites it unbacked-up. This test documents that behaviour;
-    /// it does not endorse it. (Exotic in practice: the app never writes
-    /// corrupt JSON itself, so this needs external corruption twice in
-    /// one second — but the silent no-issue path contradicts load()'s
-    /// own "不静默吞掉" contract.)
+    /// backup destination already exists — the fix uniquifies the name
+    /// on collision, so both recoveries produce a backup and a notice.
+    /// (Before the fix, `moveItem` failed and the whole recovery was
+    /// silently dropped: no backup, no loadIssue, corrupt file left in
+    /// place for the next persist() to overwrite.)
     @MainActor
-    private func impl_testSecondRecoveryWithinTheSameSecondIsSilentlyDropped() throws {
+    private func impl_testSecondRecoveryWithinTheSameSecondStillRecovers() throws {
         let suite = "wisp-matrix-collision-" + UUID().uuidString
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
@@ -276,19 +273,24 @@ final class ConversationStoreMatrixTests: XCTestCase {
         let file = directory.appendingPathComponent("conversations.json")
         try Data("garbage-one".utf8).write(to: file)
         let first = ConversationStore(fileURL: file, settings: settings)
-        guard case .recovered = first.loadIssue else {
+        guard case .recovered(let firstBackup) = first.loadIssue else {
             return XCTFail("first load must recover")
         }
         // A second corrupt file lands within the same second (the test
-        // runs in milliseconds; if it ever straddles a second boundary
-        // the assertion below fails loudly rather than silently passing
-        // a behaviour that did not happen).
+        // runs in milliseconds; the assertions below hold either way,
+        // but only the same-second run exercises the name collision).
         try Data("garbage-two".utf8).write(to: file)
         let second = ConversationStore(fileURL: file, settings: settings)
-        XCTAssertNil(second.loadIssue,
-                     "documented: same-second backup collision swallows the recovery notice")
-        XCTAssertEqual(try Data(contentsOf: file), Data("garbage-two".utf8),
-                       "documented: the corrupt file is left in place")
+        guard case .recovered(let secondBackup) = second.loadIssue else {
+            return XCTFail("second recovery in the same second must still recover, got \(String(describing: second.loadIssue))")
+        }
+        XCTAssertNotEqual(firstBackup, secondBackup)
+        XCTAssertEqual(try Data(contentsOf: directory.appendingPathComponent(firstBackup)),
+                       Data("garbage-one".utf8))
+        XCTAssertEqual(try Data(contentsOf: directory.appendingPathComponent(secondBackup)),
+                       Data("garbage-two".utf8))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path),
+                       "the corrupt file must be moved aside, not left in place")
     }
 
     @MainActor

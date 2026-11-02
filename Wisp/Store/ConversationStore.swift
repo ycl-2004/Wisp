@@ -14,6 +14,8 @@ final class ConversationStore: ObservableObject {
     enum LoadIssue: Equatable {
         /// 文件解不开，已改名备份，当前列表是空的。
         case recovered(backup: String)
+        /// 文件解不开，连改名备份都失败了。为了不覆盖它，本次运行禁止写盘。
+        case backupFailed
         /// 文件来自更新版本的 Wisp。为了不覆盖它，本次运行禁止写盘。
         case newerVersion(found: Int, supported: Int)
 
@@ -21,6 +23,8 @@ final class ConversationStore: ObservableObject {
             switch self {
             case .recovered(let backup):
                 return String(localized: "上次的对话记录读不出来了，已经原样备份成 \(backup)，当前列表是空的。备份文件在 Wisp 的应用支持目录里，没有被删除。")
+            case .backupFailed:
+                return String(localized: "上次的对话记录读不出来了，而且备份也没成功。为了不覆盖原文件，本次运行不会保存任何改动。原文件还在 Wisp 的应用支持目录里，没有被改动。")
             case .newerVersion(let found, let supported):
                 return String(localized: "这份对话记录来自更新版本的 Wisp（格式 v\(found)，本版本只认到 v\(supported)）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。")
             }
@@ -83,12 +87,31 @@ final class ConversationStore: ObservableObject {
         }
 
         // 走到这里说明整份 JSON 都不成形了。备份改名，并且明确告诉用户。
-        let backup = fileURL.deletingPathExtension()
-            .appendingPathExtension("corrupt-\(Int(Date().timeIntervalSince1970)).json")
-        if (try? FileManager.default.moveItem(at: fileURL, to: backup)) != nil {
+        if let backup = moveCorruptFileAside() {
             loadIssue = .recovered(backup: backup.lastPathComponent)
             pruneCorruptBackups()
+        } else {
+            // 备份没成功就绝不能假装恢复过：原文件留在原地，本次运行只读，
+            // 否则下一次 persist 就会把唯一一份（虽然损坏的）记录覆盖掉。
+            loadIssue = .backupFailed
+            persistenceBlocked = true
         }
+    }
+
+    /// 把损坏文件改名备份。备份名只有秒级精度，同一秒内第二次损坏会撞上
+    /// 已存在的备份名 — 撞名就加序号重试；不是撞名（权限之类）重试也没用，
+    /// 直接放弃并交回 nil，让调用方走「备份失败」分支。
+    private func moveCorruptFileAside() -> URL? {
+        let stamp = Int(Date().timeIntervalSince1970)
+        for attempt in 0..<100 {
+            let name = attempt == 0 ? "corrupt-\(stamp)" : "corrupt-\(stamp)-\(attempt)"
+            let backup = fileURL.deletingPathExtension().appendingPathExtension("\(name).json")
+            if (try? FileManager.default.moveItem(at: fileURL, to: backup)) != nil {
+                return backup
+            }
+            guard FileManager.default.fileExists(atPath: backup.path) else { return nil }
+        }
+        return nil
     }
 
     /// 损坏备份只留最新几份，否则每坏一次留一个几十 MB 的文件，无上限地涨。
