@@ -49,6 +49,10 @@ final class ConversationStore: ObservableObject {
 
     /// 读到了更新版本的文件时置位。置位期间一律不写盘，否则会把用户的数据覆盖掉。
     private var persistenceBlocked = false
+    /// 正在流式生成的对话（#45）：由 updateStreaming 维护 — 非最终更新
+    /// 置位，persistNow 的最终更新、占位消息被移除、或对话被删时清掉。
+    /// 只存在于内存里；进程重启后本来也没有流在跑。
+    private var streamingConversationID: UUID?
 
     private let fileURL: URL
     private let settings: AppSettings
@@ -232,9 +236,13 @@ final class ConversationStore: ObservableObject {
     }
 
     /// 满额时会被顶掉的那一个：最久没更新的。UI 拿它来问用户「删这个可以吗」。
+    /// 正在流式生成的那个永不作数：流卡住时它的 updatedAt 不再刷新，
+    /// 按时间挑正好会挑中它，答案会连同还在烧的 token 一起消失（#45）。
     var evictionCandidate: Conversation? {
         guard !canCreateNew else { return nil }
-        return conversations.min { $0.updatedAt < $1.updatedAt }
+        return conversations
+            .filter { $0.id != streamingConversationID }
+            .min { $0.updatedAt < $1.updatedAt }
     }
 
     // MARK: - 变更
@@ -292,6 +300,12 @@ final class ConversationStore: ObservableObject {
               let mi = conversations[ci].messages.firstIndex(where: { $0.id == messageID }) else { return }
         conversations[ci].messages[mi].text = text
         conversations[ci].updatedAt = Date()
+        // persistNow 的那次更新是收尾（完成或中断标记），其余都是生成中（#45）。
+        if persistNow {
+            if streamingConversationID == id { streamingConversationID = nil }
+        } else {
+            streamingConversationID = id
+        }
         if persistNow { persist() }
     }
 
@@ -307,11 +321,13 @@ final class ConversationStore: ObservableObject {
     func removeMessage(_ messageID: UUID, from id: UUID) {
         guard let ci = conversations.firstIndex(where: { $0.id == id }) else { return }
         conversations[ci].messages.removeAll { $0.id == messageID }
+        if streamingConversationID == id { streamingConversationID = nil }
         persist()
     }
 
     func delete(_ id: UUID) {
         conversations.removeAll { $0.id == id }
+        if streamingConversationID == id { streamingConversationID = nil }
         if activeID == id {
             activeID = conversations.first?.id
             settings.lastActiveConversationID = activeID?.uuidString
@@ -323,6 +339,7 @@ final class ConversationStore: ObservableObject {
         // 用户是奔着「本机什么都不留」来的，挡着写盘的那份文件也一并作废。
         // 不清掉标志位的话，这一轮之后新建的对话会一直静默地写不进去。
         persistenceBlocked = false
+        streamingConversationID = nil
         loadIssue = nil
         conversations.removeAll()
         activeID = nil

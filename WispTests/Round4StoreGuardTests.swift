@@ -136,4 +136,34 @@ final class Round4StoreGuardTests: XCTestCase {
         XCTAssertNil(store.saveIssue)
         XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
     }
+
+    // MARK: - #45: eviction must never take the conversation being streamed into
+
+    @MainActor
+    func testEvictionSkipsTheStreamingConversation() throws {
+        // A is time-oldest but mid-stream (stalled: no chunks arriving,
+        // so its updatedAt is no longer being bumped). B and C carry
+        // future updatedAts so the ordering survives the runtime clock.
+        let now = Date()
+        let placeholder = Message(role: .assistant, text: "")
+        let a = Conversation(title: "A", createdAt: now.addingTimeInterval(-7_200),
+                             updatedAt: now.addingTimeInterval(-7_200), messages: [placeholder])
+        let b = Conversation(title: "B", createdAt: now, updatedAt: now.addingTimeInterval(3_600))
+        let c = Conversation(title: "C", createdAt: now, updatedAt: now.addingTimeInterval(7_200))
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(ConversationFile(conversations: [a, b, c]))
+        try withStore(prewritten: data) { store, _, settings in
+            settings.maxConversations = 3
+            XCTAssertEqual(store.evictionCandidate?.id, a.id, "sanity: A is the time-oldest")
+
+            store.updateStreaming(text: "partial", messageID: placeholder.id, in: a.id, persistNow: false)
+            XCTAssertEqual(store.evictionCandidate?.id, b.id,
+                           "the streaming conversation must be exempt from eviction")
+
+            store.updateStreaming(text: "partial", messageID: placeholder.id, in: a.id, persistNow: true)
+            XCTAssertEqual(store.evictionCandidate?.id, a.id,
+                           "the final (persistNow) update lifts the exemption")
+        }
+    }
 }
