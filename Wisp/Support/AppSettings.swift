@@ -545,7 +545,9 @@ final class AppSettings: ObservableObject {
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
     }
 
-    /// 清空全部本地数据（对话 JSON、调试文件、UserDefaults）。Keychain 由调用方另行清除。
+    /// 删除应用支持目录的全部内容（对话 JSON、聆听记录、调试文件），并清掉少数几个
+    /// UserDefaults 键（上次打开的对话、面板位置、云端模型缓存）。其余设置（服务商、
+    /// 端点、快捷键等）会保留，不要理解成「恢复出厂」。Keychain 由调用方另行清除。
     func wipeLocalData() {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
