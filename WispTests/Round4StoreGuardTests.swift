@@ -79,4 +79,61 @@ final class Round4StoreGuardTests: XCTestCase {
             XCTAssertNil(store.loadIssue)
         }
     }
+
+    // MARK: - #35: load/persist failures must surface, never vanish
+
+    @MainActor
+    func testPathOccupiedByDirectoryBlocksWithNotice() throws {
+        // conversations.json exists but is a directory: Data(contentsOf:)
+        // fails, and every persist would fail too. Before #35 this was
+        // indistinguishable from "no file yet" — empty store, no notice,
+        // and a session of silent data loss.
+        let suite = "wisp-round4-guard-dir-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: directory)
+        }
+        let settings = AppSettings(defaults: defaults)
+        let file = directory.appendingPathComponent("conversations.json")
+        try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+        let store = ConversationStore(fileURL: file, settings: settings)
+        XCTAssertTrue(store.conversations.isEmpty)
+        XCTAssertTrue(store.isReadOnly)
+        guard case .unreadable = store.loadIssue else {
+            return XCTFail("occupied path must block as unreadable, got \(String(describing: store.loadIssue))")
+        }
+    }
+
+    @MainActor
+    func testPersistFailureSurfacesSaveIssueAndSuccessClearsIt() throws {
+        // The store's directory is blocked by a regular file, so every
+        // persist fails. Before #35 persist() swallowed all of it.
+        let suite = "wisp-round4-guard-blocked-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: directory)
+        }
+        let settings = AppSettings(defaults: defaults)
+        let parent = directory.appendingPathComponent("blocker")
+        try Data("x".utf8).write(to: parent)
+        let file = parent.appendingPathComponent("conversations.json")
+        let store = ConversationStore(fileURL: file, settings: settings)
+        XCTAssertNil(store.loadIssue)
+        XCTAssertNotNil(store.createNew())
+        XCTAssertNotNil(store.saveIssue, "a failed persist must be surfaced, not swallowed")
+        XCTAssertEqual(store.conversations.count, 1, "in-memory work continues; only saving is broken")
+
+        // Unblock: the next successful persist clears the notice.
+        try FileManager.default.removeItem(at: parent)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: false)
+        XCTAssertNotNil(store.createNew())
+        XCTAssertNil(store.saveIssue)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
+    }
 }

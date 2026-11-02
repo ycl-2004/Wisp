@@ -124,6 +124,20 @@ struct ChatView: View {
                         .font(DS.meta)
                     }
 
+                    // 写盘失败同样要摆出来：磁盘满时再聊多久都是白聊（#35）。
+                    if let saveIssue = store.saveIssue {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text(saveIssue)
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Button("知道了") { store.dismissSaveIssue() }
+                        }
+                        .font(DS.meta)
+                    }
+
                     if let error = model.errorText {
                         Label(error, systemImage: "exclamationmark.triangle")
                             .font(DS.meta)

@@ -18,6 +18,8 @@ final class ConversationStore: ObservableObject {
         case backupFailed
         /// 文件的格式版本号读不出来（不是整数，或小于 1）。为了不覆盖它，本次运行禁止写盘。
         case unreadableVersion
+        /// 文件存在、却读不出来（被占用、被文件夹占了位置等）。本次运行禁止写盘。
+        case unreadable
         /// 文件来自更新版本的 Wisp。为了不覆盖它，本次运行禁止写盘。
         case newerVersion(found: Int, supported: Int)
 
@@ -29,6 +31,8 @@ final class ConversationStore: ObservableObject {
                 return String(localized: "上次的对话记录读不出来了，而且备份也没成功。为了不覆盖原文件，本次运行不会保存任何改动。原文件还在 Wisp 的应用支持目录里，没有被改动。")
             case .unreadableVersion:
                 return String(localized: "这份对话记录的格式版本号读不出来（可能来自其他版本，或被外部修改过）。为了不按旧格式覆盖它，本次运行不会保存任何改动。")
+            case .unreadable:
+                return String(localized: "对话记录文件读不出来（可能被占用、损坏，或被文件夹占了位置）。本次运行不会保存任何改动，新对话在重启后不会保留。")
             case .newerVersion(let found, let supported):
                 return String(localized: "这份对话记录来自更新版本的 Wisp（格式 v\(found)，本版本只认到 v\(supported)）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。")
             }
@@ -39,6 +43,9 @@ final class ConversationStore: ObservableObject {
     @Published var activeID: UUID?
     /// 有值时界面上要显示提示条。
     @Published private(set) var loadIssue: LoadIssue?
+    /// 写盘失败时置位（磁盘满、目录不可写）。写成功一次就清掉。
+    /// persist 以前把所有失败都吞掉，磁盘满一整场会话的记录会无声消失（#35）。
+    @Published private(set) var saveIssue: String?
 
     /// 读到了更新版本的文件时置位。置位期间一律不写盘，否则会把用户的数据覆盖掉。
     private var persistenceBlocked = false
@@ -74,7 +81,16 @@ final class ConversationStore: ObservableObject {
     // MARK: - 读写
 
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let data = try? Data(contentsOf: fileURL) else {
+            // 文件不存在是第一次启动，正常留空。但路径上明明有东西、却读不
+            // 出来（比如被文件夹占了位置）时，每次写盘也必然失败 — 与其整场
+            // 静默丢数据，不如一开始就只读并说明（#35）。
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                loadIssue = .unreadable
+                persistenceBlocked = true
+            }
+            return
+        }
 
         // 先只看版本号。比本版本新的文件绝不能碰——读不动，就更不能覆盖。
         if let probe = try? decoder.decode(ConversationFileVersionProbe.self, from: data) {
@@ -144,24 +160,40 @@ final class ConversationStore: ObservableObject {
         guard !persistenceBlocked else { return }
 
         let file = ConversationFile(conversations: conversations)
-        guard let data = try? encoder.encode(file) else { return }
+        guard let data = try? encoder.encode(file) else { return noteSaveFailure() }
         let tmp = fileURL.appendingPathExtension("tmp")
         // Do not fall back to writing private content if directory protection fails.
         do { try AppSettings.ensurePrivateDirectory(fileURL.deletingLastPathComponent()) }
-        catch { return }
+        catch { return noteSaveFailure() }
         do {
             try data.write(to: tmp, options: .atomic)
             _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: tmp)
         } catch {
-            try? data.write(to: fileURL, options: .atomic)
+            do { try data.write(to: fileURL, options: .atomic) }
+            catch {
+                try? FileManager.default.removeItem(at: tmp)
+                return noteSaveFailure()
+            }
             try? FileManager.default.removeItem(at: tmp)
         }
+        if saveIssue != nil { saveIssue = nil }
+    }
+
+    /// 写盘失败的唯一出口：记下来让界面提示，只在状态变化时赋值，
+    /// 免得磁盘一直满时每次 persist 都触发一遍界面刷新（#35）。
+    private func noteSaveFailure() {
+        guard saveIssue == nil else { return }
+        saveIssue = String(localized: "对话记录保存失败（磁盘空间不足或目录不可写）。本次打开期间的改动在重启后会丢失。")
     }
 
     // MARK: - 提示条
 
     func dismissLoadIssue() {
         loadIssue = nil
+    }
+
+    func dismissSaveIssue() {
+        saveIssue = nil
     }
 
     /// 「更新版本的文件」这种情况下的逃生口：把它另存一份，然后从空白开始。

@@ -16811,6 +16811,94 @@
           }
         }
       }
+    },
+    "上次的对话记录读不出来了，而且备份也没成功。为了不覆盖原文件，本次运行不会保存任何改动。原文件还在 Wisp 的应用支持目录里，没有被改动。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your conversation history could not be read, and backing it up failed too. To avoid overwriting the original file, nothing will be saved this session. The original file is still in Wisp's Application Support folder, untouched."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次的对话记录读不出来了，而且备份也没成功。为了不覆盖原文件，本次运行不会保存任何改动。原文件还在 Wisp 的应用支持目录里，没有被改动。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "上次的對話記錄讀不出來了，而且備份也沒成功。為了不覆蓋原文件，本次運行不會保存任何改動。原文件還在 Wisp 的應用支持目錄裡，沒有被改動。"
+          }
+        }
+      }
+    },
+    "这份对话记录的格式版本号读不出来（可能来自其他版本，或被外部修改过）。为了不按旧格式覆盖它，本次运行不会保存任何改动。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This conversation file's format version could not be read (it may come from another version, or was modified externally). To avoid overwriting it in the old format, nothing will be saved this session."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这份对话记录的格式版本号读不出来（可能来自其他版本，或被外部修改过）。为了不按旧格式覆盖它，本次运行不会保存任何改动。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "這份對話記錄的格式版本號讀不出來（可能來自其他版本，或被外部修改過）。為了不按舊格式覆蓋它，本次運行不會保存任何改動。"
+          }
+        }
+      }
+    },
+    "对话记录文件读不出来（可能被占用、损坏，或被文件夹占了位置）。本次运行不会保存任何改动，新对话在重启后不会保留。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The conversation file could not be read (it may be in use, damaged, or replaced by a folder). Nothing will be saved this session, and new conversations will not survive a restart."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话记录文件读不出来（可能被占用、损坏，或被文件夹占了位置）。本次运行不会保存任何改动，新对话在重启后不会保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "對話記錄文件讀不出來（可能被占用、損壞，或被文件夾占了位置）。本次運行不會保存任何改動，新對話在重啟後不會保留。"
+          }
+        }
+      }
+    },
+    "对话记录保存失败（磁盘空间不足或目录不可写）。本次打开期间的改动在重启后会丢失。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving your conversation history failed (the disk may be full or the folder not writable). Changes made this session will be lost on restart."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话记录保存失败（磁盘空间不足或目录不可写）。本次打开期间的改动在重启后会丢失。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "對話記錄保存失敗（磁盤空間不足或目錄不可寫）。本次打開期間的改動在重啟後會丟失。"
+          }
+        }
+      }
     }
   }
 }
