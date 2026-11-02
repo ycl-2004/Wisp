@@ -349,6 +349,13 @@ enum CLIPrompt {
     }
 }
 
+/// 三个 CLI provider 共用的墙钟上限。
+/// 以前 Claude/AGY 是 300 秒、Codex 单独 240 秒，没有任何理由：慢但能跑完的
+/// Codex 调用会被提前 60 秒掐掉，用户还看不出为什么独独这家先超时。
+enum CLIWallClock {
+    static let timeout: TimeInterval = 300
+}
+
 /// CLI 子进程的 stderr 累积。三个 CLI provider 共用这一份，别再各抄一份。
 ///
 /// 只留尾巴：报错信息都在最后，各 provider 的 `condense` 也只读最后几行。

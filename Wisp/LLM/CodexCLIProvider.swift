@@ -6,7 +6,7 @@ struct CodexCLIProvider: ChatProvider {
 
     /// 一次调用的硬上限。codex 卡住不出声时，读循环阻塞在 availableData 上叫不醒，
     /// 唯一可靠的解法是从外面把进程杀掉，让管道立刻 EOF。
-    static let wallClockTimeout: TimeInterval = 240
+    static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// GUI 应用拿不到登录 shell 的 PATH，只能自己找。
     static let searchPaths = [
@@ -182,7 +182,7 @@ struct CodexCLIProvider: ChatProvider {
             let watchdog = Task.detached {
                 try? await Task.sleep(nanoseconds: UInt64(Self.wallClockTimeout * 1_000_000_000))
                 guard !Task.isCancelled else { return }
-                // 卡在 240 秒线上收尾的那种：读循环已经退出但 finish() 还没跑到，
+                // 卡在墙钟上限边缘收尾的那种：读循环已经退出但 finish() 还没跑到，
                 // 这时进程其实早没了，不能算超时。
                 box.stop(.timedOut, onlyIfRunning: true)
             }

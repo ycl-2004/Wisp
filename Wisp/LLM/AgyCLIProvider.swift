@@ -9,7 +9,7 @@ import Foundation
 struct AgyCLIProvider: ChatProvider {
     /// 这是故意比普通网络请求长：AGY 首次启动会扫描本地配置和 skills，
     /// 带截图时还要多一轮读文件的工具调用。
-    static let wallClockTimeout: TimeInterval = 300
+    static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// 一次请求塞给 AGY 的上限，按估算 token 记。
     ///

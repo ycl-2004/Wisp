@@ -11,7 +11,7 @@ import Foundation
 /// workspace 里，见 `stream(messages:config:)` 对工作目录的处理。
 struct ClaudeCodeCLIProvider: ChatProvider {
     /// 实测一次带截图的请求要 16–21 秒，比 AGY 慢，所以上限给得和它一样宽。
-    static let wallClockTimeout: TimeInterval = 300
+    static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// 按估算 token 记的上限。
     ///
