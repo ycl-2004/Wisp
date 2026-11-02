@@ -95,11 +95,13 @@ final class ConversationStoreMatrixTests: XCTestCase {
         // Contract (Conversation.swift): tolerant decode — a field with
         // the wrong type falls back, it does not fail the file. These
         // loads are silent: no recovery, no backup, no read-only.
+        // Sole exception since audit #34: a *present* version that is
+        // not a positive integer blocks instead of falling back to 1 —
+        // the fallback is exactly what defeated the newer-version
+        // protection. That behaviour is pinned in Round4StoreGuardTests.
         let cases: [String] = [
-            #"{"version":"one","conversations":[]}"#,       // version as string → probe nil, decode falls back to 1
             #"{"version":1,"conversations":"nope"}"#,       // conversations as string → []
             #"{"conversations":[]}"#,                        // version missing → 1
-            #"{"version":0,"conversations":[]}"#,           // older version loads (only NEWER blocks)
             #"{"version":1,"conversations":[{"messages":"nope"}]}"#, // messages wrong type → []
         ]
         for json in cases {

@@ -232,6 +232,25 @@ struct ConversationFile: Codable {
 }
 
 /// 只读版本号。用来在完整解码之前判断这个文件是不是来自更新的版本。
+///
+/// 关键区分：「没有 version 键」和「有 version 键但不是整数」是两回事。
+/// 前者是版本化之前的老文件，按 v1 读；后者多半来自别的版本或被外部
+/// 改过 — 若按缺失处理，容错解码会把它当 v1 加载、下一次写盘再按 v1
+/// 覆盖回去，恰好绕过 load() 的新版本保护（审计 #34）。
 struct ConversationFileVersionProbe: Decodable {
     var version: Int?
+    /// version 键存在、但解不成整数（字符串、小数等）时为真。
+    var hasUndecodableVersion = false
+
+    private enum CodingKeys: String, CodingKey { case version }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard container.contains(.version) else { return }
+        if let value = try? container.decode(Int.self, forKey: .version) {
+            version = value
+        } else {
+            hasUndecodableVersion = true
+        }
+    }
 }

@@ -16,6 +16,8 @@ final class ConversationStore: ObservableObject {
         case recovered(backup: String)
         /// 文件解不开，连改名备份都失败了。为了不覆盖它，本次运行禁止写盘。
         case backupFailed
+        /// 文件的格式版本号读不出来（不是整数，或小于 1）。为了不覆盖它，本次运行禁止写盘。
+        case unreadableVersion
         /// 文件来自更新版本的 Wisp。为了不覆盖它，本次运行禁止写盘。
         case newerVersion(found: Int, supported: Int)
 
@@ -25,6 +27,8 @@ final class ConversationStore: ObservableObject {
                 return String(localized: "上次的对话记录读不出来了，已经原样备份成 \(backup)，当前列表是空的。备份文件在 Wisp 的应用支持目录里，没有被删除。")
             case .backupFailed:
                 return String(localized: "上次的对话记录读不出来了，而且备份也没成功。为了不覆盖原文件，本次运行不会保存任何改动。原文件还在 Wisp 的应用支持目录里，没有被改动。")
+            case .unreadableVersion:
+                return String(localized: "这份对话记录的格式版本号读不出来（可能来自其他版本，或被外部修改过）。为了不按旧格式覆盖它，本次运行不会保存任何改动。")
             case .newerVersion(let found, let supported):
                 return String(localized: "这份对话记录来自更新版本的 Wisp（格式 v\(found)，本版本只认到 v\(supported)）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。")
             }
@@ -73,11 +77,19 @@ final class ConversationStore: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL) else { return }
 
         // 先只看版本号。比本版本新的文件绝不能碰——读不动，就更不能覆盖。
-        if let probe = try? decoder.decode(ConversationFileVersionProbe.self, from: data),
-           let version = probe.version, version > Self.schemaVersion {
-            loadIssue = .newerVersion(found: version, supported: Self.schemaVersion)
-            persistenceBlocked = true
-            return
+        if let probe = try? decoder.decode(ConversationFileVersionProbe.self, from: data) {
+            // 版本号在、却不是整数（或小于 1）：不能按「缺失 = v1」处理，
+            // 否则容错解码会把它当 v1 加载，下次写盘再按 v1 覆盖回去（#34）。
+            if probe.hasUndecodableVersion || (probe.version.map { $0 < 1 } ?? false) {
+                loadIssue = .unreadableVersion
+                persistenceBlocked = true
+                return
+            }
+            if let version = probe.version, version > Self.schemaVersion {
+                loadIssue = .newerVersion(found: version, supported: Self.schemaVersion)
+                persistenceBlocked = true
+                return
+            }
         }
 
         // 模型层是容错解码的：个别消息坏掉只会丢那一条，不会带走整个文件。
