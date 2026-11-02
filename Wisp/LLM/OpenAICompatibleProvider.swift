@@ -20,6 +20,10 @@ struct OpenAICompatibleProvider: ChatProvider {
     /// 多久没有任何新数据就判定这条流断了。流式回答里它是「静默上限」，不是总时长上限。
     static let idleTimeout: TimeInterval = 60
 
+    /// 非 2xx 时最多读多少错误响应体。真正的错误 JSON 只有几百字节，
+    /// `mapError` 用到的信息都在开头；上限之外读进来也只是白占内存。
+    static let maxErrorBodyBytes = 64 * 1024
+
     init(configuration: URLSessionConfiguration = OpenAICompatibleProvider.privateSessionConfiguration()) {
         let config = configuration
         config.timeoutIntervalForRequest = Self.idleTimeout
@@ -132,8 +136,13 @@ struct OpenAICompatibleProvider: ChatProvider {
                             throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
                         }
                         guard (200..<300).contains(http.statusCode) else {
-                            var data = Data()
-                            for try await byte in bytes { data.append(byte) }
+                            // 错误体只收前 64 KiB：抽风的服务端可以无限吐，
+                            // 但状态码和错误 JSON 的开头已经足够 mapError 判断了。
+                            var errorBody = CappedDataBuffer(limit: Self.maxErrorBodyBytes)
+                            for try await byte in bytes {
+                                if !errorBody.append(byte) { break }
+                            }
+                            let data = errorBody.data
                             if Self.rejectsPriority(status: http.statusCode, data: data, request: urlRequest) {
                                 allowPriority = false
                                 continue
@@ -141,13 +150,25 @@ struct OpenAICompatibleProvider: ChatProvider {
                             throw Self.mapError(status: http.statusCode, data: data, response: http)
                         }
 
-                        for try await line in bytes.lines {
+                        // 不用 `bytes.lines`：它把整行攒齐才交出来，单行没有
+                        // 上限。改走有上限的 SSELineSplitter，超长行直接报错。
+                        var splitter = SSELineSplitter()
+                        var sawDone = false
+                        for try await byte in bytes {
                             if Task.isCancelled { break }
+                            guard let line = try splitter.feed(byte) else { continue }
                             switch SSEParser.parse(line: line) {
                             case .delta(let text): continuation.yield(text)
-                            case .done: continuation.finish(); return
+                            case .done: sawDone = true
                             case .ignored: continue
                             }
+                            if sawDone { break }
+                        }
+                        // 没等到 [DONE] 就断流时，最后一行往往没有换行结尾，
+                        // 和 `bytes.lines` 一样把残行也交出去，别丢掉收尾的增量。
+                        if !sawDone, !Task.isCancelled, let line = splitter.finish(),
+                           case .delta(let text) = SSEParser.parse(line: line) {
+                            continuation.yield(text)
                         }
                         try Task.checkCancellation()
                         continuation.finish()
@@ -155,6 +176,8 @@ struct OpenAICompatibleProvider: ChatProvider {
                     }
                 } catch is CancellationError {
                     continuation.finish(throwing: ProviderError.cancelled)
+                } catch is SSELineSplitter.Failure {
+                    continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的单行数据过长，已中断。")))
                 } catch let error as ProviderError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError {
@@ -274,5 +297,40 @@ struct OpenAICompatibleProvider: ChatProvider {
             return .imageUnsupported(String(localized: "服务端说明：\(message)"))
         }
         return .http(status, message)
+    }
+}
+
+/// 有上限的字节累积：喂多少都只留最前面的 `limit` 字节。
+///
+/// 给「读多少都行、但不能无限读」的数据用（目前是非 2xx 的错误响应体）。
+/// 到上限后多余的字节直接丢弃，`append` 返回 false 让调用方停止读取。
+struct CappedDataBuffer {
+    let limit: Int
+    private(set) var data = Data()
+    private(set) var truncated = false
+
+    init(limit: Int) {
+        self.limit = max(0, limit)
+    }
+
+    /// 喂一个字节。返回 false 表示上限已满（本次字节被丢弃），调用方应停止读取。
+    @discardableResult
+    mutating func append(_ byte: UInt8) -> Bool {
+        guard !truncated else { return false }
+        guard data.count < limit else {
+            truncated = true
+            return false
+        }
+        data.append(byte)
+        return true
+    }
+
+    /// 喂一整块。返回 false 表示中途到顶（块的尾巴被丢弃）。
+    @discardableResult
+    mutating func append(contentsOf chunk: Data) -> Bool {
+        for byte in chunk {
+            guard append(byte) else { return false }
+        }
+        return true
     }
 }
