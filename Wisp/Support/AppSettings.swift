@@ -354,9 +354,32 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// 调试转储（last-context.json / last-screenshot.jpg）不能只认 defaults
+    /// 里的布尔值（#39）：应用没有沙盒，同用户的任何进程都能用
+    /// `defaults write` 把它打开，再到固定路径读走截图 — 等于借 Wisp 的
+    /// 录屏授权当自己的截图通道。所以开关还要有一个「武装文件」：只有
+    /// 应用内这个 setter 会在 0700 的应用支持目录里创建它，关掉就删。
+    /// 单翻 defaults 键、文件不在，转储保持关闭。诚实地说，这挡的是
+    /// 顺手翻键的脚本和普通恶意软件；铁了心读源码仿造文件的同用户进程
+    /// 不在此列 — 那种对手也不缺别的办法。
+    private static var debugDumpArmFile: URL {
+        supportDirectory.appendingPathComponent("debug-dump.armed")
+    }
+
     var debugDumpEnabled: Bool {
-        get { d.bool(forKey: K.debugDumpEnabled) }
-        set { d.set(newValue, forKey: K.debugDumpEnabled); objectWillChange.send() }
+        get {
+            d.bool(forKey: K.debugDumpEnabled)
+                && FileManager.default.fileExists(atPath: Self.debugDumpArmFile.path)
+        }
+        set {
+            d.set(newValue, forKey: K.debugDumpEnabled)
+            if newValue {
+                try? Data().write(to: Self.debugDumpArmFile)
+            } else {
+                try? FileManager.default.removeItem(at: Self.debugDumpArmFile)
+            }
+            objectWillChange.send()
+        }
     }
 
     var responseMode: ResponseMode {
