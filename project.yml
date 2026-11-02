@@ -13,7 +13,7 @@ packages:
     exactVersion: 1.13.7
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
-    from: 2.2.1
+    exactVersion: 2.4.0
 
 settings:
   base:
