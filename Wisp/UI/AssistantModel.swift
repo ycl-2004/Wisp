@@ -92,6 +92,15 @@ final class AssistantModel: ObservableObject {
     private var pendingText: ContextCapture.PendingText?
     private var capturedScreenshotOnly = false
 
+    /// 采集代次（#40/#41）：每次新的采集意图都会让它 +1 — 截图、正文采集、
+    /// 停止、面板隐藏。captureShot/captureText 在每个 await 之后先核对代次，
+    /// 过期就整份丢弃：不许把 packet、已发截图标记、过期标记写回成上一个
+    /// 时代的状态。以前没有这层纪律，迟到的采集结果能把新截图换成旧的，
+    /// 已取消的那次采集还会偷偷把 packet 填回去，让紧接着的发送跳过采集、
+    /// 拿取消掉的画面作答。每个 bump 的地方要么自己接管 isCapturing，
+    /// 要么当场把它复位。
+    private var captureGeneration = 0
+
     /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
     /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
     func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
@@ -99,11 +108,16 @@ final class AssistantModel: ObservableObject {
         let screenshotOnly = screenshotOnly ?? (settings.responseMode == .quick)
         // Opening/refocusing Quick with the camera off must not capture either.
         if screenshotOnly && !(attachScreenshot ?? settings.sendScreenshot) { return }
+        captureGeneration += 1
+        let generation = captureGeneration
         isCapturing = true
         errorText = nil
         let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: ownWindowIDs,
                                                                  fallbackApp: targetApp,
                                                                  screenshotOnly: screenshotOnly)
+        // 采集期间用户按了停止、藏了面板、或者更新的采集已经接管：这份结果
+        // 属于上一个时代，整份丢弃，状态一概不碰（#41）。
+        guard generation == captureGeneration else { return }
         if let bundleID = result.bundleID,
            bundleID != Bundle.main.bundleIdentifier,
            let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
@@ -138,8 +152,13 @@ final class AssistantModel: ObservableObject {
     func captureText() async {
         guard let pending = pendingText, var current = packet else { return }
         pendingText = nil
+        captureGeneration += 1
+        let generation = captureGeneration
         isCapturing = true
         await ContextCapture.captureText(pending, into: &current)
+        // 同 captureShot：过期结果整份丢弃（#40）。isCapturing 由接管的那
+        // 一方负责，这里不碰。
+        guard generation == captureGeneration else { return }
         packet = current
         isCapturing = false
         contextIsStale = false
@@ -221,6 +240,10 @@ final class AssistantModel: ObservableObject {
     /// 换了页面就把正文清掉：留着上一页的正文配这一页的网址，模型会拿旧内容
     /// 回答新问题，比没有正文更糟。清掉之后头部显示「正文未读取」，发送时才真去读。
     private func applyHeader(_ info: ContextCapture.HeaderInfo) {
+        // 采集正文、准备发送、正在生成时都不要落地（#42）：跟随任务的这次
+        // 结果可能迟到很久，它一旦判定「换页面了」就会把刚读好的正文清掉。
+        // 头部信息丢一轮没关系，跟随定时器下一秒还会再来。
+        guard !isCapturing, !isPreparingResponse, !isStreaming else { return }
         guard var current = packet else { return }
         let pageChanged = (info.url != current.url) || (info.bundleID != current.bundleID)
 
@@ -255,6 +278,9 @@ final class AssistantModel: ObservableObject {
     }
 
     func panelDidHide() {
+        // 还在飞的采集就此作废（#41）：它回来时不许再写 packet。
+        captureGeneration += 1
+        isCapturing = false
         pendingText = nil
         contextIsStale = true
         stopFollowingFrontWindow()
@@ -615,6 +641,11 @@ final class AssistantModel: ObservableObject {
             lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
             lastResponseTiming?.outcome = "cancelled"
         }
+        // 准备阶段里可能还有一次采集在飞（ContextCapture 的 continuation
+        // 没有取消通道，叫不回来）：让它过期，回来时整份丢弃，别让它填回
+        // packet、清掉过期标记，害下一次发送跳过采集（#41）。
+        captureGeneration += 1
+        isCapturing = false
         streamTask?.cancel()
         store.flush()
     }
