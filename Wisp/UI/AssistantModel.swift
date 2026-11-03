@@ -26,6 +26,22 @@ final class AssistantModel: ObservableObject {
     private var preparationTask: Task<Void, Never>?
     private var responseGeneration = UUID()
     @Published var errorText: String?
+    /// 当前这条错误是不是连接类（缺 Key、鉴权被拒、本地服务没跑一类，
+    /// 判定见 `ProviderError.isConnectionSetupError`）。错误行据此决定
+    /// 要不要在旁边放「去连接」按钮（UX 改造第 4 项）。与 `errorText`
+    /// 成对维护：所有错误落地都走 `setError`，种类用当时那个错误本人
+    /// 判定，绝不对显示字符串做匹配——否则上一次的残留会给限流错误
+    /// 配上一个点了也没用的按钮。
+    @Published private(set) var errorOffersConnect = false
+
+    /// 错误呈现的唯一入口：文字与「是否连接类」一次写齐，永不脱节。
+    /// `error` 是错误本人时按它的种类判定；只给文字时一律不算连接类。
+    private func setError(_ text: String?, from error: Error? = nil) {
+        errorText = text
+        errorOffersConnect = text != nil
+            && (error as? ProviderError)?.isConnectionSetupError == true
+    }
+
     @Published var showsConversationList = false {
         didSet {
             // 删除确认 alert 是对话列表的子视图（ConversationListView 只在
@@ -53,6 +69,15 @@ final class AssistantModel: ObservableObject {
     @Published private(set) var onboardingNeeded = false
     private var onboardingOfferedThisLaunch = false
     private var onboardingDismissedThisLaunch = false
+    /// 本次启动 `send()` 被就绪拦截的次数，与「是否已被用户跳过」
+    /// 一起决定拦截走窗口还是横幅，见 `interceptForOnboarding()`。
+    private var onboardingInterceptionsThisLaunch = 0
+    /// 拦截降级的横幅（UX 改造第 4 项）：向导已被跳过/关过之后再拦截，
+    /// 不弹窗口，只在输入框上方留一行「还没连上模型，你的问题先留在
+    /// 这里。」加「去连接」按钮。连上之后（readiness 重算翻成不需要）
+    /// 自动收起。它是面板内的一行普通内容，不是模态，不进
+    /// `hasModalPresented`、不影响 idle 判定。
+    @Published private(set) var showsOnboardingBanner = false
     /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
     @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
@@ -170,7 +195,7 @@ final class AssistantModel: ObservableObject {
         captureGeneration += 1
         let generation = captureGeneration
         isCapturing = true
-        errorText = nil
+        setError(nil)
         // 排除名单在采集这一刻组装，不用 show() 时刻写下的快照
         // （`ownWindowIDs`）：向导窗口能独立于 show() 出现——甚至就是
         // 同一轮 show 的 offer 打开的，快照里还没有它——整屏采集会把
@@ -402,6 +427,9 @@ final class AssistantModel: ObservableObject {
         // 期间有更新的刷新发起了，这份就是旧快照：整份丢弃，别写回缓存。
         guard generation == readinessGeneration else { return }
         onboardingNeeded = OnboardingReadiness.needsSetup(signals)
+        // 连上了，拦截横幅的使命就完了：不管用户是在向导里还是在
+        // 设置里配好的，重算翻成「不需要」的那一刻就把它收起。
+        if !onboardingNeeded { showsOnboardingBanner = false }
     }
 
     /// 打开向导窗口。所有入口都走这里：首启自动开窗（见
@@ -420,7 +448,56 @@ final class AssistantModel: ObservableObject {
     /// 不重复记。
     func completeOnboarding() {
         showsOnboarding = false
+        showsOnboardingBanner = false
         PanelController.shared.show()
+    }
+
+    /// 向导「开始使用 Wisp」的真验证（UX 改造第 4 项）：`onboardingNeeded`
+    /// 的就绪复查只证明存在性（Key 在不在、Ollama 在不在跑、CLI 找不
+    /// 找得到），Key 填错一位它也照样放行。这里对当前选择实际发一次
+    /// 测试请求，走设置页「测试连接」的同一条共用路径
+    /// （`ActiveModels.distinctConfigs()` +
+    /// `ProviderConfig.validationFailureMessage`），两个入口对「连接
+    /// 是通的」永远同一个答案。Key 按正式发送的同一条路从钥匙串补
+    /// （`ProviderConfig.authorized`）——调用方已先让 Key 输入框失焦
+    /// 落盘，所以这里读到的就是用户刚填的那份。全部通过返回 nil，
+    /// 否则返回给人看的失败原因，调用方不关窗、就地显示。
+    func verifyOnboardingConnection() async -> String? {
+        let models = ActiveModels(settings: settings, state: .shared)
+        let configs: [ProviderConfig]
+        do {
+            configs = try models.distinctConfigs().map {
+                try ProviderConfig.authorized($0, settings: settings)
+            }
+        } catch {
+            return (error as? ProviderError)?.errorDescription ?? error.localizedDescription
+        }
+        return await ProviderConfig.validationFailureMessage(for: configs)
+    }
+
+    /// 提问被就绪拦截时的去向（UX 改造第 4 项 · 拦截降级）：
+    /// 本次启动第一次拦截、且用户还没跳过过向导 → 打开向导窗口；
+    /// 已经被跳过/关过之后再拦截 → 只亮输入框上方的横幅，不再弹
+    /// 窗口。反复弹同一扇刚被关掉的窗是打扰，横幅留着出路又不挡事。
+    /// 两个档位都不动输入框：拦截发生在 `performSend` 清空之前，
+    /// 问题文本原样留着，用户连上之后再按一次发送即可。
+    private func interceptForOnboarding() {
+        onboardingInterceptionsThisLaunch += 1
+        // 向导已经开着：什么都不用做。用户办完那边的事回来再发即可，
+        // 这次也不算「被跳过」。
+        guard !showsOnboarding else { return }
+        if onboardingInterceptionsThisLaunch == 1, !onboardingDismissedThisLaunch {
+            presentOnboarding()
+        } else {
+            showsOnboardingBanner = true
+        }
+    }
+
+    /// 横幅上的「去连接」：收起横幅，打开向导窗口。用户主动点的，
+    /// 不受拦截降级的打扰预算限制。
+    func openOnboardingFromBanner() {
+        showsOnboardingBanner = false
+        presentOnboarding()
     }
 
     /// 向导窗口真正消失时由 `OnboardingWindowController` 回调（用户点
@@ -539,14 +616,14 @@ final class AssistantModel: ObservableObject {
             return
         }
         store.createNew()
-        errorText = nil
+        setError(nil)
         showsConversationList = false
     }
 
     /// 用户确认之后才真的删。
     func evictOldestAndCreate() {
         store.createNewEvictingOldest()
-        errorText = nil
+        setError(nil)
         confirmsEviction = false
         showsConversationList = false
     }
@@ -570,10 +647,11 @@ final class AssistantModel: ObservableObject {
     func send(question raw: String, mode: ResponseMode) {
         let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, canStartQuestion else { return }
-        // 一个模型都没连上时，先打开首次设置向导，而不是让这次提问
-        // 撞上一句没有出路的配置错误（#8）。onboardingNeeded 是前置缓存
-        // （启动/设置变更时算好），这里只读，不现算、不做 I/O。
-        if onboardingNeeded { presentOnboarding(); return }
+        // 一个模型都没连上时先拦下来，而不是让这次提问撞上一句没有
+        // 出路的配置错误（#8）。onboardingNeeded 是前置缓存（启动/设置
+        // 变更时算好），这里只读，不现算、不做 I/O。拦截走窗口还是
+        // 横幅由 `interceptForOnboarding()` 按打扰预算分档。
+        if onboardingNeeded { interceptForOnboarding(); return }
         guard let config = requestConfig(for: mode) else { return }
         let conversationID = store.active?.id
         let sendScreenshot = settings.sendScreenshot
@@ -599,7 +677,7 @@ final class AssistantModel: ObservableObject {
     /// 常用指令：指令文字就是问题，输入框里写了的东西作为材料跟在后面。
     func run(_ command: QuickCommand) {
         guard canStartQuestion else {
-            errorText = turnLimitMessage ?? String(localized: "请等待回答结束，或新建对话后重试。")
+            setError(turnLimitMessage ?? String(localized: "请等待回答结束，或新建对话后重试。"))
             return
         }
         send(question: command.question(withDraft: input), mode: command.mode ?? settings.responseMode)
@@ -644,7 +722,7 @@ final class AssistantModel: ObservableObject {
                 screenshot = shot
             }
             store.removeMessage(previous.id, from: conversationID)
-            errorText = nil
+            setError(nil)
             streamAnswer(in: conversationID, config: config, screenshot: screenshot,
                          skippedPage: false, generation: generation, restoring: previous)
         }
@@ -666,7 +744,7 @@ final class AssistantModel: ObservableObject {
             return try ProviderConfig.authorized(ActiveModels(settings: settings, state: .shared).config(for: mode),
                                                  settings: settings)
         } catch {
-            errorText = error.localizedDescription
+            setError(error.localizedDescription, from: error)
             return nil
         }
     }
@@ -678,7 +756,7 @@ final class AssistantModel: ObservableObject {
         lastResponseSkippedPage = false
         lastResponseTiming = ResponseTiming(mode: config.responseMode, model: config.model,
                                             startedAt: ProcessInfo.processInfo.systemUptime)
-        errorText = nil
+        setError(nil)
         isPreparingResponse = true
         if isCollapsed { withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) } }
         return generation
@@ -691,7 +769,7 @@ final class AssistantModel: ObservableObject {
     }
 
     private func cancelPreparation() {
-        errorText = String(localized: "准备期间切换了对话，请重新发送。")
+        setError(String(localized: "准备期间切换了对话，请重新发送。"))
         lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
         lastResponseTiming?.outcome = "cancelled"
     }
@@ -724,16 +802,16 @@ final class AssistantModel: ObservableObject {
         // A previous asynchronous screen read may finish after another send started.
         guard !isStreaming else { return }
         guard let conversation = store.ensureActive() else {
-            errorText = conversationLimitMessage
+            setError(conversationLimitMessage)
             return
         }
         guard !store.isAtTurnLimit(conversation) else {
-            errorText = turnLimitMessage
+            setError(turnLimitMessage)
             return
         }
 
         let conversationID = conversation.id
-        errorText = nil
+        setError(nil)
         input = ""
 
         let (snapshot, screenshot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
@@ -793,7 +871,7 @@ final class AssistantModel: ObservableObject {
                 self.lastResponseTiming?.outcome = accumulated.isEmpty ? "empty" : "completed"
                 if accumulated.isEmpty {
                     self.discard(assistantMessage.id, restoring: previous, in: conversationID)
-                    self.errorText = String(localized: "模型没有返回任何内容。可以换个模型名再试。")
+                    self.setError(String(localized: "模型没有返回任何内容。可以换个模型名再试。"))
                 } else {
                     self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
@@ -808,12 +886,12 @@ final class AssistantModel: ObservableObject {
                     self.store.updateStreaming(text: incomplete, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
-                if error is CancellationError { self.errorText = nil }
+                if error is CancellationError { self.setError(nil) }
                 else if let providerError = error as? ProviderError {
-                    if case .cancelled = providerError { self.errorText = nil }
-                    else { self.errorText = providerError.errorDescription }
+                    if case .cancelled = providerError { self.setError(nil) }
+                    else { self.setError(providerError.errorDescription, from: providerError) }
                 } else {
-                    self.errorText = error.localizedDescription
+                    self.setError(error.localizedDescription, from: error)
                 }
             }
             guard self.responseGeneration == generation else { return }

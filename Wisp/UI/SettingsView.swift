@@ -566,26 +566,16 @@ struct ModelSettingsView: View {
             return
         }
         // 测的是两个模式真正会发出去的模型。本地 CLI 只检查能否启动、与模型无关，测一次就够。
+        // 配置清单与验证循环都走共用路径（向导「开始使用 Wisp」用同一条），见
+        // `ActiveModels.distinctConfigs()` 与 `ProviderConfig.validationFailureMessage`。
         let models = ActiveModels(settings: settings, state: modelState)
-        var configs: [ProviderConfig] = []
-        for mode in ResponseMode.allCases {
-            var config = models.config(for: mode)
-            if kind == .openAICompatible { config.apiKey = trimmedKey }
-            let alreadyCovered = kind == .codexCLI ? !configs.isEmpty : configs.contains { $0.model == config.model }
-            if !alreadyCovered { configs.append(config) }
+        var configs = models.distinctConfigs()
+        if kind == .openAICompatible {
+            for index in configs.indices { configs[index].apiKey = trimmedKey }
         }
         Task {
-            var failures: [String] = []
-            for config in configs {
-                do {
-                    try await ProviderConfig.provider(for: config).validate(config: config)
-                } catch {
-                    let message = (error as? ProviderError)?.errorDescription ?? error.localizedDescription
-                    failures.append(configs.count > 1 ? "\(config.model)：\(message)" : message)
-                }
-            }
-            if !failures.isEmpty {
-                testResult = (false, failures.joined(separator: "\n"))
+            if let failure = await ProviderConfig.validationFailureMessage(for: configs) {
+                testResult = (false, failure)
             } else if kind == .codexCLI {
                 testResult = (true, String(localized: "\(settings.cliProvider.title) 可以运行。"))
             } else if configs.count > 1 {

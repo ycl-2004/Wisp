@@ -156,11 +156,22 @@ struct ChatView: View {
                     }
 
                     if let error = model.errorText {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                            .font(DS.meta)
-                            .foregroundStyle(.red)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .top, spacing: 8) {
+                            Label(error, systemImage: "exclamationmark.triangle")
+                                .font(DS.meta)
+                                .foregroundStyle(.red)
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                            // 连接类错误（缺 Key、401/403、本地服务没跑
+                            // 一类，判定在模型层）才给这颗按钮：它点开
+                            // 的向导正好能修好这类问题；限流、网络这类
+                            // 给了按钮也是白点（UX 改造第 4 项）。
+                            if model.errorOffersConnect {
+                                Spacer(minLength: 0)
+                                Button("去连接") { model.presentOnboarding() }
+                                    .font(DS.meta)
+                            }
+                        }
                     }
                     Color.clear.frame(height: 2).id("bottom")
                 }
@@ -192,6 +203,22 @@ struct ChatView: View {
                     .font(DS.meta)
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // 拦截降级的横幅（UX 改造第 4 项）：向导已被跳过/关过，
+            // 再拦截就不弹窗口，只留这一行——问题还躺在输入框里，
+            // 连上之后再按一次发送即可。「去连接」是用户主动点，
+            // 不受降级的打扰预算限制。
+            if model.showsOnboardingBanner {
+                HStack(spacing: 8) {
+                    Text("还没连上模型，你的问题先留在这里。")
+                        .font(DS.meta)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("去连接") { model.openOnboardingFromBanner() }
+                        .font(DS.meta)
+                }
             }
 
             if model.isSpeechDraft {

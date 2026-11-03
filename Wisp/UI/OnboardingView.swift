@@ -16,12 +16,21 @@ struct OnboardingView: View {
 
     @State private var screenRecordingGranted = Permissions.hasScreenRecording
     @State private var showsNeedsHint = false
+    /// 「开始使用 Wisp」正在跑真验证（实际发一次测试请求，要等网络
+    /// 往返）。期间主按钮禁用，避免连点发两次。
+    @State private var verifying = false
+    /// 真验证的失败原因（给人看的那句，与设置页「测试连接」同口径）。
+    /// 就绪复查只证明存在性，这里存的是真请求之后的结论——失败不
+    /// 关窗、就地显示（UX 改造第 4 项）。用户一改设置就清掉，免得
+    /// 旧结论赖在已经改过的配置上面。
+    @State private var verifyFailure: String?
 
     var body: some View {
         VStack(spacing: 0) {
             subtitle
             Divider()
             stepHeader(1, "连接模型", chip: "必须", required: true)
+            keyGuide
             // 设置页的模型标签页本体（省去回答模式一节）：服务商卡片、
             // 分服务商的 Key、测试连接、Ollama 探测、CLI 路径识别全在
             // 里面。它自带的 ScrollView 是整个窗口唯一的滚动区——窗口
@@ -45,6 +54,12 @@ struct OnboardingView: View {
             // 点「开始使用 Wisp」失败留下的提示不该在重开时直接在场，
             // 每次出现先清掉，用户再点按钮、判定再失败时才会重新出现。
             showsNeedsHint = false
+            verifyFailure = nil
+        }
+        .onReceive(AppSettings.shared.objectWillChange) { _ in
+            // 配置被改动了，上一次真验证的结论就作废：留着它，用户
+            // 改对了也会以为还没对。
+            verifyFailure = nil
         }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -63,6 +78,21 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
+    }
+
+    /// 第 1 步的 Key 导览（UX 改造第 4 项）：下面的表单默认用户已经
+    /// 有 Key，新用户其实卡在更前面——不知道 Key 是什么、去哪拿。
+    /// 三行讲完：是什么、去哪创建、没想好先用哪家。最短路径也点明
+    /// 了：默认服务商 OpenRouter 有免费档，不用先花钱。另外两种接法
+    /// 不需要 Key，它们的卡片副标题已经写明「适合谁」，这里不重复。
+    private var keyGuide: some View {
+        Text("API Key 是你向服务商证明身份的凭证：在服务商网站注册后，到 API Keys 页面创建一个，粘贴到下面的输入框（旁边的「获取」会打开对应页面）。还没想好用哪家？默认的 OpenRouter 有免费模型，可以先免费用。")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 10)
     }
 
     // chip 文案由调用点以字面量传入：三元表达式里的字符串字面量有被
@@ -150,17 +180,29 @@ struct OnboardingView: View {
                     // 保存时机是失焦/回车/切换）——不然刚填完就点这里，
                     // 复查会误判成还没配置。
                     NSApp.keyWindow?.makeFirstResponder(nil)
-                    Task {
-                        await model.refreshOnboardingReadiness()
-                        if model.onboardingNeeded {
-                            showsNeedsHint = true
-                        } else {
-                            // 完成交接：关窗 + 面板亮出，落点是提问框。
-                            model.completeOnboarding()
-                        }
-                    }
+                    Task { await startUsing() }
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(verifying)
+            }
+            // 真验证的状态行：进行中给一行进度，失败给人话原因（与
+            // 设置页 testResult 同样的呈现：红叉、可选中、多行）。它
+            // 只在点过主按钮之后才出现，下面的固定槽位提示不受影响。
+            if verifying {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("正在验证连接…")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+            } else if let verifyFailure {
+                Label(verifyFailure, systemImage: "xmark.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             // 提示行常驻一个固定 16pt 槽位：没提示时空着，有提示时原地
             // 出现——页脚高度恒定，按「开始使用 Wisp」不会把布局顶开。
@@ -177,5 +219,31 @@ struct OnboardingView: View {
     private var hintText: String {
         guard showsNeedsHint, model.onboardingNeeded else { return "" }
         return String(localized: "还没有可用的模型 — 完成上面任意一种连接就可以开始，也可以先跳过。")
+    }
+
+    /// 「开始使用 Wisp」的两段判定（UX 改造第 4 项把第二段从存在性
+    /// 复查升级为真验证）：
+    /// 1. 就绪复查（存在性）：还没配好就停在原来的提示，不浪费一次
+    ///    真请求；
+    /// 2. 真验证：对当前选择实际发一次测试请求（与设置页「测试
+    ///    连接」同一条路径）——Key 填错一位、模型没权限这类问题只
+    ///    有真发一次才现形。失败不关窗，原因就地显示在页脚；通过
+    ///    才走完成交接（关窗 + 面板亮出，落点是提问框）。
+    private func startUsing() async {
+        verifyFailure = nil
+        await model.refreshOnboardingReadiness()
+        guard !model.onboardingNeeded else {
+            showsNeedsHint = true
+            return
+        }
+        showsNeedsHint = false
+        verifying = true
+        let failure = await model.verifyOnboardingConnection()
+        verifying = false
+        if let failure {
+            verifyFailure = failure
+        } else {
+            model.completeOnboarding()
+        }
     }
 }

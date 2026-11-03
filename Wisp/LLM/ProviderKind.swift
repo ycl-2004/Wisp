@@ -33,11 +33,14 @@ enum ProviderKind: String, CaseIterable, Identifiable {
         }
     }
 
+    /// 卡片副标题说「适合谁」，不说实现（UX 改造第 4 项）：新用户是按
+    /// 自己的处境挑接法的——有没有 Key、愿不愿意装东西、本机有没有
+    /// 现成的登录。设置页与向导共用这组卡片，两处同一个说法。
     var subtitle: String {
         switch self {
-        case .openAICompatible: return String(localized: "任何 OpenAI 兼容接口，自带 Key")
-        case .ollama:           return String(localized: "本机模型，不联网，不花钱")
-        case .codexCLI:         return String(localized: "复用已登录的 Codex、Antigravity 或 Claude Code")
+        case .openAICompatible: return String(localized: "用 OpenAI、OpenRouter 等服务的 Key · 最通用")
+        case .ollama:           return String(localized: "需先装好 Ollama · 不联网 · 不花钱")
+        case .codexCLI:         return String(localized: "已装并登录的话，什么都不用填")
         }
     }
 
