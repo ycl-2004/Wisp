@@ -242,6 +242,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
+        panel.onCancel = { PanelController.shared.hide() }
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
@@ -388,12 +389,15 @@ final class PanelController: NSObject, NSWindowDelegate {
 }
 
 /// borderless 的窗口默认不能成为 key window，输入框就打不了字，这里放开。
-private final class KeyablePanel: NSPanel {
+/// 主面板和录制笔记面板共用；Esc 交给各自的 `onCancel`。
+final class KeyablePanel: NSPanel {
+    var onCancel: (() -> Void)?
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
     override func cancelOperation(_ sender: Any?) {
-        PanelController.shared.hide()
+        onCancel?()
     }
 }
 

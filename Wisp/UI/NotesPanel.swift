@@ -33,12 +33,14 @@ final class NotesPanelController: NSObject, NSWindowDelegate {
     private func ensurePanel() -> NSPanel {
         if let panel { return panel }
 
-        // 与主面板相同的取向：无边框、不抢焦点的浮窗。系统缩放关掉，
-        // 缩放交给 PanelResizeOverlay（和主面板同一套几何）。
-        let panel = NSPanel(contentRect: NSRect(origin: .zero, size: Self.defaultSize),
-                            styleMask: [.borderless, .nonactivatingPanel],
-                            backing: .buffered,
-                            defer: false)
+        // 与主面板相同的取向：无边框、不抢焦点的浮窗，同一个 KeyablePanel —
+        // 普通 borderless NSPanel 当不了 key window，笔记框就打不了字。
+        // 系统缩放关掉，缩放交给 PanelResizeOverlay（和主面板同一套几何）。
+        let panel = KeyablePanel(contentRect: NSRect(origin: .zero, size: Self.defaultSize),
+                                 styleMask: [.borderless, .nonactivatingPanel],
+                                 backing: .buffered,
+                                 defer: false)
+        panel.onCancel = { [weak self] in self?.hide() }
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true

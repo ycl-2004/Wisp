@@ -95,6 +95,7 @@
 		C16D695CFAD17D477D9F6199 /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98023C2C80A51C200CCD062D /* SSEParser.swift */; };
 		C575C7232C5FCA1A3F18A9D8 /* WispApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9CB342E72F33408AA0CB63 /* WispApp.swift */; };
 		CF2C1F107400D8BF0C41EF9A /* IslandModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EC426968353C8BFD75CA42B /* IslandModel.swift */; };
+		D1ADCEB17F0B40AC9E7045E9 /* KeyablePanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74AC55357DE04273F66BCBF8 /* KeyablePanelTests.swift */; };
 		D2BEB45F541B214EED9EB3D4 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 50E05D28BE9A5F5CB057B0A2 /* InfoPlist.strings */; };
 		D818D5452A006EE61A9E599F /* FuzzSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A07E5115500233653164EF /* FuzzSupport.swift */; };
 		DD2C5A87F64B886DC68CD333 /* StreamGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A97BE4981887F73E2D3D2D5 /* StreamGuardTests.swift */; };
@@ -169,6 +170,7 @@
 		6BB162B35F36465E2DF4CC29 /* QuickCommandSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCommandSettingsView.swift; sourceTree = "<group>"; };
 		7072DCC5DC79AC7662B4D26E /* ChatProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatProvider.swift; sourceTree = "<group>"; };
 		7339DF1CAC5DA144A82DC6AE /* ContextPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextPacket.swift; sourceTree = "<group>"; };
+		74AC55357DE04273F66BCBF8 /* KeyablePanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyablePanelTests.swift; sourceTree = "<group>"; };
 		78B8B3892E360AFEE49B4756 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		7A80CFDC8856883FFB3845D5 /* CLIJSONLinesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIJSONLinesTests.swift; sourceTree = "<group>"; };
 		7B9636321D0545DB4292CD47 /* LocalSpeechTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSpeechTests.swift; sourceTree = "<group>"; };
@@ -353,6 +355,7 @@
 				CEA116FB2672009751D9609B /* DrainBufferBoundaryTests.swift */,
 				0AC64205989E83901E71F64C /* DrainBufferTests.swift */,
 				49A07E5115500233653164EF /* FuzzSupport.swift */,
+				74AC55357DE04273F66BCBF8 /* KeyablePanelTests.swift */,
 				FD4CDA7D3A5DF6C7DBF1C200 /* ListeningTests.swift */,
 				38F262FD6CFB1C43C3D994C7 /* LocalCursorTests.swift */,
 				7B9636321D0545DB4292CD47 /* LocalSpeechTests.swift */,
@@ -560,6 +563,7 @@
 				037C0D23899AEFA8AAB62BE2 /* DrainBufferBoundaryTests.swift in Sources */,
 				7C47A845E7CE31A9B8F48121 /* DrainBufferTests.swift in Sources */,
 				D818D5452A006EE61A9E599F /* FuzzSupport.swift in Sources */,
+				D1ADCEB17F0B40AC9E7045E9 /* KeyablePanelTests.swift in Sources */,
 				1B3757DFE976EE2E3E247BF2 /* ListeningTests.swift in Sources */,
 				E89C12065BDC60CDC7E58D4C /* LocalCursorTests.swift in Sources */,
 				59A840B15944DEAB21ADD6B7 /* LocalSpeechTests.swift in Sources */,
