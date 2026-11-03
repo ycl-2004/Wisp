@@ -113,6 +113,10 @@ struct OnboardingView: View {
                 Spacer(minLength: 0)
                 Button("稍后再说") { dismiss() }
                 Button("开始使用") {
+                    // 先让 Key 输入框失焦，它的内容才落进钥匙串（模型页的
+                    // 保存时机是失焦/回车/切换）——不然刚填完就点这里，
+                    // 复查会误判成还没配置。
+                    NSApp.keyWindow?.makeFirstResponder(nil)
                     Task {
                         await model.refreshOnboardingReadiness()
                         if model.onboardingNeeded {

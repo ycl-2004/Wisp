@@ -6,6 +6,22 @@ import SwiftUI
 @MainActor
 enum IslandRenderer {
 
+    /// 把首次设置向导渲染成一张图，用于在没有真机流程时检查排版（#8）。
+    static func renderOnboarding(to path: String) {
+        let view = OnboardingView()
+            .environmentObject(AssistantModel.shared)
+            .frame(width: 600, height: 720)
+            .background(Color(nsColor: .windowBackgroundColor))
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        if let image = renderer.nsImage,
+           let tiff = image.tiffRepresentation,
+           let rep = NSBitmapImageRep(data: tiff),
+           let png = rep.representation(using: .png, properties: [:]) {
+            try? png.write(to: URL(fileURLWithPath: path))
+        }
+    }
+
     /// 把模型设置页的三种接法各渲染一张，用于在没有录屏权限时检查排版。
     static func renderSettings(to path: String) {
         let settings = AppSettings.shared

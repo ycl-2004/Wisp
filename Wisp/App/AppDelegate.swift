@@ -59,6 +59,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        if let index = CommandLine.arguments.firstIndex(of: "--render-onboarding") {
+            let path = CommandLine.arguments.count > index + 1
+                ? CommandLine.arguments[index + 1]
+                : NSHomeDirectory() + "/Desktop/onboarding.png"
+            MainActor.assumeIsolated { IslandRenderer.renderOnboarding(to: path) }
+            NSApp.terminate(nil)
+            return
+        }
+
         if let index = CommandLine.arguments.firstIndex(of: "--render-settings") {
             let path = CommandLine.arguments.count > index + 1
                 ? CommandLine.arguments[index + 1]
