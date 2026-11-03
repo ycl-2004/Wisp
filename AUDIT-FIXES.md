@@ -365,6 +365,14 @@ the command ID), and deletion paths already reset the recorded shortcut,
 which is what unregisters the system hotkey. All other KeyboardShortcuts
 APIs Wisp calls were verified present in the 2.3.0 sources.
 
+Round-7 correction, part 3: changing project.yml alone did not move the
+CI resolution — the generated project's
+`Wisp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`
+is tracked in the repo and SwiftPM treats its pins as sticky, so the
+macos-14 job kept checking out 2.4.0 (and its tools-6.1 manifest) even
+with `exactVersion: 2.3.0` in the spec. The committed pin was updated to
+2.3.0 (revision 045cf17…) to match.
+
 
 ---
 
