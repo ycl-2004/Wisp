@@ -1,33 +1,33 @@
 {
-  "originHash": "f6ad610a44fece089fb84e46c96e31bfc4988c372f82945d6b6cbf4a12bf939f",
-  "pins": [
+  "originHash" : "f6ad610a44fece089fb84e46c96e31bfc4988c372f82945d6b6cbf4a12bf939f",
+  "pins" : [
     {
-      "identity": "keyboardshortcuts",
-      "kind": "remoteSourceControl",
-      "location": "https://github.com/sindresorhus/KeyboardShortcuts",
-      "state": {
-        "revision": "045cf174010beb335fa1d2567d18c057b8787165",
-        "version": "2.3.0"
+      "identity" : "keyboardshortcuts",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/KeyboardShortcuts",
+      "state" : {
+        "revision" : "772133d9dbe800fdac0473226822994c5c162c58",
+        "version" : "3.1.0"
       }
     },
     {
-      "identity": "onnxruntime-libs",
-      "kind": "remoteSourceControl",
-      "location": "https://github.com/csukuangfj/onnxruntime-libs",
-      "state": {
-        "revision": "5cc3d2e84d9eade2562cf29a93fa3a520a75ca57",
-        "version": "1.28.1"
+      "identity" : "onnxruntime-libs",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/csukuangfj/onnxruntime-libs",
+      "state" : {
+        "revision" : "5cc3d2e84d9eade2562cf29a93fa3a520a75ca57",
+        "version" : "1.28.1"
       }
     },
     {
-      "identity": "sherpa-onnx",
-      "kind": "remoteSourceControl",
-      "location": "https://github.com/k2-fsa/sherpa-onnx.git",
-      "state": {
-        "revision": "917bed95c8e5c7c18aa4d69fea42e9ef8ef0a60e",
-        "version": "1.13.7"
+      "identity" : "sherpa-onnx",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/k2-fsa/sherpa-onnx.git",
+      "state" : {
+        "revision" : "917bed95c8e5c7c18aa4d69fea42e9ef8ef0a60e",
+        "version" : "1.13.7"
       }
     }
   ],
-  "version": 3
+  "version" : 3
 }

@@ -5,13 +5,13 @@ import KeyboardShortcuts
 extension KeyboardShortcuts.Name {
     static let responseQuick = Self("responseQuick")
     static let responseDeep = Self("responseDeep")
-    static let toggleListening = Self("toggleListening", default: .init(.r, modifiers: [.control, .option]))
-    static let stageListening = Self("stageListening", default: .init(.d, modifiers: [.control, .option]))
-    static let analyzeListening = Self("analyzeListening", default: .init(.a, modifiers: [.control, .option]))
+    static let toggleListening = Self("toggleListening", initial: .init(.r, modifiers: [.control, .option]))
+    static let stageListening = Self("stageListening", initial: .init(.d, modifiers: [.control, .option]))
+    static let analyzeListening = Self("analyzeListening", initial: .init(.a, modifiers: [.control, .option]))
     static let stopAndAnalyzeListening = Self("stopAndAnalyzeListening",
-                                              default: .init(.return, modifiers: [.control, .option]))
+                                              initial: .init(.return, modifiers: [.control, .option]))
     static let toggleAssistant = Self("toggleAssistant",
-                                      default: .init(.space, modifiers: [.control, .option]))
+                                      initial: .init(.space, modifiers: [.control, .option]))
     /// Held, not pressed. Unassigned until the user records one, like the mode shortcuts.
     static let pushToTalk = Self("pushToTalk")
     /// 录制笔记面板开关。默认不分配，和 pushToTalk 一样等用户自己录。
@@ -245,6 +245,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 语音的快捷键统一从这里注册：总开关关掉之后，面板上没有任何东西能提示
     /// 正在录音，快捷键就不该还能悄悄把它开起来。
+    @MainActor
     private func onListeningShortcut(_ name: KeyboardShortcuts.Name,
                                      _ action: @escaping @MainActor (ListeningModel) -> Void) {
         KeyboardShortcuts.onKeyUp(for: name) {

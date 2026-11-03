@@ -379,9 +379,9 @@ defaults delete com.yichenlin.Wisp
 依賴：
 
 - macOS 14.0 或更高。
-- Xcode 26.6（當前驗證環境），或其他提供 macOS 14 SDK 的相容版本。
+- Xcode 26 或更高（KeyboardShortcuts 3.1.0 需要 Swift tools 6.2）；CI 使用 Xcode 26.6。
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.45.4 或更高，用於從 `project.yml` 重新生成 Xcode 工程。
-- Swift Package Manager，按當前鎖定狀態解析 `KeyboardShortcuts` 2.4.0。
+- Swift Package Manager，按當前鎖定狀態解析 `KeyboardShortcuts` 3.1.0。
 
 本地開發建構：
 
@@ -505,7 +505,7 @@ unzip -l dist/Wisp-macOS-universal.zip
 ## 致謝
 
 Wisp 內建了 Sindre Sorhus 的
-[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) 2.4.0，MIT 許可證。
+[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) 3.1.0，MIT 許可證。
 完整宣告隨應用一起分發 —— **設定 → 通用 → 開源許可** —— 並作為
 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) 一起提交在倉庫裡。
 

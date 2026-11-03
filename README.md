@@ -560,11 +560,11 @@ from the macOS Keychain.
 Requirements:
 
 - macOS 14.0 or later.
-- Xcode 26.6, the current verification environment, or a compatible version
-  that provides a macOS 14 SDK.
+- Xcode 26 or later (KeyboardShortcuts 3.1.0 needs Swift tools 6.2); Xcode 26.6
+  is the CI environment.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.45.4 or later, used to
   regenerate the Xcode project from `project.yml`.
-- Swift Package Manager, which resolves `KeyboardShortcuts` 2.4.0 for the
+- Swift Package Manager, which resolves `KeyboardShortcuts` 3.1.0 for the
   current lock state.
 
 Build for local development:
@@ -736,7 +736,7 @@ resolution, and public documentation are tracked.
 ## Credits
 
 Wisp bundles [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts)
-2.4.0 by Sindre Sorhus, under the MIT License. Its full notice ships inside the
+3.1.0 by Sindre Sorhus, under the MIT License. Its full notice ships inside the
 app — Settings → General → **Open-source licenses** — and is checked in as
 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 

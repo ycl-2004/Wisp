@@ -11,7 +11,12 @@ struct QuickCommand: Codable, Identifiable, Equatable {
     /// one that should answer at once picks Quick.
     var mode: ResponseMode?
 
-    var shortcutName: KeyboardShortcuts.Name { .init("quickCommand." + id.uuidString) }
+    /// No dot: KeyboardShortcuts 3 reserves it, because the name doubles as an observation key path.
+    var shortcutName: KeyboardShortcuts.Name { .init("quickCommand-" + id.uuidString) }
+
+    /// The name shortcuts were recorded under before KeyboardShortcuts 3, read once at launch by
+    /// `QuickCommandStore.migrateLegacyShortcutNames()`.
+    var legacyShortcutName: KeyboardShortcuts.Name { .init(rawValue: "quickCommand." + id.uuidString)! }
 
     /// The mode's own symbol, so the list already says how the command will answer.
     var symbol: String { mode?.symbol ?? "sparkles" }
@@ -71,12 +76,7 @@ final class QuickCommandStore: ObservableObject {
     /// hooked exactly once for the life of the process; a deleted
     /// command's name simply stops resolving (and `delete` /
     /// `restoreDefaults` reset its recorded shortcut, which is what
-    /// unregisters the system hotkey). This deliberately avoids
-    /// `KeyboardShortcuts.removeHandler(for:)`: it exists only in
-    /// KeyboardShortcuts 2.4.0, whose manifest requires Swift tools 6.1,
-    /// and no Xcode that runs on the macOS 14 CI image provides that
-    /// (its newest is 16.2, tools 6.0) — the 2.3.0 pin is what keeps the
-    /// minimum-OS job able to resolve, build, and test at all.
+    /// unregisters the system hotkey), so no handler ever needs removing.
     private var hookedNames: Set<KeyboardShortcuts.Name> = []
 
     init(defaults: UserDefaults = .standard) {
@@ -90,6 +90,20 @@ final class QuickCommandStore: ObservableObject {
             }
         } else {
             commands = QuickCommand.defaults
+        }
+        migrateLegacyShortcutNames()
+    }
+
+    /// A shortcut recorded under a pre-KeyboardShortcuts-3 dotted name moves to the current name
+    /// once, unless the current name already has one; the old entry is removed either way.
+    private func migrateLegacyShortcutNames() {
+        for command in commands {
+            let legacy = command.legacyShortcutName
+            guard let shortcut = KeyboardShortcuts.getShortcut(for: legacy) else { continue }
+            if KeyboardShortcuts.getShortcut(for: command.shortcutName) == nil {
+                KeyboardShortcuts.setShortcut(shortcut, for: command.shortcutName)
+            }
+            KeyboardShortcuts.setShortcut(nil, for: legacy)
         }
     }
 

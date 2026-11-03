@@ -1,4 +1,5 @@
 import AppKit
+import KeyboardShortcuts
 import SwiftUI
 import XCTest
 @testable import Wisp
@@ -37,6 +38,27 @@ final class QuickCommandTests: XCTestCase {
         XCTAssertEqual(command.question(withDraft: " Bonjour \n"), "Translate this.\n\nBonjour")
         XCTAssertEqual(command.symbol, "sparkles")
         XCTAssertNotEqual(command.shortcutName.rawValue, QuickCommand(title: "Other", prompt: "x").shortcutName.rawValue)
+    }
+
+    func testShortcutNamesAvoidTheDotKeyboardShortcutsReserves() {
+        XCTAssertFalse(QuickCommand(title: "Translate", prompt: "Ask").shortcutName.rawValue.contains("."))
+    }
+
+    @MainActor
+    func testLegacyDottedShortcutMovesToTheCurrentName() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "wisp-commands-migration-" + UUID().uuidString))
+        let command = QuickCommand(title: "Translate", prompt: "Ask")
+        let recorded = KeyboardShortcuts.Shortcut(.t, modifiers: [.control, .option, .command])
+        KeyboardShortcuts.setShortcut(recorded, for: command.legacyShortcutName)
+        defaults.set(try JSONEncoder().encode([command]), forKey: QuickCommandStore.key)
+        defer {
+            KeyboardShortcuts.setShortcut(nil, for: command.shortcutName)
+            KeyboardShortcuts.setShortcut(nil, for: command.legacyShortcutName)
+        }
+
+        _ = QuickCommandStore(defaults: defaults)
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: command.shortcutName), recorded)
+        XCTAssertNil(KeyboardShortcuts.getShortcut(for: command.legacyShortcutName))
     }
 
     func testUnnamedCommandsRemainDiscoverable() {
