@@ -67,6 +67,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         // `NSApp.activate(ignoringOtherApps: true)` 加回此处——在 orderFront
         // 的同一时刻立即执行；绝不能改成延迟激活：延迟会在用户组字中途
         // 切换激活状态，是所有时机里最差的一个。
+        // 已知交叉项：LocalCursorController 在 localCursor +
+        // hideFromScreenCapture 开启时有自己的「未激活则点击激活」分支
+        // （prepare(for:) 里对 sharingType == .none 窗口的点击会 activate）；
+        // 以前 show() 每次都激活，这个分支在面板路径上轮不到触发，现在
+        // 永不激活了，点面板会实际触发它、把 App 整体激活。是否给面板
+        // 窗口豁免待真机验证门 1c 裁定，这里只记录，不预先改它的行为。
         NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
         refreshIdleTimer()
         // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。

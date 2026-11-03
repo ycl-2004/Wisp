@@ -115,9 +115,19 @@ final class AssistantModel: ObservableObject {
         settingsObserver = settings.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in self?.scheduleReadinessRefresh() }
         }
+
+        // Key 的写路径（填 Key 保存、清除 Key、CLI Key 保存、恢复出厂）全是
+        // 纯 KeychainStore 调用，不经过 AppSettings，上面那条订阅对就绪判断
+        // 最重要的输入是瞎的。KeychainStore 写成功后会发
+        // `.wispKeychainDidChange`，这里订上，走同一条防抖重算通道。
+        keychainObserver = NotificationCenter.default.publisher(for: .wispKeychainDidChange)
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.scheduleReadinessRefresh() }
+            }
     }
 
     private var settingsObserver: AnyCancellable?
+    private var keychainObserver: AnyCancellable?
     private var readinessRefreshTask: Task<Void, Never>?
 
     private func scheduleReadinessRefresh() {
@@ -144,8 +154,11 @@ final class AssistantModel: ObservableObject {
     /// 要么当场把它复位。
     private var captureGeneration = 0
 
-    /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
-    /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
+    /// 第一阶段：截图 + 网址标题。呈现不必等它跑完（UX 改造第 2 项）：
+    /// show() 先把面板亮出来，截图随后并发补上——浮窗不进画面靠的是截图
+    /// 按 `ownWindowIDs` 排除自家窗口，不靠「先截图后显示」的时序兜底
+    /// （与 ContextCapture 侧的注释同一口径）。只做这些，所以很快——
+    /// 读正文留给 `captureText()`，发送时再说。
     func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
         guard !isCapturing else { return }
         let screenshotOnly = screenshotOnly ?? (settings.responseMode == .quick)
@@ -337,11 +350,20 @@ final class AssistantModel: ObservableObject {
         Task { await refreshOnboardingReadiness() }
     }
 
+    /// readiness 刷新的代次（单调递增）。四个触发点（启动、防抖重算、
+    /// panelDidShow 后台收敛、向导关闭）发起的刷新可以并发在飞，Ollama
+    /// probe 最长要 4 秒——先发起的那次完全可能后落地。没有序列化时，
+    /// 它落地时写回的是旧快照派生出的值，能把更新的缓存覆盖回去。
+    /// 规则：开始时领一个代次，写缓存前校验仍是最新，不是就丢弃。
+    private var readinessGeneration = 0
+
     /// 从实时状态推导引导条件并写进 `onboardingNeeded` 缓存，只看当前
     /// 选中的连接：云端有没有 Key、Ollama 在不在跑、选中的 Agent CLI
     /// 找不找得到（先认设置里填的路径）。触发点：启动时、设置变更防抖、
     /// panelDidShow 的后台收敛、向导关闭时——都不在展示路径的临界点上。
     func refreshOnboardingReadiness() async {
+        readinessGeneration += 1
+        let generation = readinessGeneration
         let selection = ProviderConfig.selection(settings: settings)
         var signals = OnboardingSignals()
         switch selection.kind {
@@ -363,6 +385,8 @@ final class AssistantModel: ObservableObject {
             case .claudeCode: signals.selectedCLIFound = ClaudeCodeCLIProvider.resolvePath(selection.cliPath) != nil
             }
         }
+        // 期间有更新的刷新发起了，这份就是旧快照：整份丢弃，别写回缓存。
+        guard generation == readinessGeneration else { return }
         onboardingNeeded = OnboardingReadiness.needsSetup(signals)
     }
 

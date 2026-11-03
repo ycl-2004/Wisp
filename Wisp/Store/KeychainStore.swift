@@ -1,6 +1,14 @@
 import Foundation
 import Security
 
+extension Notification.Name {
+    /// 钥匙串里的 Key 真的变了（写入成功、或删掉了一条实际存在的条目）时发。
+    /// Key 的写路径全是纯 KeychainStore 调用，不经过 AppSettings，所以
+    /// readiness 缓存订不到设置变更那条线，只能靠这个通知补上
+    /// （UX 改造第 2 项检查发现）。
+    static let wispKeychainDidChange = Notification.Name("wispKeychainDidChange")
+}
+
 /// API Key 存 Keychain，不进 UserDefaults，也不进对话 JSON。
 /// 一家服务商一份条目，切换服务商时不会互相顶掉。
 enum KeychainStore {
@@ -74,7 +82,10 @@ enum KeychainStore {
         var attributes = query(account)
         attributes[kSecValueData as String] = Data(key.utf8)
         attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
+        let saved = SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
+        // save 与旧钥迁移写入都走这里，写成功才算「变了」。
+        if saved { NotificationCenter.default.post(name: .wispKeychainDidChange, object: nil) }
+        return saved
     }
 
     private static func read(account: String) -> String? {
@@ -93,6 +104,12 @@ enum KeychainStore {
     @discardableResult
     private static func remove(account: String) -> Bool {
         let status = SecItemDelete(query(account) as CFDictionary)
+        // delete/deleteAll 与迁移删原件都走这里。只有真的删掉了一条存在的
+        // 条目才算「变了」；本来就没有（errSecItemNotFound）不发通知，
+        // 免得 deleteAll 遍历一圈空条目刷出一串无意义的刷新。
+        if status == errSecSuccess {
+            NotificationCenter.default.post(name: .wispKeychainDidChange, object: nil)
+        }
         return status == errSecSuccess || status == errSecItemNotFound
     }
 }
