@@ -317,7 +317,8 @@ enum CLICommand {
 }
 
 /// CLI 图片输入的短生命周期工作目录。目录权限固定为 0700，命令结束后由
-/// provider 调用 `remove`；如果应用被强制终止，系统临时目录仍会负责后续回收。
+/// provider 调用 `remove`；应用被强制终止留下的孤儿目录由下次启动时的
+/// `sweepOrphans` 清理，再往后系统临时目录仍会负责回收。
 enum CLITemporaryDirectory {
     static func create(prefix: String) throws -> URL {
         let directory = FileManager.default.temporaryDirectory
@@ -338,6 +339,41 @@ enum CLITemporaryDirectory {
         } catch {
             return false
         }
+    }
+
+
+    /// Directory-name prefixes of every per-request scratch directory the
+    /// CLI providers create (their `create(prefix:)` call sites).
+    static let orphanPrefixes = ["Wisp-claude-", "Wisp-codex-", "Wisp-agy-"]
+
+    /// Removes per-request directories orphaned by a force-quit or crash;
+    /// their contents can include captured screenshots the user asked
+    /// about, so they should not linger until the OS gets around to
+    /// reclaiming the temp area. Only directories older than `age` are
+    /// touched — a single request is capped at 300s, so a live directory
+    /// can never be old enough to qualify. Fail-silent per item by
+    /// design: this is hygiene, never worth an error surface. Returns
+    /// how many directories were removed.
+    @discardableResult
+    static func sweepOrphans(olderThan age: TimeInterval = 24 * 60 * 60,
+                             now: Date = Date(),
+                             in directory: URL = FileManager.default.temporaryDirectory) -> Int {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey]) else { return 0 }
+        let cutoff = now.addingTimeInterval(-age)
+        var removed = 0
+        for entry in entries
+        where orphanPrefixes.contains(where: entry.lastPathComponent.hasPrefix) {
+            let values = try? entry.resourceValues(
+                forKeys: [.contentModificationDateKey, .isDirectoryKey])
+            guard values?.isDirectory == true,
+                  let modified = values?.contentModificationDate,
+                  modified < cutoff else { continue }
+            if remove(entry) { removed += 1 }
+        }
+        return removed
     }
 }
 

@@ -101,6 +101,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 #endif
 
+        // 清掉上次被强杀/崩溃时没来得及删的 CLI 临时目录（里面可能有截图）。
+        // 只删 24 小时以上的 Wisp-* 目录；单个请求上限 300 秒，碰不到正在用的。
+        CLITemporaryDirectory.sweepOrphans()
+
         // 0.2.x 只存一份 API Key，不分服务商。升上来时把它记到当时实际在用的那家名下，
         // 否则设置页按新账号名去读会读成空，用户会以为 Key 丢了。
         KeychainStore.migrateLegacyKeyIfNeeded {
