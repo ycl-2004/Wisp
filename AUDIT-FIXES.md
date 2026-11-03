@@ -340,6 +340,18 @@ Linux harness could not see:
 Lesson recorded: harness copies and `WispTests/` copies must be edited in
 lockstep; a harness-only test edit is exactly how (1) happened.
 
+Round-7 correction (from the same raw logs): the macos-14 job's failures in
+rounds 1-3 were NEVER test failures. Its log shows xcodebuild exit 74 before
+any test ran: "The project 'Wisp' cannot be opened because it is in a future
+Xcode project file format (77)" — XcodeGen 2.46 emits the Xcode 16 project
+format, and the macos-14 image's default Xcode is 15.4. Every test failure
+counted above happened on the macos-15 job alone. Fix: the macos-14 job now
+selects the newest Xcode installed on its image before generating; the
+tests still execute on macOS 14, which is the coverage the job exists for
+(issue #18). With that, round 3's macos-15 job was fully green (210 tests)
+and round 4 is the first time the macos-14 job can run at all.
+
+
 ---
 
 ## (b) Commits on `fix/audit-2026-11-02`

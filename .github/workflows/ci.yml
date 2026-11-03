@@ -55,11 +55,24 @@ jobs:
   # LSMinimumSystemVersion), but until now nothing ever built or tested for
   # it: an accidental macOS-15-only API use would ship silently and crash
   # 14.0 users at launch. Same steps as the macos-15 job, on the minimum OS.
+  # One deliberate difference: the newest Xcode on the image is selected
+  # first, because current XcodeGen emits the Xcode 16 project format (77),
+  # which the macos-14 image's default Xcode 15.4 cannot open at all (the
+  # job failed at project-open with exit 74 until this was added; it never
+  # ran a single test). The tests still EXECUTE on macOS 14, which is the
+  # coverage this job exists for.
   test-and-release-check-macos-14:
     runs-on: macos-14
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+
+      - name: Select the newest Xcode on the image
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $latest"
+          sudo xcode-select -s "$latest"
+          xcodebuild -version
 
       - name: Install XcodeGen
         run: brew install xcodegen
