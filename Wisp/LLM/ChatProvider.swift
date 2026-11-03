@@ -195,22 +195,41 @@ struct ProviderConfig: Sendable {
     }
 
     /// 设置页「测试连接」与向导「开始使用 Wisp」共用的真验证：对每个
-    /// 配置各跑一次对应 provider 的 validate（云端实际发一张测试图、
-    /// Ollama 查 tags、CLI 查路径与版本）。全部通过返回 nil；否则返回
-    /// 给人看的失败原因——多个配置时每条带模型名前缀，与设置页测试
-    /// 结果一直以来的呈现口径一致。两个入口共用这一条，对「连接是
-    /// 通的」永远同一个答案。
+    /// 配置各跑一次对应 provider 的 validate。云端与 Ollama 都走
+    /// `OpenAICompatibleProvider.validate`——实际发一次带微型测试
+    /// 图的最小 completion（不是查 tags；tags 探测是
+    /// `OllamaSupport.probe`，只喂设置页的状态行）。所以纯文本模型
+    /// 会在这里以 imageUnsupported 失败：这是对的口径——Wisp 提问
+    /// 永远带图，「能连上但收不了图」对它就是不能用。CLI 查路径与
+    /// 版本。全部通过返回 nil；否则返回给人看的失败原因。多个配置
+    /// 并发验（顺序 await 会把各家的往返串起来，向导在慢端点上白
+    /// 等），失败文案仍按配置原有顺序合成、每条带模型名前缀，与
+    /// 设置页测试结果一直以来的呈现口径一致。两个入口共用这一
+    /// 条，对「连接是通的」永远同一个答案。
     static func validationFailureMessage(for configs: [ProviderConfig]) async -> String? {
-        var failures: [String] = []
-        for config in configs {
-            do {
-                try await provider(for: config).validate(config: config)
-            } catch {
-                let message = (error as? ProviderError)?.errorDescription ?? error.localizedDescription
-                failures.append(configs.count > 1 ? "\(config.model)：\(message)" : message)
+        let failures: [(index: Int, message: String)] = await withTaskGroup(
+            of: (Int, String?).self
+        ) { group in
+            for (index, config) in configs.enumerated() {
+                group.addTask {
+                    do {
+                        try await provider(for: config).validate(config: config)
+                        return (index, nil)
+                    } catch {
+                        let message = (error as? ProviderError)?.errorDescription
+                            ?? error.localizedDescription
+                        return (index, configs.count > 1
+                                ? "\(config.model)：\(message)" : message)
+                    }
+                }
             }
+            var collected: [(Int, String)] = []
+            for await (index, message) in group {
+                if let message { collected.append((index, message)) }
+            }
+            return collected.sorted { $0.0 < $1.0 }
         }
-        return failures.isEmpty ? nil : failures.joined(separator: "\n")
+        return failures.isEmpty ? nil : failures.map(\.message).joined(separator: "\n")
     }
 }
 

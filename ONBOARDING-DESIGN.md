@@ -161,6 +161,26 @@ the panel, so the user lands on the question input (the panel's
 existing `panelDidShow`/focus-request path puts the cursor there).
 First run thus ends where the first question begins.
 
+### The completion gate — real verification over both modes
+
+"开始使用 Wisp" is gated on more than the existence check
+(`onboardingNeeded`): it runs a real test request through the exact
+path Settings' "测试连接" uses (`ActiveModels.distinctConfigs()` +
+`ProviderConfig.validationFailureMessage`), so the two surfaces can
+never disagree about whether a connection works. That check covers
+**the union of both response modes' actual configurations** — quick
+and deep — not just the mode the first question would use. This is
+deliberately stricter than "can the first question be sent": a broken
+deep-mode model would otherwise pass the wizard and fail the user's
+first deep question instead. Failure messages carry the model name as
+a prefix, so the user can tell which configuration is at fault; on
+failure the window stays open with the reason shown in the footer.
+Verification results are owned by the configuration they tested: if
+the user changes settings/Key or closes the window while a (possibly
+minute-long) verification is in flight, the stale verdict is dropped
+silently via `AssistantModel.onboardingConfigGeneration` rather than
+completing the handoff for a configuration that no longer exists.
+
 ## Non-goals (unchanged from the spec)
 
 No account creation, no bundled keys, no telemetry on completion, no

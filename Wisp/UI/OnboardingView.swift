@@ -229,17 +229,32 @@ struct OnboardingView: View {
     ///    连接」同一条路径）——Key 填错一位、模型没权限这类问题只
     ///    有真发一次才现形。失败不关窗，原因就地显示在页脚；通过
     ///    才走完成交接（关窗 + 面板亮出，落点是提问框）。
+    /// 两段都要等网络/探测，在飞期间用户可能关窗或改配置：结论落地
+    /// 前按配置代次对账（`AssistantModel.onboardingConfigGeneration`），
+    /// 对不上就静默丢弃——旧配置的成功不许替新配置完成交接。
     private func startUsing() async {
         verifyFailure = nil
         await model.refreshOnboardingReadiness()
+        // 复查这段也要等（Ollama 探测最长数秒）：期间用户把窗口关了，
+        // 这次点击到此为止——别在背后继续验证、更别完成交接。
+        guard model.showsOnboarding else { return }
         guard !model.onboardingNeeded else {
             showsNeedsHint = true
             return
         }
         showsNeedsHint = false
         verifying = true
+        // 归属对账：验证是真网络请求，慢端点能拖到分钟级。发起前领
+        // 一个配置代次，回来先对账——窗口还开着、且代次没变（期间
+        // 没改过设置/Key、没关过窗），结论才许落地（显示失败或完成
+        // 交接）；对不上就静默丢弃：用户已经在处理新配置了，旧结论
+        // 无论对错都不再属于它。verifying 先复位再对账，本视图随
+        // 窗口终身复用，绝不能把主按钮永久留在禁用态。
+        let generation = model.onboardingConfigGeneration
         let failure = await model.verifyOnboardingConnection()
         verifying = false
+        guard model.showsOnboarding,
+              generation == model.onboardingConfigGeneration else { return }
         if let failure {
             verifyFailure = failure
         } else {

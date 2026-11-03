@@ -78,6 +78,14 @@ final class AssistantModel: ObservableObject {
     /// 自动收起。它是面板内的一行普通内容，不是模态，不进
     /// `hasModalPresented`、不影响 idle 判定。
     @Published private(set) var showsOnboardingBanner = false
+    /// 配置代次（单调递增）：向导真验证的归属凭据。验证是真网络请求，
+    /// 慢端点能拖到分钟级；这段时间里用户改了设置/Key、或者干脆关了
+    /// 窗，旧配置的验证结论都不该再落地。代次只在两个地方递增——
+    /// 配置变更通道 `scheduleReadinessRefresh()`（设置与钥匙串共用
+    /// 的漏斗）与 `onboardingWindowClosed()`，别散落第三处。
+    /// `OnboardingView.startUsing()` 发起验证前领一个代次，回来对账：
+    /// 代次没变且窗口还开着，结论才许生效。
+    private(set) var onboardingConfigGeneration = 0
     /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
     @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
@@ -159,6 +167,10 @@ final class AssistantModel: ObservableObject {
     private var readinessRefreshTask: Task<Void, Never>?
 
     private func scheduleReadinessRefresh() {
+        // 配置刚变（设置或钥匙串，两条变更通道都收口在这里）：向导里
+        // 在飞的真验证验的是旧配置，代次 +1 让它回来时对不上账、静默
+        // 作废，见 `onboardingConfigGeneration`。
+        onboardingConfigGeneration += 1
         readinessRefreshTask?.cancel()
         readinessRefreshTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 300_000_000)
@@ -461,7 +473,10 @@ final class AssistantModel: ObservableObject {
     /// 是通的」永远同一个答案。Key 按正式发送的同一条路从钥匙串补
     /// （`ProviderConfig.authorized`）——调用方已先让 Key 输入框失焦
     /// 落盘，所以这里读到的就是用户刚填的那份。全部通过返回 nil，
-    /// 否则返回给人看的失败原因，调用方不关窗、就地显示。
+    /// 否则返回给人看的失败原因，调用方不关窗、就地显示。本函数只
+    /// 负责验、不负责归属：请求在飞期间配置可能已变、窗口可能已
+    /// 关，结论算不算数由调用方按 `onboardingConfigGeneration`
+    /// 对账决定。
     func verifyOnboardingConnection() async -> String? {
         let models = ActiveModels(settings: settings, state: .shared)
         let configs: [ProviderConfig]
@@ -506,6 +521,9 @@ final class AssistantModel: ObservableObject {
     /// 主动弹；同时重新推导一次，用户在向导里配好了就立刻消掉标记。
     /// 语义与 sheet 时代的 onDismiss 完全一致，只是宿主换了。
     func onboardingWindowClosed() {
+        // 关窗即作废在飞的真验证：它的结论回来时不许再完成交接、
+        // 把面板弹出来（代次对账在 `OnboardingView.startUsing()`）。
+        onboardingConfigGeneration += 1
         if onboardingNeeded { onboardingDismissedThisLaunch = true }
         Task { await refreshOnboardingReadiness() }
     }

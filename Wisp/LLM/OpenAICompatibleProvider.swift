@@ -312,7 +312,15 @@ struct OpenAICompatibleProvider: ChatProvider {
 
     static func mapError(status: Int, data: Data, response: HTTPURLResponse? = nil) -> ProviderError {
         let message = SSEParser.errorMessage(from: data)
-        if status == 401 || status == 403 { return .unauthorized }
+        if status == 401 { return .unauthorized }
+        if status == 403 {
+            // 403 不等于 Key 错：余额不足、内容政策、模型无权限都回
+            // 403，折成 .unauthorized 会把真实原因抹掉，文案还写死
+            // 「(401)」对不上状态码。走 .http 带上服务端原话，用户看
+            // 到底是哪种 403；「去连接」分类对 .http 的 401/403 判定
+            // 不变，该给的出路照样给。
+            return .http(403, message)
+        }
         if status == 429 {
             let raw = (String(data: data, encoding: .utf8) ?? "") + " " + message
             // OpenRouter 用这句话表示是上游供应商拒绝，不是你的账号额度。
