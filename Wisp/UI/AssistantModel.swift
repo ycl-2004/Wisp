@@ -299,18 +299,29 @@ final class AssistantModel: ObservableObject {
         }
     }
 
-    /// 从实时状态推导引导条件：钥匙串里有没有当前云端服务商的 Key、
-    /// Ollama 在不在跑、本地有没有装任何一个 Agent CLI。
+    /// 从实时状态推导引导条件，只看当前选中的连接：云端有没有 Key、
+    /// Ollama 在不在跑、选中的 Agent CLI 找不找得到（先认设置里填的路径）。
     func refreshOnboardingReadiness() async {
+        let selection = ProviderConfig.selection(settings: settings)
         var signals = OnboardingSignals()
-        signals.hasCloudKey = KeychainStore.hasKey(for: settings.cloudProvider)
-        signals.cloudBaseURLIsEmpty = settings.baseURL
-            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        signals.anyCLIInstalled = ClaudeCodeCLIProvider.detectedPath != nil
-            || CodexCLIProvider.detectedPath != nil
-            || AgyCLIProvider.detectedPath != nil
-        if case .running = await OllamaSupport.probe(baseURL: settings.ollamaBaseURL) {
-            signals.ollamaRunning = true
+        switch selection.kind {
+        case .openAICompatible:
+            signals.selected = .cloud
+            signals.hasCloudKey = KeychainStore.hasKey(for: settings.cloudProvider)
+            signals.cloudBaseURLIsEmpty = settings.baseURL
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .ollama:
+            signals.selected = .ollama
+            if case .running = await OllamaSupport.probe(baseURL: settings.ollamaBaseURL) {
+                signals.ollamaRunning = true
+            }
+        case .codexCLI:
+            signals.selected = .cli
+            switch selection.cliProvider {
+            case .codex:      signals.selectedCLIFound = CodexCLIProvider.resolvePath(selection.cliPath) != nil
+            case .agy:        signals.selectedCLIFound = AgyCLIProvider.resolvePath(selection.cliPath) != nil
+            case .claudeCode: signals.selectedCLIFound = ClaudeCodeCLIProvider.resolvePath(selection.cliPath) != nil
+            }
         }
         onboardingNeeded = OnboardingReadiness.needsSetup(signals)
     }

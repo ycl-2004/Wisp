@@ -2,18 +2,22 @@ import XCTest
 @testable import WispCore
 
 /// Issue #8: the onboarding entry condition is derived from live state,
-/// never stored. These tests pin the full signal matrix and the
-/// panel-open offer policy (the annoyance budget).
+/// never stored, and only from the connection a question would go to.
+/// These tests pin the signal matrix and the panel-open offer policy
+/// (the annoyance budget).
 final class OnboardingReadinessTests: XCTestCase {
 
-    private func signals(cloudKey: Bool = false, baseURLEmpty: Bool = false,
+    private func signals(_ selected: OnboardingSignals.Connection = .cloud,
+                         cloudKey: Bool = false, baseURLEmpty: Bool = false,
                          ollama: Bool = false, cli: Bool = false) -> OnboardingSignals {
-        OnboardingSignals(hasCloudKey: cloudKey, cloudBaseURLIsEmpty: baseURLEmpty,
-                          ollamaRunning: ollama, anyCLIInstalled: cli)
+        OnboardingSignals(selected: selected, hasCloudKey: cloudKey, cloudBaseURLIsEmpty: baseURLEmpty,
+                          ollamaRunning: ollama, selectedCLIFound: cli)
     }
 
     func testNothingConfiguredNeedsSetup() {
         XCTAssertTrue(OnboardingReadiness.needsSetup(signals()))
+        XCTAssertTrue(OnboardingReadiness.needsSetup(signals(.ollama)))
+        XCTAssertTrue(OnboardingReadiness.needsSetup(signals(.cli)))
     }
 
     func testCloudKeyWithBaseURLIsReady() {
@@ -25,17 +29,21 @@ final class OnboardingReadinessTests: XCTestCase {
         XCTAssertTrue(OnboardingReadiness.needsSetup(signals(cloudKey: true, baseURLEmpty: true)))
     }
 
-    func testRunningOllamaAloneIsReady() {
-        XCTAssertFalse(OnboardingReadiness.needsSetup(signals(ollama: true)))
+    func testRunningOllamaIsReadyWhenSelected() {
+        XCTAssertFalse(OnboardingReadiness.needsSetup(signals(.ollama, ollama: true)))
     }
 
-    func testAnyInstalledCLIAloneIsReady() {
-        XCTAssertFalse(OnboardingReadiness.needsSetup(signals(cli: true)))
+    func testFoundCLIIsReadyWhenSelected() {
+        XCTAssertFalse(OnboardingReadiness.needsSetup(signals(.cli, cli: true)))
     }
 
-    func testEmptyBaseURLDoesNotPoisonOtherPaths() {
-        XCTAssertFalse(OnboardingReadiness.needsSetup(
-            signals(cloudKey: true, baseURLEmpty: true, ollama: true)))
+    func testAPathThatIsNotSelectedDoesNotCount() {
+        // The default connection is the cloud: a fresh user with Claude Code
+        // installed but no key would still hit the missing-key error.
+        XCTAssertTrue(OnboardingReadiness.needsSetup(signals(.cloud, ollama: true, cli: true)))
+        // A configured CLI user is never blocked because no cloud key exists.
+        XCTAssertFalse(OnboardingReadiness.needsSetup(signals(.cli, cli: true)))
+        XCTAssertTrue(OnboardingReadiness.needsSetup(signals(.ollama, cloudKey: true, cli: true)))
     }
 
     func testOfferPolicyMatrix() {

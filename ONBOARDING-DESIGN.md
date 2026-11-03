@@ -16,16 +16,22 @@ that dead end into a guided path to the first answer.
 No `hasOnboarded` flag (nothing to drift out of sync). The pure function
 `OnboardingReadiness.needsSetup(signals)` (in
 `Wisp/Support/OnboardingReadiness.swift`, Foundation-only, unit-tested)
-decides from live state:
+decides from live state, looking only at the connection a question
+would go to right now (Settings' provider kind):
 
-- cloud ready: a Keychain key exists for the selected cloud provider
+- cloud selected: a Keychain key exists for the selected cloud provider
   **and** the effective base URL is non-empty;
-- ollama ready: `OllamaSupport.probe` reports `.running`;
-- CLI ready: any of Claude Code / Codex / AGY is detected on this Mac.
+- Ollama selected: `OllamaSupport.probe` reports `.running`;
+- agent CLI selected: the selected CLI resolves to an executable through
+  the provider's own `resolvePath` (the configured path first, then the
+  default install locations).
 
-`needsSetup = !(cloud || ollama || cli)`. `AssistantModel` gathers the
-signals (`refreshOnboardingReadiness()`), Ollama's probe being the only
-async input.
+A path that works but is not selected does not count: with the cloud
+selected (the default) and no key, an installed Claude Code still leaves
+the question to fail with the missing-key error the sheet replaces, and a
+CLI user with a custom path must never be blocked for lacking a cloud key.
+`AssistantModel` gathers the signals (`refreshOnboardingReadiness()`),
+Ollama's probe being the only async input.
 
 ## Triggers and the annoyance budget
 
