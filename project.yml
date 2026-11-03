@@ -13,7 +13,13 @@ packages:
     exactVersion: 1.13.7
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
-    exactVersion: 2.4.0
+    # Pinned exactly (#22) — at 2.3.0, not the newest: 2.4.0's manifest
+    # requires Swift tools 6.1, which no Xcode able to run on the macOS 14
+    # CI image provides (newest there is 16.2 / tools 6.0), so 2.4.0 makes
+    # the minimum-OS job unable to even resolve packages. The one 2.4.0-only
+    # API the app used (removeHandler) was designed out of
+    # QuickCommandStore; everything else Wisp calls exists in 2.3.0.
+    exactVersion: 2.3.0
 
 settings:
   base:

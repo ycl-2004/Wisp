@@ -66,7 +66,18 @@ final class QuickCommandStore: ObservableObject {
     @Published private(set) var loadFailed = false
 
     private let defaults: UserDefaults
-    private var registered: [KeyboardShortcuts.Name] = []
+    /// Names that already have a library handler installed. Handlers
+    /// dispatch by name through the CURRENT command list, so each name is
+    /// hooked exactly once for the life of the process; a deleted
+    /// command's name simply stops resolving (and `delete` /
+    /// `restoreDefaults` reset its recorded shortcut, which is what
+    /// unregisters the system hotkey). This deliberately avoids
+    /// `KeyboardShortcuts.removeHandler(for:)`: it exists only in
+    /// KeyboardShortcuts 2.4.0, whose manifest requires Swift tools 6.1,
+    /// and no Xcode that runs on the macOS 14 CI image provides that
+    /// (its newest is 16.2, tools 6.0) — the 2.3.0 pin is what keeps the
+    /// minimum-OS job able to resolve, build, and test at all.
+    private var hookedNames: Set<KeyboardShortcuts.Name> = []
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -103,19 +114,22 @@ final class QuickCommandStore: ObservableObject {
         commands = QuickCommand.defaults
     }
 
-    /// Each command's shortcut runs it from any app. Re-registered only when the set of commands
-    /// changes, not on every keystroke in the editor.
+    /// Each command's shortcut runs it from any app. A name's handler is
+    /// installed once and resolves its command at press time, so edits
+    /// and deletions need no re-registration.
     func registerShortcuts() {
-        let names = commands.map(\.shortcutName)
-        guard names != registered else { return }
-        registered.forEach { KeyboardShortcuts.removeHandler(for: $0) }
-        registered = names
-        for command in commands {
-            let id = command.id
-            KeyboardShortcuts.onKeyUp(for: command.shortcutName) {
-                Task { @MainActor in QuickCommandStore.shared.trigger(id) }
+        for command in commands where !hookedNames.contains(command.shortcutName) {
+            hookedNames.insert(command.shortcutName)
+            let name = command.shortcutName
+            KeyboardShortcuts.onKeyUp(for: name) { [weak self] in
+                Task { @MainActor in self?.triggerShortcut(named: name) }
             }
         }
+    }
+
+    private func triggerShortcut(named name: KeyboardShortcuts.Name) {
+        guard let command = commands.first(where: { $0.shortcutName == name }) else { return }
+        trigger(command.id)
     }
 
     /// From a shortcut the panel may be hidden: show it first, so the command reads the app the

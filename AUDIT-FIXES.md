@@ -351,6 +351,20 @@ tests still execute on macOS 14, which is the coverage the job exists for
 (issue #18). With that, round 3's macos-15 job was fully green (210 tests)
 and round 4 is the first time the macos-14 job can run at all.
 
+Round-7 correction, part 2: letting the macos-14 job open the project was
+not enough — package resolution then failed because KeyboardShortcuts
+2.4.0 (the exact pin from #22) declares Swift tools 6.1, and the newest
+Xcode installable on the macos-14 image is 16.2 (tools 6.0). The pin is
+now 2.3.0 (tools 5.11; still an exact pin, so #22's supply-chain property
+holds), and the single 2.4.0-only API the app used —
+`KeyboardShortcuts.removeHandler(for:)`, called from
+`QuickCommandStore.registerShortcuts()` — was designed out: each
+shortcut name now installs one handler for the life of the process that
+resolves its command by name at press time (a name is a pure function of
+the command ID), and deletion paths already reset the recorded shortcut,
+which is what unregisters the system hotkey. All other KeyboardShortcuts
+APIs Wisp calls were verified present in the 2.3.0 sources.
+
 
 ---
 
