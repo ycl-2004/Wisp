@@ -22,8 +22,6 @@ enum ScreenCapturer {
         case failed(String)
     }
 
-    private nonisolated(unsafe) static var hasRequestedOnce = false
-
     static let jpegQuality: CGFloat = 0.8
 
     /// 输出图的长边上限（像素）。截图按每点一像素出图，超过上限才等比缩小。
@@ -46,8 +44,10 @@ enum ScreenCapturer {
                         hiddenBundleIDs: Set<String> = []) async -> Result<Shot, CaptureError> {
         if !Permissions.hasScreenRecording {
             // 第一次没权限时主动弹一次系统授权框；之后只能去系统设置里勾。
-            if !hasRequestedOnce {
-                hasRequestedOnce = true
+            // 「请求过没有」读 Permissions 的会话级共享标记（向导步 2
+            // 同一份）：任一路径请求过，这里都不再重复调——调了也只是
+            // 无声 no-op，白走一趟。
+            if !Permissions.sessionRequestedScreenRecording {
                 _ = Permissions.requestScreenRecording()
             }
             guard Permissions.hasScreenRecording else { return .failure(.noPermission) }

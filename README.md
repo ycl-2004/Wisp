@@ -106,11 +106,11 @@ menu-bar space and third-party menu utilities remain controlled by macOS/the uti
    by Gatekeeper. If **Open** doesn't appear, open **System Settings →
    Privacy & Security**, scroll down to the Wisp notice, and click **Open
    Anyway**.
-4. The first-run wizard opens on its own. Connect a model there: paste an API
-   key (the default provider, OpenRouter, has free models, so you can start
-   without paying), run a local Ollama, or reuse an Agent CLI you are already
-   signed in to. Clicking **Start Using Wisp** sends one real test request to
-   verify the connection before you start.
+4. If nothing is connected yet, the first-run wizard opens on its own.
+   Connect a model there: paste an API key (the default provider, OpenRouter,
+   has free models, so you can start without paying), run a local Ollama, or
+   reuse an Agent CLI you are already signed in to. Clicking **Start Using
+   Wisp** verifies the connection with real test requests before you start.
 5. In the wizard you can also grant **Screen Recording** (optional — text-only
    questions work without it) and change the summon shortcut. The first time
    Wisp reads a browser page, grant Wisp **Automation** access to that
