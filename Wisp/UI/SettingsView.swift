@@ -106,6 +106,10 @@ struct ModelSettingsView: View {
     /// 离线渲染时用平铺布局。ImageRenderer 画不出 ScrollView 里的内容。
     var flat = false
 
+    /// 首次设置向导复用本视图时为 false：向导只管把模型连上，
+    /// 回答模式的取舍留到设置里。默认 true，设置页行为不变。
+    var showsResponseModes = true
+
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var modelState = ModelMenuState.shared
 
@@ -167,8 +171,10 @@ struct ModelSettingsView: View {
             picker
             Divider()
             fields
-            Divider()
-            ResponseModeSettings()
+            if showsResponseModes {
+                Divider()
+                ResponseModeSettings()
+            }
             Divider()
             testRow
             Spacer(minLength: 0)
@@ -1849,6 +1855,15 @@ private struct GeneralSettingsView: View {
                 }
             } header: {
                 SettingsSectionHeader("语言", info: String(localized: "留空跟随系统；只影响 Wisp，不改系统语言。"))
+            }
+
+            Section {
+                Button("重新运行首次设置") {
+                    PanelController.shared.show()
+                    AssistantModel.shared.showsOnboarding = true
+                }
+            } header: {
+                SettingsSectionHeader("帮助", info: String(localized: "重新打开首次设置向导：连接模型、录屏权限和呼出快捷键都可以在里面完成。"))
             }
 
             Section {

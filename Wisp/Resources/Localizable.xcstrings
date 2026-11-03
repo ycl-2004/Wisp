@@ -17141,6 +17141,292 @@
           }
         }
       }
+    },
+    "欢迎使用 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Wisp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎使用 Wisp"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "歡迎使用 Wisp"
+          }
+        }
+      }
+    },
+    "先连上一个模型，Wisp 才能开始回答你。所有设置只保存在这台 Mac 上。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect a model first — Wisp can't answer until one is set up. Everything stays on this Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先连上一个模型，Wisp 才能开始回答你。所有设置只保存在这台 Mac 上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "先連上一個模型，Wisp 才能開始回答你。所有設定只保存在這台 Mac 上。"
+          }
+        }
+      }
+    },
+    "已授予，Wisp 可以读取当前窗口和屏幕。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Granted — Wisp can read the current window and screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已授予，Wisp 可以读取当前窗口和屏幕。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已授予，Wisp 可以讀取目前視窗和螢幕。"
+          }
+        }
+      }
+    },
+    "提问时读取当前窗口和屏幕需要这个权限；纯文字提问不受影响。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the current window and screen with your question needs this permission; text-only questions work without it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问时读取当前窗口和屏幕需要这个权限；纯文字提问不受影响。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "提問時讀取目前視窗和螢幕需要這個權限；純文字提問不受影響。"
+          }
+        }
+      }
+    },
+    "在任何应用里按这个组合键呼出或收起 Wisp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press this combination in any app to summon or hide Wisp."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任何应用里按这个组合键呼出或收起 Wisp。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在任何應用程式裡按這個組合鍵呼出或收起 Wisp。"
+          }
+        }
+      }
+    },
+    "还没有可用的模型 — 完成上面任意一种连接就可以开始，也可以先跳过。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No model is available yet — finish any one connection above to start, or skip for now."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有可用的模型 — 完成上面任意一种连接就可以开始，也可以先跳过。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "還沒有可用的模型 — 完成上面任意一種連接就可以開始，也可以先跳過。"
+          }
+        }
+      }
+    },
+    "重新运行首次设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run First-Run Setup Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新运行首次设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "重新執行首次設定"
+          }
+        }
+      }
+    },
+    "重新打开首次设置向导：连接模型、录屏权限和呼出快捷键都可以在里面完成。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reopen the first-run setup: connect a model, grant Screen Recording, and set the summon shortcut, all in one place."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新打开首次设置向导：连接模型、录屏权限和呼出快捷键都可以在里面完成。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "重新打開首次設定向導：連接模型、螢幕錄影權限和呼出快捷鍵都可以在裡面完成。"
+          }
+        }
+      }
+    },
+    "呼出快捷键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summon Shortcut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "呼出快捷键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "呼出快捷鍵"
+          }
+        }
+      }
+    },
+    "打开完整设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Full Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开完整设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "打開完整設定"
+          }
+        }
+      }
+    },
+    "稍后再说": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip for Now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稍后再说"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "稍後再說"
+          }
+        }
+      }
+    },
+    "开始使用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Using Wisp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "開始使用"
+          }
+        }
+      }
+    },
+    "帮助": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帮助"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "幫助"
+          }
+        }
+      }
     }
   }
 }

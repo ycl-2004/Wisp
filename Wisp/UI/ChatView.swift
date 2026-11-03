@@ -51,6 +51,7 @@ struct ChatView: View {
         .onReceive(NotificationCenter.default.publisher(for: .wispPanelDidShow)) { _ in
             focusRequest += 1
             isActive = true
+            model.panelDidShow()
         }
         .onReceive(NotificationCenter.default.publisher(for: .wispPanelActivityChanged)) { note in
             isActive = note.userInfo?["active"] as? Bool ?? false
@@ -61,6 +62,10 @@ struct ChatView: View {
         }
         .onChange(of: model.showsConversationList) { _, showsHistory in
             if showsHistory, model.isCollapsed { model.setCollapsed(false) }
+        }
+        .sheet(isPresented: $model.showsOnboarding,
+               onDismiss: { model.onboardingSheetDismissed() }) {
+            OnboardingView()
         }
     }
 
