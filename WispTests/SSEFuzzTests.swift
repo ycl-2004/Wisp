@@ -56,18 +56,33 @@ final class SSESplitInvarianceTests: XCTestCase {
         "data: [DONE]\n" +
         "data: {\"choices\":[{\"delta\":{\"content\":\"tail\"}}]}"
 
+
+    /// The in-stream error delta carries localized prose; map it to a
+    /// fixed token so the pinned baseline holds in any locale. The raw
+    /// event sequence is still compared unmodified across chunkings.
+    private func normalized(_ events: [String]) -> [String] {
+        events.map { event in
+            if event.hasPrefix("delta:\n\n["), event.hasSuffix("] boom") {
+                return "delta:<server-error>"
+            }
+            return event
+        }
+    }
+
     func testRandomSplitsNeverChangeTheEventSequence() throws {
         let bytes = [UInt8](streamText.utf8)
         let whole = try runPipeline(bytes, chunks: [bytes])
         // The unsplit baseline itself is pinned, so "equal to itself"
-        // cannot hide a broken parse.
-        XCTAssertEqual(whole, [
+        // cannot hide a broken parse. The error delta's prose is
+        // localized, so it is normalized to a token for the pin; chunked
+        // runs below still compare raw against `whole`.
+        XCTAssertEqual(normalized(whole), [
             "delta:héllo",
             "ignored",
             "delta: 你好😀界",
             "ignored",
             "delta:abcd",
-            "delta:" + String(localized: "\n\n[服务端错误] boom"),
+            "delta:<server-error>",
             "ignored",
             "done",
             "delta:tail",
@@ -267,8 +282,12 @@ final class SSEParserBranchTests: XCTestCase {
     }
 
     func testInStreamErrorBecomesDeltaWithServerErrorPrefix() {
-        XCTAssertEqual(describe(SSEParser.parse(
-            line: #"data: {"error":{"message":"boom"}}"#)), "delta:" + String(localized: "\n\n[服务端错误] boom"))
+        // The prefix prose is localized; its frame ("\n\n[" ... "] ")
+        // and the server message payload are not.
+        let rendered = describe(SSEParser.parse(
+            line: #"data: {"error":{"message":"boom"}}"#))
+        XCTAssertTrue(rendered.hasPrefix("delta:\n\n["), rendered)
+        XCTAssertTrue(rendered.hasSuffix("] boom"), rendered)
         // An error object without a message string is not surfaced.
         XCTAssertEqual(describe(SSEParser.parse(
             line: #"data: {"error":{"code":500}}"#)), "ignored")

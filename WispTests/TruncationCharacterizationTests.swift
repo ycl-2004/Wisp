@@ -27,7 +27,7 @@ final class ContextCaptureTruncateTests: XCTestCase {
         let result = ContextCapture.truncate(text, limit: 100)
         XCTAssertTrue(result.hasPrefix("line-0-"), result)
         // The marker announces the omission and the samples bracket it.
-        XCTAssertTrue(result.contains("此处省略正文中间"), result)
+        XCTAssertTrue(result.contains("[…… "), result)
         // Head keeps ~75%, so the tail sample comes from the last lines.
         XCTAssertTrue(result.hasSuffix(String(text.suffix(10))), result)
         XCTAssertLessThan(result.count, text.count + 120)
@@ -64,14 +64,16 @@ final class ContextCaptureTruncateTests: XCTestCase {
     func testAllNewlinesInputStillTruncatesWithEmptySamples() {
         let text = String(repeating: "\n", count: 200)
         let result = ContextCapture.truncate(text, limit: 100)
-        // Samples trim to empty, so the marker quotes 「」 twice.
-        XCTAssertTrue(result.contains("上一段结束于「」，下一段开始于「」"), result)
-        XCTAssertTrue(result.contains("省略正文中间 102 字"), result)
+        // Samples trim to empty; assert the exact marker the production
+        // builder emits (its prose is localized, so build it, don't pin it).
+        XCTAssertTrue(result.contains(
+            ContextCapture.omissionMarker(omitted: 102, previousEnd: "", nextStart: "")), result)
     }
 
     func testZeroLimitYieldsOnlyTheMarker() {
         let result = ContextCapture.truncate("abcdef", limit: 0)
-        XCTAssertTrue(result.contains("省略正文中间 6 字"), result)
+        XCTAssertEqual(result,
+                       ContextCapture.omissionMarker(omitted: 6, previousEnd: "", nextStart: ""))
         XCTAssertFalse(result.contains("abcdef"))
     }
 
@@ -88,10 +90,13 @@ final class ContextCaptureTruncateTests: XCTestCase {
             let text = String((0..<500).map { _ in chars[rng.nextInt(chars.count)] })
             for limit in [10, 100, 250, 499] {
                 let result = ContextCapture.truncate(text, limit: limit)
-                // Extract the omitted count the marker claims.
-                let marker = result.components(separatedBy: "此处省略正文中间 ")
-                XCTAssertEqual(marker.count, 2, "alphabet \(alphabet) limit \(limit)")
-                let claimed = Int(marker[1].prefix(while: \.isNumber))!
+                // Extract the omitted count the marker claims: in every
+                // catalog locale the first number after the "[…… " frame
+                // is the omitted count (the prose around it is localized).
+                let frame = result.range(of: "[…… ")
+                XCTAssertNotNil(frame, "alphabet \(alphabet) limit \(limit): \(result)")
+                let claimed = Int(result[frame!.upperBound...].drop(while: { !$0.isNumber })
+                    .prefix(while: \.isNumber))!
                 // Head is a prefix of the input, tail a suffix; what is
                 // neither in head nor tail was dropped.
                 var headLen = 0
@@ -196,14 +201,14 @@ final class CLIPromptFitCharacterizationTests: XCTestCase {
         // The fitted text is NOT the old single-pass output anymore.
         XCTAssertNotEqual(fitted[0], ContextCapture.truncate(original, limit: 3_000))
         // The marker is still present and functional.
-        XCTAssertTrue(fitted[0].contains("此处省略正文中间"))
+        XCTAssertTrue(fitted[0].contains("[…… "))
 
         // The reserve really covers the marker this locale appends:
         // measured cost of the marker in the fitted output is the total
         // minus the kept head+tail characters (all wide here).
         let reserve = CLIPrompt.truncationMarkerReserve(for: original)
-        XCTAssertGreaterThan(reserve, 100,
-                             "reserve \(reserve) must cover the ~107-token Chinese marker")
+        XCTAssertGreaterThan(reserve, 80,
+                             "reserve \(reserve) must cover the locale marker (~93 EN / ~107 ZH)")
         XCTAssertLessThan(reserve, 200)
     }
 
