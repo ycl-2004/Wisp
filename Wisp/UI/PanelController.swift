@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// 无边框、半透明、贴屏幕上方的悬浮面板。
-/// 截图在面板显示之前完成，所以面板永远不会被截进去。
+/// 面板靠窗口 ID 从截图里排除自己（见 `show()`），所以呈现不必等截图跑完。
 @MainActor
 final class PanelController: NSObject, NSWindowDelegate {
     static let shared = PanelController()
@@ -30,13 +30,15 @@ final class PanelController: NSObject, NSWindowDelegate {
         isVisible ? hide() : show()
     }
 
-    /// `then` runs once the panel is on screen with this capture done, so an action started from a
-    /// shortcut in another app reads that app rather than a stale context.
+    /// `then` runs once this show's capture has finished — the panel itself is already
+    /// on screen by then. The callback still waits for the capture because a quick
+    /// command started from a shortcut goes through run() → send(), and
+    /// `canStartQuestion` refuses to start while a capture is in flight.
     func show(then: (@MainActor () -> Void)? = nil) {
         presentationGeneration = UUID()
         let generation = presentationGeneration
         let model = AssistantModel.shared
-        // 必须在激活自己之前记住目标应用。
+        // 必须在切换焦点之前记住目标应用。
         if let front = NSWorkspace.shared.frontmostApplication,
            front.bundleIdentifier != Bundle.main.bundleIdentifier {
             model.targetApp = front
@@ -44,25 +46,43 @@ final class PanelController: NSObject, NSWindowDelegate {
         let panel = ensurePanel()
         var excluded = [CGWindowID(panel.windowNumber)]
         if let islandID = IslandController.shared.windowID { excluded.append(islandID) }
+        // 向导窗口里有 Key 输入框，它开着时整屏采集同样要把它排除。
+        if let onboardingID = OnboardingWindowController.shared.windowID { excluded.append(onboardingID) }
         model.ownWindowIDs = excluded
         IslandController.shared.setDimmed(true)
 
         // 每次唤起都回到输入尺寸，发送时再自动展开。
         model.setCollapsedSilently(true)
         isPointerInside = false
+
+        // 呈现不再等截图（UX 改造第 2 项）：先定位、亮出来、成为 key window，
+        // 用户立刻就能打字。浮窗不会进自己的截图——截图按 ownWindowIDs
+        // 排除自家窗口（上面刚写进 model），不靠「先截图后显示」的时序兜底。
+        // 截图转到下面的并发 Task 里补，落地前 captureShot 内部有代次校验：
+        // 藏面板（panelDidHide 自增代次）或新一轮采集都会让在飞的这份作废。
+        position(panel)
+        panel.makeKeyAndOrderFront(nil)
+        // 永不激活：面板样式本来就是 .nonactivatingPanel，成为 key window 已
+        // 足够收键盘输入，不需要把整个 App 激活、把用户从当前应用里拽走。
+        // 这是有意决定，靠真机验证门兜底（中文 IME 组字、Cmd+V/Z/A/X、听写、
+        // hide 后焦点交还）。若验证不过，回退方式是把
+        // `NSApp.activate(ignoringOtherApps: true)` 加回此处——在 orderFront
+        // 的同一时刻立即执行；绝不能改成延迟激活：延迟会在用户组字中途
+        // 切换激活状态，是所有时机里最差的一个。
+        // 已知交叉项：LocalCursorController 在 localCursor +
+        // hideFromScreenCapture 开启时有自己的「未激活则点击激活」分支
+        // （prepare(for:) 里对 sharingType == .none 窗口的点击会 activate）；
+        // 以前 show() 每次都激活，这个分支在面板路径上轮不到触发，现在
+        // 永不激活了，点面板会实际触发它、把 App 整体激活。是否给面板
+        // 窗口豁免待真机验证门 1c 裁定，这里只记录，不预先改它的行为。
+        NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
+        refreshIdleTimer()
+        // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。
+        model.startFollowingFrontWindow()
         Task {
-            // 只等第一阶段：截图必须赶在浮窗出现之前，否则浮窗会进画面。
             await model.captureShot()
-            // Hide or a newer show can arrive while capture is suspended. An old
-            // completion must not reopen a dismissed window or run its send action.
+            // 藏面板或更新的一次唤起之后才跑完的这一轮，不许再触发它的回调。
             guard self.presentationGeneration == generation else { return }
-            position(panel)
-            panel.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
-            refreshIdleTimer()
-            // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。
-            model.startFollowingFrontWindow()
             // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
             // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
             then?()
@@ -77,6 +97,19 @@ final class PanelController: NSObject, NSWindowDelegate {
         cancelIdleTimer()
         saveFrame(panel)
         flushFrameSave()
+        // 先让面板自家的模态走正常关闭路径再藏面板：直接 orderOut 的话
+        // alert 只是跟着面板一起不见、关不掉，待删标记会悬空。
+        // 向导不在此列（第 3 项检查裁定，修订第 1 项在新宿主下的语义）：
+        // 它已是独立窗口，与面板生命周期解耦——藏面板时连带关掉它，
+        // 是用户看不见因果的跨窗副作用，还会把「关面板」误记成
+        // 「跳过了向导」。它只参与 idle 豁免（见
+        // `AssistantModel.hasModalPresented`），关闭与记账只走它自己的
+        // 路径（窗口关闭按钮、稍后再说、完成交接）。
+        if AssistantModel.shared.confirmsEviction
+            || AssistantModel.shared.pendingConversationDeletion != nil {
+            AssistantModel.shared.confirmsEviction = false
+            AssistantModel.shared.pendingConversationDeletion = nil
+        }
         panel.orderOut(nil)
         isPointerInside = false
         broadcastActivity()
@@ -142,6 +175,8 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     /// 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
     /// 鼠标停在上面、回答正在生成、正在录音或按住说话、正在采集。任何一条成立都不能收。
+    /// 模态（设置向导、删除确认）盖着时同理：那正是用户办事办到一半的时刻
+    /// （比如切去浏览器拿 API Key），计时到了也不能连模态一起把面板收走。
     ///
     /// 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
     /// 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
@@ -155,6 +190,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             && !PushToTalk.shared.isActive
             && !AssistantModel.shared.isCapturing
             && !isWorkingInCapturedApp
+            && !AssistantModel.shared.hasModalPresented
     }
 
     /// 前台应用就是这份上下文读到的那个应用吗？
@@ -242,7 +278,19 @@ final class PanelController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        panel.onCancel = { PanelController.shared.hide() }
+        panel.onCancel = {
+            // Esc 先退最上面一层：面板自家的模态（腾位/删对话确认）盖着
+            // 就只关模态，面板留着；没有模态才轮到把面板整个藏掉。
+            // 向导窗口不在此列：同 hide()，它只参与 idle 豁免，不归
+            // 面板的 Esc 管（裁定理由见 hide() 处注释）。
+            if AssistantModel.shared.confirmsEviction
+                || AssistantModel.shared.pendingConversationDeletion != nil {
+                AssistantModel.shared.confirmsEviction = false
+                AssistantModel.shared.pendingConversationDeletion = nil
+            } else {
+                PanelController.shared.hide()
+            }
+        }
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true

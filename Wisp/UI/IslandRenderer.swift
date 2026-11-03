@@ -10,7 +10,10 @@ enum IslandRenderer {
     static func renderOnboarding(to path: String) {
         let view = OnboardingView()
             .environmentObject(AssistantModel.shared)
-            .frame(width: 600, height: 720)
+            // 按封顶帧渲染（宽 560、高 640）：真实窗口高度按内容拟合
+            // 在 400–640 之间随所选服务商变，这张图是最高那种形态，
+            // 不是窗口的实际尺寸；别拿它判断步 1 滚动区要不要滚。
+            .frame(width: 560, height: 640)
             .background(Color(nsColor: .windowBackgroundColor))
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2

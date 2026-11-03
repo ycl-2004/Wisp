@@ -47,7 +47,7 @@ struct ContextHeaderView: View {
                 appIcon
                     .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
 
-                Text(model.packet?.appName ?? model.targetApp?.localizedName ?? "Wisp")
+                Text(trustedPacket?.appName ?? model.targetApp?.localizedName ?? "Wisp")
                     .font(DS.title)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -74,7 +74,7 @@ struct ContextHeaderView: View {
 
             if model.isCapturing {
                 ProgressView().controlSize(.small).scaleEffect(0.7).frame(width: 16)
-            } else if model.packet != nil {
+            } else if trustedPacket != nil {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
                     Text(model.contextAge(relativeTo: context.date))
                         .font(.system(size: 9.5))
@@ -108,9 +108,25 @@ struct ContextHeaderView: View {
         .frame(height: DS.headerHeight - 8)
     }
 
+    /// 当前可信的 packet：只有 packet 是给「当前目标 App」采的，它的字段才
+    /// 能当作当前上下文展示。判定规则：targetApp 存在时，packet.bundleID
+    /// 必须与它一致；不一致就是上一个目标 App 的旧上下文——呈现同步化
+    /// （UX 改造第 2 项）后，面板第一帧时新 capture 还没落地（浏览器路径
+    /// 最长 2 秒多），packet 从不置 nil、又排在 targetApp 前面被读，不加这层
+    /// 判定，头部会先把旧 App 的名字/图标/网址当当前的亮出来，再跳成新的。
+    /// 不一致时本属性返回 nil，标题/图标走既有的 targetApp 回退链，
+    /// 副标题、上下文年龄、截图 chip、采集详情一律按 packet == nil 的
+    /// 既有形态呈现；新 capture 落地后 bundleID 对上，自然换回 packet。
+    /// targetApp 为 nil 时没有可矛盾的对象，packet 是仅有的上下文，照用。
+    private var trustedPacket: ContextPacket? {
+        guard let packet = model.packet else { return nil }
+        guard let targetBundleID = model.targetApp?.bundleIdentifier else { return packet }
+        return packet.bundleID == targetBundleID ? packet : nil
+    }
+
     private var appIcon: some View {
         Group {
-            if let icon = AppIconCache.icon(forBundleID: model.packet?.bundleID) {
+            if let icon = AppIconCache.icon(forBundleID: trustedPacket?.bundleID) {
                 Image(nsImage: icon).resizable()
             } else {
                 Image(systemName: "macwindow").resizable().scaledToFit().foregroundStyle(.tertiary)
@@ -120,7 +136,7 @@ struct ContextHeaderView: View {
     }
 
     private var subtitle: String? {
-        guard let packet = model.packet else { return nil }
+        guard let packet = trustedPacket else { return nil }
         if packet.isExcluded { return "已排除" }
         if let url = packet.url, !url.isEmpty { return shortURL(url) }
         if let title = packet.windowTitle, !title.isEmpty { return title }
@@ -167,7 +183,7 @@ struct ContextHeaderView: View {
             .accessibilityValue(settings.sendScreenshot ? "On" : "Off")
             .fixedSize()
 
-            if !notes.isEmpty || model.packet?.hasPageText == true {
+            if !notes.isEmpty || trustedPacket?.hasPageText == true {
                 Button { model.showsNotes.toggle() } label: {
                     Image(systemName: "info.circle")
                         .foregroundStyle(hasBlockingNote ? Color.orange : Color.secondary)
@@ -177,7 +193,7 @@ struct ContextHeaderView: View {
                 .accessibilityLabel("采集详情")
                 .popover(isPresented: $model.showsNotes) {
                     VStack(alignment: .leading, spacing: 8) {
-                        if model.packet?.hasPageText == true { Text(pageTextChipText) }
+                        if trustedPacket?.hasPageText == true { Text(pageTextChipText) }
                         if !notes.isEmpty { notesBlock }
                     }
                     .font(DS.meta)
@@ -220,7 +236,7 @@ struct ContextHeaderView: View {
     }
 
     private var screenshotChipText: String {
-        guard let packet = model.packet else { return String(localized: "截图") }
+        guard let packet = trustedPacket else { return String(localized: "截图") }
         if packet.isExcluded { return String(localized: "已停用") }
         guard packet.hasScreenshot else { return String(localized: "无截图") }
         guard settings.sendScreenshot else { return String(localized: "截图 关") }
@@ -228,7 +244,7 @@ struct ContextHeaderView: View {
     }
 
     private var pageTextChipText: String {
-        guard let packet = model.packet else { return String(localized: "正文") }
+        guard let packet = trustedPacket else { return String(localized: "正文") }
         if packet.isExcluded { return String(localized: "正文 停用") }
         guard let text = packet.pageText, !text.isEmpty else {
             return BrowserTextExtractor.family(for: packet.bundleID) == nil
@@ -242,7 +258,7 @@ struct ContextHeaderView: View {
 
     // MARK: - 说明
 
-    private var notes: [CaptureNote] { model.packet?.notes ?? [] }
+    private var notes: [CaptureNote] { trustedPacket?.notes ?? [] }
 
     /// 需要用户去动手才能解决的问题，这类默认要显眼一点。
     private var hasBlockingNote: Bool {

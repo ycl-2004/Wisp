@@ -209,6 +209,22 @@ struct ActiveModels {
         baseline.selecting(mode, model: effectiveModel(for: mode))
     }
 
+    /// 两个模式真正会发出去的不同配置：CLI 与模型无关，只算一份；
+    /// 云端与 Ollama 按模型去重（两模式同模型就一份）。「测试连接」与
+    /// 向导「开始使用 Wisp」的真验证测的都是这一份清单，测的永远是
+    /// 实际会发出去的那些配置。
+    func distinctConfigs() -> [ProviderConfig] {
+        var configs: [ProviderConfig] = []
+        for mode in ResponseMode.allCases {
+            let candidate = config(for: mode)
+            let alreadyCovered = baseline.kind == .codexCLI
+                ? !configs.isEmpty
+                : configs.contains { $0.model == candidate.model }
+            if !alreadyCovered { configs.append(candidate) }
+        }
+        return configs
+    }
+
     /// 默认模型的名字；没选时说清楚是谁在决定。
     var defaultTitle: String { title(of: baseline.model) }
 

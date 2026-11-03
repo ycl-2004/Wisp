@@ -120,13 +120,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppSettings.shared.adoptLegacyCloudConfig()
         }
 
-        // 首次启动时把屏幕录制授权框弹出来，别等到用户第一次按快捷键才发现没权限。
-        if !Permissions.hasScreenRecording {
-            DispatchQueue.global(qos: .userInitiated).async {
-                _ = Permissions.requestScreenRecording()
-            }
-        }
-
         MainActor.assumeIsolated {
             // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
             WispCursorPolicy.install()
@@ -142,6 +135,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in self?.configureLocalCursor() }
             }
             PanelController.shared.restoreStoredFrame()
+            // 向导窗口控制器先就位：此后 showsOnboarding 的每次变化都
+            // 有人负责开/关窗（首启开窗、面板 offer、提问拦截都走它）。
+            OnboardingWindowController.shared.start()
+            // 就绪判断在启动时先算一次写进缓存，之后靠设置变更防抖重算
+            // （AssistantModel init 里的订阅）；面板打开与发送路径只读缓存，
+            // 不在展示路径上现算（Ollama probe 最长要等 4 秒）。
+            let initialReadiness = Task { await AssistantModel.shared.refreshOnboardingReadiness() }
+            // 首启自动开窗必须等首轮刷新落地再判定：缓存没算完时
+            // onboardingNeeded 还是初始值 false，「还没算」不等于
+            // 「不需要」，直接读会把首启开窗漏掉（第 2 项检查的预告）。
+            Task { @MainActor in
+                await initialReadiness.value
+                AssistantModel.shared.presentOnboardingIfFirstRun()
+            }
             IslandController.shared.start()
             // 菜单栏图标关着的时候，启动完成后什么都不显示等于「打开了但找不到」。
             // 这时候先把面板亮出来，设置也能从它的齿轮进。

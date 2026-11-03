@@ -75,6 +75,23 @@ enum ProviderError: LocalizedError {
             return String(localized: "等了 \(seconds) 秒还没有任何响应，已经中断。可能是网络不稳，或者这个接口太慢。")
         }
     }
+
+    /// 这类错误是不是「去首次设置向导里能修好」的连接问题：缺 Key、
+    /// 鉴权被拒、地址写错、本地服务没跑、CLI 找不到或没登录。面板的
+    /// 错误行据此决定要不要在旁边放「去连接」按钮（UX 改造第 4 项）。
+    /// 限流、网络抖动、超时、模型不收图片这类，向导打开了也无能为
+    /// 力，不算——按钮只出现在它真的能解决问题的场合。
+    var isConnectionSetupError: Bool {
+        switch self {
+        case .missingKey, .unauthorized, .badBaseURL, .ollamaNotRunning,
+             .codexNotFound, .agyNotFound, .claudeCodeNotFound, .claudeCodeSignedOut:
+            return true
+        case .http(let code, _):
+            return code == 401 || code == 403
+        default:
+            return false
+        }
+    }
 }
 
 struct ProviderConfig: Sendable {
@@ -175,6 +192,44 @@ struct ProviderConfig: Sendable {
         case .agy:        return AgyCLIProvider()
         case .claudeCode: return ClaudeCodeCLIProvider()
         }
+    }
+
+    /// 设置页「测试连接」与向导「开始使用 Wisp」共用的真验证：对每个
+    /// 配置各跑一次对应 provider 的 validate。云端与 Ollama 都走
+    /// `OpenAICompatibleProvider.validate`——实际发一次带微型测试
+    /// 图的最小 completion（不是查 tags；tags 探测是
+    /// `OllamaSupport.probe`，只喂设置页的状态行）。所以纯文本模型
+    /// 会在这里以 imageUnsupported 失败：这是对的口径——Wisp 提问
+    /// 永远带图，「能连上但收不了图」对它就是不能用。CLI 查路径与
+    /// 版本。全部通过返回 nil；否则返回给人看的失败原因。多个配置
+    /// 并发验（顺序 await 会把各家的往返串起来，向导在慢端点上白
+    /// 等），失败文案仍按配置原有顺序合成、每条带模型名前缀，与
+    /// 设置页测试结果一直以来的呈现口径一致。两个入口共用这一
+    /// 条，对「连接是通的」永远同一个答案。
+    static func validationFailureMessage(for configs: [ProviderConfig]) async -> String? {
+        let failures: [(index: Int, message: String)] = await withTaskGroup(
+            of: (Int, String?).self
+        ) { group in
+            for (index, config) in configs.enumerated() {
+                group.addTask {
+                    do {
+                        try await provider(for: config).validate(config: config)
+                        return (index, nil)
+                    } catch {
+                        let message = (error as? ProviderError)?.errorDescription
+                            ?? error.localizedDescription
+                        return (index, configs.count > 1
+                                ? "\(config.model)：\(message)" : message)
+                    }
+                }
+            }
+            var collected: [(Int, String)] = []
+            for await (index, message) in group {
+                if let message { collected.append((index, message)) }
+            }
+            return collected.sorted { $0.0 < $1.0 }
+        }
+        return failures.isEmpty ? nil : failures.map(\.message).joined(separator: "\n")
     }
 }
 

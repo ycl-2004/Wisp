@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -25,15 +26,66 @@ final class AssistantModel: ObservableObject {
     private var preparationTask: Task<Void, Never>?
     private var responseGeneration = UUID()
     @Published var errorText: String?
-    @Published var showsConversationList = false
+    /// 当前这条错误是不是连接类（缺 Key、鉴权被拒、本地服务没跑一类，
+    /// 判定见 `ProviderError.isConnectionSetupError`）。错误行据此决定
+    /// 要不要在旁边放「去连接」按钮（UX 改造第 4 项）。与 `errorText`
+    /// 成对维护：所有错误落地都走 `setError`，种类用当时那个错误本人
+    /// 判定，绝不对显示字符串做匹配——否则上一次的残留会给限流错误
+    /// 配上一个点了也没用的按钮。
+    @Published private(set) var errorOffersConnect = false
+
+    /// 错误呈现的唯一入口：文字与「是否连接类」一次写齐，永不脱节。
+    /// `error` 是错误本人时按它的种类判定；只给文字时一律不算连接类。
+    private func setError(_ text: String?, from error: Error? = nil) {
+        errorText = text
+        errorOffersConnect = text != nil
+            && (error as? ProviderError)?.isConnectionSetupError == true
+    }
+
+    @Published var showsConversationList = false {
+        didSet {
+            // 删除确认 alert 是对话列表的子视图（ConversationListView 只在
+            // 列表显示时存在）：列表一关，alert 就不存在，待删标记必须
+            // 跟着清。否则标记永久非 nil、`hasModalPresented` 恒真，闲置
+            // 自动收起会在本次运行内整体失效。关列表的路径有多条
+            // （新建/顶替/选择/转写/语音草稿，后者还是非 UI 触发），收口
+            // 在属性本身比逐条路径补清更不会漏。
+            if !showsConversationList, pendingConversationDeletion != nil {
+                pendingConversationDeletion = nil
+            }
+        }
+    }
     @Published var showsNotes = false
-    /// 首次设置向导是否正显示（#8）。显示条件由实时状态推导，见
-    /// `OnboardingReadiness`，不存「已完成引导」标记。
+    /// 首次设置向导窗口是否正呈现（#8；UX 改造第 3 项起是独立窗口，
+    /// 不是面板的 sheet）。这只是窗口的镜像状态：呈现/关闭都走下面的
+    /// `presentOnboarding()` / `onboardingWindowClosed()`，实际窗口由
+    /// `OnboardingWindowController` 观察这个标记来开/关。显示条件仍由
+    /// 实时状态推导，见 `OnboardingReadiness`，不存「已完成引导」标记。
     @Published var showsOnboarding = false
-    /// 当前是否没有任何可用模型路径（云端 Key / 本地 Ollama / 本地 CLI 全缺）。
+    /// 就绪判断的缓存：当前选中的连接到底能不能用（没有 Key / Ollama 没在跑 /
+    /// 选中的 CLI 找不到）。启动时算一次、设置变更时防抖重算（见 init 与
+    /// `refreshOnboardingReadiness()`），所以读它不需要做任何 I/O——展示
+    /// 路径（panelDidShow、send 拦截）只读这份缓存。
     @Published private(set) var onboardingNeeded = false
     private var onboardingOfferedThisLaunch = false
     private var onboardingDismissedThisLaunch = false
+    /// 本次启动 `send()` 被就绪拦截的次数，与「是否已被用户跳过」
+    /// 一起决定拦截走窗口还是横幅，见 `interceptForOnboarding()`。
+    private var onboardingInterceptionsThisLaunch = 0
+    /// 拦截降级的横幅（UX 改造第 4 项）：向导已被跳过/关过之后再拦截，
+    /// 不弹窗口，只在输入框上方留一行「还没连上模型，你的问题先留在
+    /// 这里。」加「去连接」按钮。连上之后（readiness 重算翻成不需要）
+    /// 自动收起。它是面板内的一行普通内容，不是模态，不进
+    /// `hasModalPresented`、不影响 idle 判定。
+    @Published private(set) var showsOnboardingBanner = false
+    /// 配置代次（单调递增）：向导真验证的归属凭据。验证是真网络请求，
+    /// 慢端点能拖到分钟级；这段时间里用户改了设置/Key、或者干脆关了
+    /// 窗，旧配置的验证结论都不该再落地。代次只在两个地方递增——
+    /// 配置变更通道 `scheduleReadinessRefresh()`（设置与钥匙串共用
+    /// 的漏斗）与 `onboardingWindowClosed()`，别散落第三处。
+    /// `OnboardingView.startUsing()` 发起验证前领一个代次，回来对账：
+    /// 代次没变且窗口还开着，结论才许生效。
+    private(set) var onboardingConfigGeneration = 0
     /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
     @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
@@ -91,6 +143,40 @@ final class AssistantModel: ObservableObject {
                 self.followFrontWindow()
             }
         }
+
+        // 就绪判断前置缓存（UX 改造第 2 项）：设置一变就防抖重算一次，
+        // 展示路径只读缓存。objectWillChange 在新值真正写入之前就会发，
+        // 不能在回调里同步读设置；防抖的这段延迟同时把「等新值落定」
+        // 和「连续改设置只算一次」都办了。
+        settingsObserver = settings.objectWillChange.sink { [weak self] _ in
+            Task { @MainActor in self?.scheduleReadinessRefresh() }
+        }
+
+        // Key 的写路径（填 Key 保存、清除 Key、CLI Key 保存、恢复出厂）全是
+        // 纯 KeychainStore 调用，不经过 AppSettings，上面那条订阅对就绪判断
+        // 最重要的输入是瞎的。KeychainStore 写成功后会发
+        // `.wispKeychainDidChange`，这里订上，走同一条防抖重算通道。
+        keychainObserver = NotificationCenter.default.publisher(for: .wispKeychainDidChange)
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.scheduleReadinessRefresh() }
+            }
+    }
+
+    private var settingsObserver: AnyCancellable?
+    private var keychainObserver: AnyCancellable?
+    private var readinessRefreshTask: Task<Void, Never>?
+
+    private func scheduleReadinessRefresh() {
+        // 配置刚变（设置或钥匙串，两条变更通道都收口在这里）：向导里
+        // 在飞的真验证验的是旧配置，代次 +1 让它回来时对不上账、静默
+        // 作废，见 `onboardingConfigGeneration`。
+        onboardingConfigGeneration += 1
+        readinessRefreshTask?.cancel()
+        readinessRefreshTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.refreshOnboardingReadiness()
+        }
     }
 
     // MARK: - 上下文
@@ -108,8 +194,11 @@ final class AssistantModel: ObservableObject {
     /// 要么当场把它复位。
     private var captureGeneration = 0
 
-    /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
-    /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
+    /// 第一阶段：截图 + 网址标题。呈现不必等它跑完（UX 改造第 2 项）：
+    /// show() 先把面板亮出来，截图随后并发补上——浮窗不进画面靠的是截图
+    /// 按排除名单排除自家窗口，不靠「先截图后显示」的时序兜底
+    /// （与 ContextCapture 侧的注释同一口径）。只做这些，所以很快——
+    /// 读正文留给 `captureText()`，发送时再说。
     func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
         guard !isCapturing else { return }
         let screenshotOnly = screenshotOnly ?? (settings.responseMode == .quick)
@@ -118,8 +207,19 @@ final class AssistantModel: ObservableObject {
         captureGeneration += 1
         let generation = captureGeneration
         isCapturing = true
-        errorText = nil
-        let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: ownWindowIDs,
+        setError(nil)
+        // 排除名单在采集这一刻组装，不用 show() 时刻写下的快照
+        // （`ownWindowIDs`）：向导窗口能独立于 show() 出现——甚至就是
+        // 同一轮 show 的 offer 打开的，快照里还没有它——整屏采集会把
+        // 开着的向导（连同里面的 Key 输入框）截进去。它此刻不可见时
+        // windowID 为 nil、自然不并入。captureText 只读正文、不截图，
+        // 不吃这份名单，无需同样处理。
+        var excludedWindowIDs = ownWindowIDs
+        if let onboardingID = OnboardingWindowController.shared.windowID,
+           !excludedWindowIDs.contains(onboardingID) {
+            excludedWindowIDs.append(onboardingID)
+        }
+        let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: excludedWindowIDs,
                                                                  fallbackApp: targetApp,
                                                                  screenshotOnly: screenshotOnly)
         // 采集期间用户按了停止、藏了面板、或者更新的采集已经接管：这份结果
@@ -284,24 +384,37 @@ final class AssistantModel: ObservableObject {
         Task { await captureShot() }
     }
 
-    /// 面板每次打开都重新推导一次是否需要引导；满足条件且本轮启动还没
-    /// 弹过、也没被用户跳过，才主动打开（#8 的打扰预算）。
+    /// 面板打开时要不要主动给向导，只读缓存做判定（#8 的打扰预算）：
+    /// 本轮启动还没弹过、也没被用户跳过，才主动打开。展示路径不做 I/O——
+    /// readiness 是前置缓存（启动时算、设置变更时防抖重算）；这里另起一个
+    /// 不阻塞的后台刷新让缓存向真实状态收敛（比如用户刚在别处删了 Key），
+    /// 但这次 offer 不等它：判定慢半拍最多是下次打开面板时再给，绝不能
+    /// 让向导在面板出现之后才迟到滑出。
     func panelDidShow() {
-        Task {
-            await refreshOnboardingReadiness()
-            if OnboardingReadiness.shouldOfferOnPanelOpen(
-                needsSetup: onboardingNeeded,
-                alreadyOfferedThisLaunch: onboardingOfferedThisLaunch,
-                dismissedThisLaunch: onboardingDismissedThisLaunch) {
-                onboardingOfferedThisLaunch = true
-                showsOnboarding = true
-            }
+        if OnboardingReadiness.shouldOfferOnPanelOpen(
+            needsSetup: onboardingNeeded,
+            alreadyOfferedThisLaunch: onboardingOfferedThisLaunch,
+            dismissedThisLaunch: onboardingDismissedThisLaunch) {
+            onboardingOfferedThisLaunch = true
+            presentOnboarding()
         }
+        Task { await refreshOnboardingReadiness() }
     }
 
-    /// 从实时状态推导引导条件，只看当前选中的连接：云端有没有 Key、
-    /// Ollama 在不在跑、选中的 Agent CLI 找不找得到（先认设置里填的路径）。
+    /// readiness 刷新的代次（单调递增）。四个触发点（启动、防抖重算、
+    /// panelDidShow 后台收敛、向导关闭）发起的刷新可以并发在飞，Ollama
+    /// probe 最长要 4 秒——先发起的那次完全可能后落地。没有序列化时，
+    /// 它落地时写回的是旧快照派生出的值，能把更新的缓存覆盖回去。
+    /// 规则：开始时领一个代次，写缓存前校验仍是最新，不是就丢弃。
+    private var readinessGeneration = 0
+
+    /// 从实时状态推导引导条件并写进 `onboardingNeeded` 缓存，只看当前
+    /// 选中的连接：云端有没有 Key、Ollama 在不在跑、选中的 Agent CLI
+    /// 找不找得到（先认设置里填的路径）。触发点：启动时、设置变更防抖、
+    /// panelDidShow 的后台收敛、向导关闭时——都不在展示路径的临界点上。
     func refreshOnboardingReadiness() async {
+        readinessGeneration += 1
+        let generation = readinessGeneration
         let selection = ProviderConfig.selection(settings: settings)
         var signals = OnboardingSignals()
         switch selection.kind {
@@ -323,14 +436,106 @@ final class AssistantModel: ObservableObject {
             case .claudeCode: signals.selectedCLIFound = ClaudeCodeCLIProvider.resolvePath(selection.cliPath) != nil
             }
         }
+        // 期间有更新的刷新发起了，这份就是旧快照：整份丢弃，别写回缓存。
+        guard generation == readinessGeneration else { return }
         onboardingNeeded = OnboardingReadiness.needsSetup(signals)
+        // 连上了，拦截横幅的使命就完了：不管用户是在向导里还是在
+        // 设置里配好的，重算翻成「不需要」的那一刻就把它收起。
+        if !onboardingNeeded { showsOnboardingBanner = false }
     }
 
-    /// 向导关掉之后：还没配置好就记下「这次启动跳过了」，面板打开路径
-    /// 不再主动弹；同时重新推导一次，用户在向导里配好了就立刻消掉标记。
-    func onboardingSheetDismissed() {
+    /// 打开向导窗口。所有入口都走这里：首启自动开窗（见
+    /// `presentOnboardingIfFirstRun()`）、面板打开时的 offer、提问拦截、
+    /// 设置里「重新运行首次设置」。窗口本体由
+    /// `OnboardingWindowController` 观察 `showsOnboarding` 呈现；
+    /// 已经开着时再调一次只是把窗口带到前面。
+    func presentOnboarding() {
+        showsOnboarding = true
+    }
+
+    /// 向导里点「开始使用 Wisp」且就绪复查通过：完成交接——关窗，
+    /// 然后把面板亮出来，用户落点就是提问输入框（面板的
+    /// panelDidShow/focusRequest 既有路径负责聚焦，不另造）。关窗的
+    /// 记账由 `onboardingWindowClosed()` 在窗口消失时统一跑，这条路径
+    /// 不重复记。
+    func completeOnboarding() {
+        showsOnboarding = false
+        showsOnboardingBanner = false
+        PanelController.shared.show()
+    }
+
+    /// 向导「开始使用 Wisp」的真验证（UX 改造第 4 项）：`onboardingNeeded`
+    /// 的就绪复查只证明存在性（Key 在不在、Ollama 在不在跑、CLI 找不
+    /// 找得到），Key 填错一位它也照样放行。这里对当前选择实际发一次
+    /// 测试请求，走设置页「测试连接」的同一条共用路径
+    /// （`ActiveModels.distinctConfigs()` +
+    /// `ProviderConfig.validationFailureMessage`），两个入口对「连接
+    /// 是通的」永远同一个答案。Key 按正式发送的同一条路从钥匙串补
+    /// （`ProviderConfig.authorized`）——调用方已先让 Key 输入框失焦
+    /// 落盘，所以这里读到的就是用户刚填的那份。全部通过返回 nil，
+    /// 否则返回给人看的失败原因，调用方不关窗、就地显示。本函数只
+    /// 负责验、不负责归属：请求在飞期间配置可能已变、窗口可能已
+    /// 关，结论算不算数由调用方按 `onboardingConfigGeneration`
+    /// 对账决定。
+    func verifyOnboardingConnection() async -> String? {
+        let models = ActiveModels(settings: settings, state: .shared)
+        let configs: [ProviderConfig]
+        do {
+            configs = try models.distinctConfigs().map {
+                try ProviderConfig.authorized($0, settings: settings)
+            }
+        } catch {
+            return (error as? ProviderError)?.errorDescription ?? error.localizedDescription
+        }
+        return await ProviderConfig.validationFailureMessage(for: configs)
+    }
+
+    /// 提问被就绪拦截时的去向（UX 改造第 4 项 · 拦截降级）：
+    /// 本次启动第一次拦截、且用户还没跳过过向导 → 打开向导窗口；
+    /// 已经被跳过/关过之后再拦截 → 只亮输入框上方的横幅，不再弹
+    /// 窗口。反复弹同一扇刚被关掉的窗是打扰，横幅留着出路又不挡事。
+    /// 两个档位都不动输入框：拦截发生在 `performSend` 清空之前，
+    /// 问题文本原样留着，用户连上之后再按一次发送即可。
+    private func interceptForOnboarding() {
+        onboardingInterceptionsThisLaunch += 1
+        // 向导已经开着：什么都不用做。用户办完那边的事回来再发即可，
+        // 这次也不算「被跳过」。
+        guard !showsOnboarding else { return }
+        if onboardingInterceptionsThisLaunch == 1, !onboardingDismissedThisLaunch {
+            presentOnboarding()
+        } else {
+            showsOnboardingBanner = true
+        }
+    }
+
+    /// 横幅上的「去连接」：收起横幅，打开向导窗口。用户主动点的，
+    /// 不受拦截降级的打扰预算限制。
+    func openOnboardingFromBanner() {
+        showsOnboardingBanner = false
+        presentOnboarding()
+    }
+
+    /// 向导窗口真正消失时由 `OnboardingWindowController` 回调（用户点
+    /// 关闭按钮、或程序置 `showsOnboarding = false` 关窗，都收口到
+    /// 这里）：还没配置好就记下「这次启动跳过了」，面板打开路径不再
+    /// 主动弹；同时重新推导一次，用户在向导里配好了就立刻消掉标记。
+    /// 语义与 sheet 时代的 onDismiss 完全一致，只是宿主换了。
+    func onboardingWindowClosed() {
+        // 关窗即作废在飞的真验证：它的结论回来时不许再完成交接、
+        // 把面板弹出来（代次对账在 `OnboardingView.startUsing()`）。
+        onboardingConfigGeneration += 1
         if onboardingNeeded { onboardingDismissedThisLaunch = true }
         Task { await refreshOnboardingReadiness() }
+    }
+
+    /// 首启自动开窗的判定：由 AppDelegate 在首轮 readiness 刷新落地
+    /// 之后调用一次——调用方保证此刻读的 `onboardingNeeded` 是算过的
+    /// 值，不是初始 false。需要配置且从未展示过才开窗；展示记账
+    /// 在控制器 `present()` 被调用时落盘（见
+    /// `AppSettings.hasShownFirstRunOnboarding`），这里只读不写。
+    func presentOnboardingIfFirstRun() {
+        guard onboardingNeeded, !settings.hasShownFirstRunOnboarding else { return }
+        presentOnboarding()
     }
 
     func panelDidHide() {
@@ -386,6 +591,31 @@ final class AssistantModel: ObservableObject {
 
     @Published var confirmsEviction = false
 
+    /// 对话列表里待确认删除的那一个。放在模型上而不是列表视图的
+    /// @State 里，是为了让模态护栏（`hasModalPresented`）看得见它：
+    /// 这个 alert 同样挂在面板上，不能被面板的闲置收起连带带走。
+    @Published var pendingConversationDeletion: Conversation?
+
+    /// 此刻是否有「人正办事办到一半」的界面开着：面板自家的腾位确认、
+    /// 删对话确认，外加首次向导窗口。唯一用途是 idle 豁免——
+    /// `PanelController.isIdle` 问它，任一为真，面板就不得被闲置计时
+    /// 收走（向导开着时用户多半正切去浏览器拿 Key，回来发现面板没了
+    /// 和 sheet 时代是同一种事故；向导窗口本身是普通窗口，不吃面板的
+    /// idle 逻辑，不需要谁保护它）。
+    ///
+    /// 它不再兼任 hide()/Esc 的清理判据（第 3 项检查裁定，修订第 1 项
+    /// 在新宿主下的语义）：sheet 时代向导长在面板上，「藏面板 = 关
+    /// 向导」是宿主关系决定的；窗口化后两者生命周期解耦，hide() 与
+    /// 面板 onCancel 只清理面板自家的两个模态（它们挂在面板上、不先
+    /// 关就会被 orderOut 悬空），向导只进这份 idle 豁免名单、不进
+    /// 清理名单——藏面板或按 Esc 时连带关掉一个独立窗口，用户看不见
+    /// 因果。向导的关闭与记账只走它自己的路径。
+    /// 以后加新界面：挂在面板上的，idle 豁免与 hide/onCancel 清理两处
+    /// 都要加；独立窗口只加这里。
+    var hasModalPresented: Bool {
+        showsOnboarding || confirmsEviction || pendingConversationDeletion != nil
+    }
+
     func toggleConversationList() {
         let showing = !showsConversationList
         showsConversationList = showing
@@ -404,14 +634,14 @@ final class AssistantModel: ObservableObject {
             return
         }
         store.createNew()
-        errorText = nil
+        setError(nil)
         showsConversationList = false
     }
 
     /// 用户确认之后才真的删。
     func evictOldestAndCreate() {
         store.createNewEvictingOldest()
-        errorText = nil
+        setError(nil)
         confirmsEviction = false
         showsConversationList = false
     }
@@ -435,9 +665,11 @@ final class AssistantModel: ObservableObject {
     func send(question raw: String, mode: ResponseMode) {
         let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, canStartQuestion else { return }
-        // 一个模型都没连上时，先打开首次设置向导，而不是让这次提问
-        // 撞上一句没有出路的配置错误（#8）。
-        if onboardingNeeded { showsOnboarding = true; return }
+        // 一个模型都没连上时先拦下来，而不是让这次提问撞上一句没有
+        // 出路的配置错误（#8）。onboardingNeeded 是前置缓存（启动/设置
+        // 变更时算好），这里只读，不现算、不做 I/O。拦截走窗口还是
+        // 横幅由 `interceptForOnboarding()` 按打扰预算分档。
+        if onboardingNeeded { interceptForOnboarding(); return }
         guard let config = requestConfig(for: mode) else { return }
         let conversationID = store.active?.id
         let sendScreenshot = settings.sendScreenshot
@@ -463,7 +695,7 @@ final class AssistantModel: ObservableObject {
     /// 常用指令：指令文字就是问题，输入框里写了的东西作为材料跟在后面。
     func run(_ command: QuickCommand) {
         guard canStartQuestion else {
-            errorText = turnLimitMessage ?? String(localized: "请等待回答结束，或新建对话后重试。")
+            setError(turnLimitMessage ?? String(localized: "请等待回答结束，或新建对话后重试。"))
             return
         }
         send(question: command.question(withDraft: input), mode: command.mode ?? settings.responseMode)
@@ -508,7 +740,7 @@ final class AssistantModel: ObservableObject {
                 screenshot = shot
             }
             store.removeMessage(previous.id, from: conversationID)
-            errorText = nil
+            setError(nil)
             streamAnswer(in: conversationID, config: config, screenshot: screenshot,
                          skippedPage: false, generation: generation, restoring: previous)
         }
@@ -530,7 +762,7 @@ final class AssistantModel: ObservableObject {
             return try ProviderConfig.authorized(ActiveModels(settings: settings, state: .shared).config(for: mode),
                                                  settings: settings)
         } catch {
-            errorText = error.localizedDescription
+            setError(error.localizedDescription, from: error)
             return nil
         }
     }
@@ -542,7 +774,7 @@ final class AssistantModel: ObservableObject {
         lastResponseSkippedPage = false
         lastResponseTiming = ResponseTiming(mode: config.responseMode, model: config.model,
                                             startedAt: ProcessInfo.processInfo.systemUptime)
-        errorText = nil
+        setError(nil)
         isPreparingResponse = true
         if isCollapsed { withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) } }
         return generation
@@ -555,7 +787,7 @@ final class AssistantModel: ObservableObject {
     }
 
     private func cancelPreparation() {
-        errorText = String(localized: "准备期间切换了对话，请重新发送。")
+        setError(String(localized: "准备期间切换了对话，请重新发送。"))
         lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
         lastResponseTiming?.outcome = "cancelled"
     }
@@ -588,16 +820,16 @@ final class AssistantModel: ObservableObject {
         // A previous asynchronous screen read may finish after another send started.
         guard !isStreaming else { return }
         guard let conversation = store.ensureActive() else {
-            errorText = conversationLimitMessage
+            setError(conversationLimitMessage)
             return
         }
         guard !store.isAtTurnLimit(conversation) else {
-            errorText = turnLimitMessage
+            setError(turnLimitMessage)
             return
         }
 
         let conversationID = conversation.id
-        errorText = nil
+        setError(nil)
         input = ""
 
         let (snapshot, screenshot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
@@ -657,7 +889,7 @@ final class AssistantModel: ObservableObject {
                 self.lastResponseTiming?.outcome = accumulated.isEmpty ? "empty" : "completed"
                 if accumulated.isEmpty {
                     self.discard(assistantMessage.id, restoring: previous, in: conversationID)
-                    self.errorText = String(localized: "模型没有返回任何内容。可以换个模型名再试。")
+                    self.setError(String(localized: "模型没有返回任何内容。可以换个模型名再试。"))
                 } else {
                     self.store.updateStreaming(text: accumulated, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
@@ -672,12 +904,12 @@ final class AssistantModel: ObservableObject {
                     self.store.updateStreaming(text: incomplete, messageID: assistantMessage.id,
                                                in: conversationID, persistNow: true)
                 }
-                if error is CancellationError { self.errorText = nil }
+                if error is CancellationError { self.setError(nil) }
                 else if let providerError = error as? ProviderError {
-                    if case .cancelled = providerError { self.errorText = nil }
-                    else { self.errorText = providerError.errorDescription }
+                    if case .cancelled = providerError { self.setError(nil) }
+                    else { self.setError(providerError.errorDescription, from: providerError) }
                 } else {
-                    self.errorText = error.localizedDescription
+                    self.setError(error.localizedDescription, from: error)
                 }
             }
             guard self.responseGeneration == generation else { return }

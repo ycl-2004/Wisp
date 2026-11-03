@@ -173,6 +173,21 @@ final class Round6FakeCloudTests: XCTestCase {
         }
     }
 
+    func test403SurfacesServerMessageAsHTTPErrorEndToEnd() async {
+        // 403 used to fold into .unauthorized ("API Key 被拒绝（401）"),
+        // erasing balance/policy/model-permission causes. Through the
+        // real stream path it must now arrive as .http(403, server text).
+        Round6StubProtocol.script = .init(
+            status: 403,
+            chunks: [Data(#"{"error":{"message":"quota exceeded for this key"}}"#.utf8)])
+        let (_, error) = await collect(provider(), config())
+        guard case ProviderError.http(let code, let message)? = error as? ProviderError else {
+            return XCTFail("expected .http for 403, got \(String(describing: error))")
+        }
+        XCTAssertEqual(code, 403)
+        XCTAssertTrue(message.contains("quota exceeded"), message)
+    }
+
     func testAbruptDisconnectThrowsInsteadOfHangingOrFakingSuccess() async {
         Round6StubProtocol.script = .init(
             chunks: [Data(sse("partial").utf8)],

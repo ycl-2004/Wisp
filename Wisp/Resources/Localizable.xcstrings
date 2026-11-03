@@ -1894,28 +1894,6 @@
         }
       }
     },
-    "任何 OpenAI 兼容接口，自带 Key": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Any OpenAI-compatible endpoint, your own key"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "任何 OpenAI 兼容接口，自带 Key"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "任何 OpenAI 相容介面，自帶 Key"
-          }
-        }
-      }
-    },
     "会删除对话文件、调试文件和钥匙串里的 Key。系统的 Time Machine 备份和模型供应商那边的请求日志不在本应用控制范围内。": {
       "localizations": {
         "en": {
@@ -5612,28 +5590,6 @@
         }
       }
     },
-    "本机模型，不联网，不花钱": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On-device models, offline, free"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本机模型，不联网，不花钱"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "本機模型，不聯網，不花錢"
-          }
-        }
-      }
-    },
     "权限": {
       "localizations": {
         "en": {
@@ -9062,28 +9018,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Agy 預設"
-          }
-        }
-      }
-    },
-    "复用已登录的 Codex、Antigravity 或 Claude Code": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reuse your signed-in Codex, Antigravity, or Claude Code"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "复用已登录的 Codex、Antigravity 或 Claude Code"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "複用已登入的 Codex、Antigravity 或 Claude Code"
           }
         }
       }
@@ -17164,28 +17098,6 @@
         }
       }
     },
-    "先连上一个模型，Wisp 才能开始回答你。所有设置只保存在这台 Mac 上。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connect a model first — Wisp can't answer until one is set up. Everything stays on this Mac."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "先连上一个模型，Wisp 才能开始回答你。所有设置只保存在这台 Mac 上。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "先連上一個模型，Wisp 才能開始回答你。所有設定只保存在這台 Mac 上。"
-          }
-        }
-      }
-    },
     "已授予，Wisp 可以读取当前窗口和屏幕。": {
       "localizations": {
         "en": {
@@ -17384,28 +17296,6 @@
         }
       }
     },
-    "开始使用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start Using Wisp"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开始使用"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "開始使用"
-          }
-        }
-      }
-    },
     "帮助": {
       "localizations": {
         "en": {
@@ -17424,6 +17314,270 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "幫助"
+          }
+        }
+      }
+    },
+    "必须": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必须"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "必須"
+          }
+        }
+      }
+    },
+    "可选": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "可選"
+          }
+        }
+      }
+    },
+    "连接模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect a Model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "連接模型"
+          }
+        }
+      }
+    },
+    "开始使用 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Using Wisp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用 Wisp"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "開始使用 Wisp"
+          }
+        }
+      }
+    },
+    "只有第一步是必须的，另两步随时能在设置里补。所有设置只保存在这台 Mac 上。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the first step is required — the other two can be filled in anytime in Settings. Everything stays on this Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有第一步是必须的，另两步随时能在设置里补。所有设置只保存在这台 Mac 上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "只有第一步是必須的，另兩步隨時能在設定裡補。所有設定只保存在這台 Mac 上。"
+          }
+        }
+      }
+    },
+    "用 OpenAI、OpenRouter 等服务的 Key · 最通用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses a key from OpenAI, OpenRouter, etc. · Most versatile"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 OpenAI、OpenRouter 等服务的 Key · 最通用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "用 OpenAI、OpenRouter 等服務的 Key · 最通用"
+          }
+        }
+      }
+    },
+    "需先装好 Ollama · 不联网 · 不花钱": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs Ollama installed first · Offline · Free"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需先装好 Ollama · 不联网 · 不花钱"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "需先裝好 Ollama · 不連網 · 不花錢"
+          }
+        }
+      }
+    },
+    "已装并登录的话，什么都不用填": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to fill in if it's already installed and signed in"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已装并登录的话，什么都不用填"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已裝並登入的話，什麼都不用填"
+          }
+        }
+      }
+    },
+    "API Key 是你向服务商证明身份的凭证：在服务商网站注册后，到 API Keys 页面创建一个，粘贴到下面的输入框（旁边的「获取」会打开对应页面）。还没想好用哪家？默认的 OpenRouter 有免费模型，可以先免费用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An API key is how you prove your identity to a provider: sign up on the provider's website, create one on its API Keys page, then paste it into the field below (the “Get” link beside it opens that page). Not sure which provider to pick? The default, OpenRouter, has free models you can start with."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key 是你向服务商证明身份的凭证：在服务商网站注册后，到 API Keys 页面创建一个，粘贴到下面的输入框（旁边的「获取」会打开对应页面）。还没想好用哪家？默认的 OpenRouter 有免费模型，可以先免费用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "API Key 是你向服務商證明身分的憑證：在服務商網站註冊後，到 API Keys 頁面建立一個，貼到下面的輸入框（旁邊的「取得」會打開對應頁面）。還沒想好用哪家？預設的 OpenRouter 有免費模型，可以先免費用。"
+          }
+        }
+      }
+    },
+    "还没连上模型，你的问题先留在这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No model is connected yet — your question will stay right here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没连上模型，你的问题先留在这里。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "還沒連上模型，你的問題先留在這裡。"
+          }
+        }
+      }
+    },
+    "去连接": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去连接"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "去連接"
+          }
+        }
+      }
+    },
+    "正在验证连接…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying the connection…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在验证连接…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "正在驗證連線…"
           }
         }
       }

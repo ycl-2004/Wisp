@@ -25,7 +25,7 @@ final class AppSettingsWipeTests: XCTestCase {
         super.tearDown()
     }
 
-    /// All 41 AppSettings keys by their persisted string names.
+    /// All 42 AppSettings keys by their persisted string names.
     private let allKeys = [
         "providerKind", "baseURL", "cloudProvider", "cloudModels",
         "ollamaBaseURL", "ollamaModel", "codexPath", "codexModel",
@@ -40,6 +40,7 @@ final class AppSettingsWipeTests: XCTestCase {
         "panelBackgroundOpacity", "panelOpaqueWhenActive",
         "checkForUpdates", "lastUpdateCheck", "islandOrigin",
         "islandAnchor", "appLanguage", "listeningEnabled",
+        "hasShownFirstRunOnboarding",
     ]
 
     func testWipeRemovesEveryAppSettingsKey() {
