@@ -67,7 +67,7 @@ final class SSESplitInvarianceTests: XCTestCase {
             "delta: 你好😀界",
             "ignored",
             "delta:abcd",
-            "delta:\n\n[服务端错误] boom",
+            "delta:" + String(localized: "\n\n[服务端错误] boom"),
             "ignored",
             "done",
             "delta:tail",
@@ -227,7 +227,7 @@ final class CappedDataBufferBoundaryTests: XCTestCase {
         var buffer = CappedDataBuffer(limit: 5)
         XCTAssertFalse(buffer.append(contentsOf: Data("你好世界".utf8)))
         XCTAssertEqual(buffer.data.count, 5)
-        XCTAssertEqual(SSEParser.errorMessage(from: buffer.data), "服务端没有返回说明。")
+        XCTAssertEqual(SSEParser.errorMessage(from: buffer.data), String(localized: "服务端没有返回说明。"))
     }
 
     func testNegativeLimitClampsToZero() {
@@ -268,7 +268,7 @@ final class SSEParserBranchTests: XCTestCase {
 
     func testInStreamErrorBecomesDeltaWithServerErrorPrefix() {
         XCTAssertEqual(describe(SSEParser.parse(
-            line: #"data: {"error":{"message":"boom"}}"#)), "delta:\n\n[服务端错误] boom")
+            line: #"data: {"error":{"message":"boom"}}"#)), "delta:" + String(localized: "\n\n[服务端错误] boom"))
         // An error object without a message string is not surfaced.
         XCTAssertEqual(describe(SSEParser.parse(
             line: #"data: {"error":{"code":500}}"#)), "ignored")
@@ -295,7 +295,7 @@ final class SSEParserBranchTests: XCTestCase {
         XCTAssertEqual(SSEParser.errorMessage(
             from: Data(#"{"detail":"m3"}"#.utf8)), "m3")
         XCTAssertEqual(SSEParser.errorMessage(from: Data("plain failure".utf8)), "plain failure")
-        XCTAssertEqual(SSEParser.errorMessage(from: Data()), "服务端没有返回说明。")
+        XCTAssertEqual(SSEParser.errorMessage(from: Data()), String(localized: "服务端没有返回说明。"))
     }
 
     func testErrorMessageRawFallbackIsCappedAt400Characters() {

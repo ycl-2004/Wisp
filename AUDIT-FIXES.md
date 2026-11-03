@@ -313,6 +313,33 @@ CaptureScopeTests. Round 4's #32 known failure is fixed, not reclassified.
   #26 (repo topics — needs a settings write). Notarization is closed by
   YC's decision (no Apple Developer account; do not re-raise).
 
+## (a4) Round 7 — first macOS CI run and its fixes (2026-11-02, later)
+
+PR #3's first CI run (macos-15 + macos-14 jobs) executed 210 tests with 4
+failures, all in tests, none in app code — the build (incl. the notes panel)
+compiled clean on both runners. Root causes, both test-engineering flaws the
+Linux harness could not see:
+
+1. **Stale repo test copy (#32):** the round-5 fix commit updated the harness
+   copy of `TruncationCharacterizationTests` (old characterization test ->
+   marker-reserve invariants) but the `WispTests/` copy kept the pre-fix
+   characterization test, which asserts the buggy behaviour and now fails
+   against the fixed code. Fix: repo copy synced to the harness copy.
+2. **Locale-pinned expectations (SSE):** `SSEFuzzTests` pinned the Chinese
+   source strings of two `String(localized:)` outputs (the in-stream
+   `[服务端错误]` prefix and the `服务端没有返回说明。` fallback). On the
+   zh-locale Linux host the localized call returns the source string, so the
+   tests passed; on en-US macOS runners the app correctly returns the English
+   translation and the tests failed. Fix: expectations now derive through the
+   same `String(localized:)` the app uses, in both test copies — parsing
+   behaviour (precedence, prefix plumbing, interpolation) is still asserted
+   exactly, on any locale. (A fifth case of the same flaw,
+   `CappedDataBufferBoundaryTests.testMidScalarTruncationMakesRawErrorBodyUnreadable`,
+   was fixed in the same pass.)
+
+Lesson recorded: harness copies and `WispTests/` copies must be edited in
+lockstep; a harness-only test edit is exactly how (1) happened.
+
 ---
 
 ## (b) Commits on `fix/audit-2026-11-02`
@@ -363,7 +390,7 @@ CaptureScopeTests. Round 4's #32 known failure is fixed, not reclassified.
 | `d355763` | Untrack .fable/ agent work notes | #24 |
 | `d7473d3` | test: round-6 end-to-end suites in the Linux harness | round 6 |
 
-All commits are local only. Nothing was pushed. `AUDIT-FIXES.md` (this file), `AUDIT-ROUND2.md`, `AUDIT-ROUND4.md`, `AUDIT-ROUND5.md`, `COVERAGE.md` and `CODE-REVIEW-2026-11-02.md` are intentionally left uncommitted. Round-2 record: `AUDIT-ROUND2.md` (incl. the #8 onboarding design spec — design only, not implemented — and the Round-3 performance/UI review + feature-gap proposals #30–#32).
+All round 1-6 commits were local until 2026-11-02 evening, when the branch (44 commits incl. the audit-records commit) was pushed and PR #3 opened. `AUDIT-FIXES.md` (this file), `AUDIT-ROUND2.md`, `AUDIT-ROUND4.md`, `AUDIT-ROUND5.md`, `COVERAGE.md` and `CODE-REVIEW-2026-11-02.md` are intentionally left uncommitted. Round-2 record: `AUDIT-ROUND2.md` (incl. the #8 onboarding design spec — design only, not implemented — and the Round-3 performance/UI review + feature-gap proposals #30–#32).
 
 ---
 
