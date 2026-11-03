@@ -126,6 +126,7 @@ final class AppSettings: ObservableObject {
         static let islandAnchor = "islandAnchor"
         static let appLanguage = "appLanguage"
         static let listeningEnabled = "listeningEnabled"
+        static let hasShownFirstRunOnboarding = "hasShownFirstRunOnboarding"
 
         /// 全部键的清单，wipeLocalData 靠它一次清干净（恢复出厂，#5）。
         /// 新增键必须同步加进这里——漏一个，那项设置就会在「删除全部
@@ -144,6 +145,7 @@ final class AppSettings: ObservableObject {
             panelBackgroundOpacity, panelOpaqueWhenActive,
             checkForUpdates, lastUpdateCheck, islandOrigin,
             islandAnchor, appLanguage, listeningEnabled,
+            hasShownFirstRunOnboarding,
         ]
     }
 
@@ -431,6 +433,16 @@ final class AppSettings: ObservableObject {
     var listeningEnabled: Bool {
         get { d.bool(forKey: K.listeningEnabled) }
         set { d.set(newValue, forKey: K.listeningEnabled); objectWillChange.send() }
+    }
+
+    /// 首次设置向导是否已经真正展示过（展示记账，不是就绪标记）：它只
+    /// 回答一个问题——「首启还要不要自动开一次向导窗」。就绪与否永远
+    /// 由 `OnboardingReadiness` 从实时状态派生，两者不许混用（见
+    /// ONBOARDING-DESIGN.md）。恢复出厂会连它一起清掉，于是重置后
+    /// 首启自动开窗会再来一次，正是「回到第一次启动」的应有之义。
+    var hasShownFirstRunOnboarding: Bool {
+        get { d.bool(forKey: K.hasShownFirstRunOnboarding) }
+        set { d.set(newValue, forKey: K.hasShownFirstRunOnboarding); objectWillChange.send() }
     }
 
     var showIsland: Bool {

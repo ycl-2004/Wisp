@@ -75,10 +75,10 @@ struct ChatView: View {
         .onChange(of: model.pendingConversationDeletion) { _, _ in
             PanelController.shared.refreshIdleTimer()
         }
-        .sheet(isPresented: $model.showsOnboarding,
-               onDismiss: { model.onboardingSheetDismissed() }) {
-            OnboardingView()
-        }
+        // 首次向导不在这里挂了：UX 改造第 3 项起它住在独立窗口里
+        // （OnboardingWindowController 观察 model.showsOnboarding），
+        // 面板不再是它的宿主，上面的 onChange 刷计时保留——向导开着时
+        // 面板仍受 hasModalPresented 护栏保护。
     }
 
     private var content: some View {

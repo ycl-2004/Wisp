@@ -46,6 +46,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         let panel = ensurePanel()
         var excluded = [CGWindowID(panel.windowNumber)]
         if let islandID = IslandController.shared.windowID { excluded.append(islandID) }
+        // 向导窗口里有 Key 输入框，它开着时整屏采集同样要把它排除。
+        if let onboardingID = OnboardingWindowController.shared.windowID { excluded.append(onboardingID) }
         model.ownWindowIDs = excluded
         IslandController.shared.setDimmed(true)
 
@@ -95,9 +97,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         cancelIdleTimer()
         saveFrame(panel)
         flushFrameSave()
-        // 先让模态走 SwiftUI 的正常关闭路径再藏面板：直接 orderOut 的话
-        // sheet/alert 只是跟着面板一起不见，onDismiss 不会触发，
-        // showsOnboarding 会悬空、「这次启动跳过了」也记不上账。
+        // 先让模态走正常关闭路径再藏面板：直接 orderOut 的话 alert 只是
+        // 跟着面板一起不见、关不掉，待删标记会悬空。showsOnboarding 同
+        // 理：置 false 后向导窗口由它自己的控制器关闭并走
+        // onboardingWindowClosed() 记账，标记不悬空、「这次启动跳过了」
+        // 也记得上账（UX 改造第 3 项后向导是独立窗口，机理从 sheet 的
+        // onDismiss 换成了控制器收口，语义不变）。
         if AssistantModel.shared.hasModalPresented {
             AssistantModel.shared.showsOnboarding = false
             AssistantModel.shared.confirmsEviction = false
@@ -273,7 +278,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         )
         panel.onCancel = {
             // Esc 先退最上面一层：有模态盖着就只关模态，面板留着；
-            // 没有模态才轮到把面板整个藏掉。
+            // 没有模态才轮到把面板整个藏掉。showsOnboarding 现在是向导
+            // 窗口的镜像：置 false 即关窗并由控制器记账（第 3 项）。
             if AssistantModel.shared.hasModalPresented {
                 AssistantModel.shared.showsOnboarding = false
                 AssistantModel.shared.confirmsEviction = false

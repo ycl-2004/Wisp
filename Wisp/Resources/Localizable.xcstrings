@@ -17164,28 +17164,6 @@
         }
       }
     },
-    "先连上一个模型，Wisp 才能开始回答你。所有设置只保存在这台 Mac 上。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connect a model first — Wisp can't answer until one is set up. Everything stays on this Mac."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "先连上一个模型，Wisp 才能开始回答你。所有设置只保存在这台 Mac 上。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "先連上一個模型，Wisp 才能開始回答你。所有設定只保存在這台 Mac 上。"
-          }
-        }
-      }
-    },
     "已授予，Wisp 可以读取当前窗口和屏幕。": {
       "localizations": {
         "en": {
@@ -17384,28 +17362,6 @@
         }
       }
     },
-    "开始使用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start Using Wisp"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开始使用"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "開始使用"
-          }
-        }
-      }
-    },
     "帮助": {
       "localizations": {
         "en": {
@@ -17424,6 +17380,116 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "幫助"
+          }
+        }
+      }
+    },
+    "必须": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必须"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "必須"
+          }
+        }
+      }
+    },
+    "可选": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "可選"
+          }
+        }
+      }
+    },
+    "连接模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect a Model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "連接模型"
+          }
+        }
+      }
+    },
+    "开始使用 Wisp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Using Wisp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用 Wisp"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "開始使用 Wisp"
+          }
+        }
+      }
+    },
+    "只有第一步是必须的，另两步随时能在设置里补。所有设置只保存在这台 Mac 上。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the first step is required — the other two can be filled in anytime in Settings. Everything stays on this Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有第一步是必须的，另两步随时能在设置里补。所有设置只保存在这台 Mac 上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "只有第一步是必須的，另兩步隨時能在設定裡補。所有設定只保存在這台 Mac 上。"
           }
         }
       }

@@ -40,8 +40,11 @@ final class AssistantModel: ObservableObject {
         }
     }
     @Published var showsNotes = false
-    /// 首次设置向导是否正显示（#8）。显示条件由实时状态推导，见
-    /// `OnboardingReadiness`，不存「已完成引导」标记。
+    /// 首次设置向导窗口是否正呈现（#8；UX 改造第 3 项起是独立窗口，
+    /// 不是面板的 sheet）。这只是窗口的镜像状态：呈现/关闭都走下面的
+    /// `presentOnboarding()` / `onboardingWindowClosed()`，实际窗口由
+    /// `OnboardingWindowController` 观察这个标记来开/关。显示条件仍由
+    /// 实时状态推导，见 `OnboardingReadiness`，不存「已完成引导」标记。
     @Published var showsOnboarding = false
     /// 就绪判断的缓存：当前选中的连接到底能不能用（没有 Key / Ollama 没在跑 /
     /// 选中的 CLI 找不到）。启动时算一次、设置变更时防抖重算（见 init 与
@@ -345,7 +348,7 @@ final class AssistantModel: ObservableObject {
             alreadyOfferedThisLaunch: onboardingOfferedThisLaunch,
             dismissedThisLaunch: onboardingDismissedThisLaunch) {
             onboardingOfferedThisLaunch = true
-            showsOnboarding = true
+            presentOnboarding()
         }
         Task { await refreshOnboardingReadiness() }
     }
@@ -390,11 +393,43 @@ final class AssistantModel: ObservableObject {
         onboardingNeeded = OnboardingReadiness.needsSetup(signals)
     }
 
-    /// 向导关掉之后：还没配置好就记下「这次启动跳过了」，面板打开路径
-    /// 不再主动弹；同时重新推导一次，用户在向导里配好了就立刻消掉标记。
-    func onboardingSheetDismissed() {
+    /// 打开向导窗口。所有入口都走这里：首启自动开窗（见
+    /// `presentOnboardingIfFirstRun()`）、面板打开时的 offer、提问拦截、
+    /// 设置里「重新运行首次设置」。窗口本体由
+    /// `OnboardingWindowController` 观察 `showsOnboarding` 呈现；
+    /// 已经开着时再调一次只是把窗口带到前面。
+    func presentOnboarding() {
+        showsOnboarding = true
+    }
+
+    /// 向导里点「开始使用 Wisp」且就绪复查通过：完成交接——关窗，
+    /// 然后把面板亮出来，用户落点就是提问输入框（面板的
+    /// panelDidShow/focusRequest 既有路径负责聚焦，不另造）。关窗的
+    /// 记账由 `onboardingWindowClosed()` 在窗口消失时统一跑，这条路径
+    /// 不重复记。
+    func completeOnboarding() {
+        showsOnboarding = false
+        PanelController.shared.show()
+    }
+
+    /// 向导窗口真正消失时由 `OnboardingWindowController` 回调（用户点
+    /// 关闭按钮、或程序置 `showsOnboarding = false` 关窗，都收口到
+    /// 这里）：还没配置好就记下「这次启动跳过了」，面板打开路径不再
+    /// 主动弹；同时重新推导一次，用户在向导里配好了就立刻消掉标记。
+    /// 语义与 sheet 时代的 onDismiss 完全一致，只是宿主换了。
+    func onboardingWindowClosed() {
         if onboardingNeeded { onboardingDismissedThisLaunch = true }
         Task { await refreshOnboardingReadiness() }
+    }
+
+    /// 首启自动开窗的判定：由 AppDelegate 在首轮 readiness 刷新落地
+    /// 之后调用一次——调用方保证此刻读的 `onboardingNeeded` 是算过的
+    /// 值，不是初始 false。需要配置且从未真正展示过才开窗；展示记账
+    /// 在窗口真正呈现时由控制器落盘（见
+    /// `AppSettings.hasShownFirstRunOnboarding`），这里只读不写。
+    func presentOnboardingIfFirstRun() {
+        guard onboardingNeeded, !settings.hasShownFirstRunOnboarding else { return }
+        presentOnboarding()
     }
 
     func panelDidHide() {
@@ -455,7 +490,11 @@ final class AssistantModel: ObservableObject {
     /// 这个 alert 同样挂在面板上，不能被面板的闲置收起连带带走。
     @Published var pendingConversationDeletion: Conversation?
 
-    /// 面板上是否有模态正盖着：首次向导 sheet、腾位确认、删对话确认。
+    /// 面板上是否有模态正盖着：腾位确认、删对话确认，外加首次向导。
+    /// 向导自 UX 改造第 3 项起是独立窗口、不是面板的模态了，但它开着
+    /// 时面板同样不得被闲置计时收走——用户多半正切去浏览器拿 Key，
+    /// 回来发现面板没了和 sheet 时代是同一种事故；向导窗口本身是普通
+    /// 窗口，不吃面板的 idle 逻辑，不需要谁保护它。
     /// 呈现期间面板不得被闲置计时收走（`PanelController.isIdle` 问它）、
     /// Esc 也只能先关它而不是藏面板（面板的 `onCancel` 问它）。
     /// 以后往面板上加新模态，只改这一处。
@@ -515,7 +554,7 @@ final class AssistantModel: ObservableObject {
         // 一个模型都没连上时，先打开首次设置向导，而不是让这次提问
         // 撞上一句没有出路的配置错误（#8）。onboardingNeeded 是前置缓存
         // （启动/设置变更时算好），这里只读，不现算、不做 I/O。
-        if onboardingNeeded { showsOnboarding = true; return }
+        if onboardingNeeded { presentOnboarding(); return }
         guard let config = requestConfig(for: mode) else { return }
         let conversationID = store.active?.id
         let sendScreenshot = settings.sendScreenshot
