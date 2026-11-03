@@ -5,7 +5,6 @@ import SwiftUI
 struct ConversationListView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
-    @State private var pendingDelete: Conversation?
     @State private var searchText = ""
 
     private var filteredConversations: [Conversation] {
@@ -76,7 +75,7 @@ struct ConversationListView: View {
                             Row(conversation: conversation,
                                 isActive: conversation.id == store.activeID,
                                 onSelect: { model.select(conversation.id) },
-                                onDelete: { pendingDelete = conversation })
+                                onDelete: { model.pendingConversationDeletion = conversation })
                         }
                     }
                     .padding(.horizontal, 8)
@@ -87,15 +86,15 @@ struct ConversationListView: View {
         }
         .frame(maxHeight: .infinity)
         .alert("永久删除这个对话？",
-               isPresented: Binding(get: { pendingDelete != nil },
-                                    set: { if !$0 { pendingDelete = nil } })) {
+               isPresented: Binding(get: { model.pendingConversationDeletion != nil },
+                                    set: { if !$0 { model.pendingConversationDeletion = nil } })) {
             Button("删除", role: .destructive) {
-                if let target = pendingDelete { model.delete(target.id) }
-                pendingDelete = nil
+                if let target = model.pendingConversationDeletion { model.delete(target.id) }
+                model.pendingConversationDeletion = nil
             }
-            Button("取消", role: .cancel) { pendingDelete = nil }
+            Button("取消", role: .cancel) { model.pendingConversationDeletion = nil }
         } message: {
-            Text("「\(pendingDelete?.displayTitle ?? "")」的全部消息会从本机删除，无法撤销，也没有回收站。")
+            Text("「\(model.pendingConversationDeletion?.displayTitle ?? "")」的全部消息会从本机删除，无法撤销，也没有回收站。")
         }
     }
 

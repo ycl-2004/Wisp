@@ -63,6 +63,18 @@ struct ChatView: View {
         .onChange(of: model.showsConversationList) { _, showsHistory in
             if showsHistory, model.isCollapsed { model.setCollapsed(false) }
         }
+        // 模态一出现就让控制器重判计时：isIdle 虽然在计时触发时会复查
+        // （那是主防线），但已经在跑的计时器没必要留着；模态关掉同理，
+        // 该恢复计时的立刻恢复。
+        .onChange(of: model.showsOnboarding) { _, _ in
+            PanelController.shared.refreshIdleTimer()
+        }
+        .onChange(of: model.confirmsEviction) { _, _ in
+            PanelController.shared.refreshIdleTimer()
+        }
+        .onChange(of: model.pendingConversationDeletion) { _, _ in
+            PanelController.shared.refreshIdleTimer()
+        }
         .sheet(isPresented: $model.showsOnboarding,
                onDismiss: { model.onboardingSheetDismissed() }) {
             OnboardingView()

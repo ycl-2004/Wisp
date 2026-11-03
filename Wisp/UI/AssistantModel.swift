@@ -386,6 +386,19 @@ final class AssistantModel: ObservableObject {
 
     @Published var confirmsEviction = false
 
+    /// 对话列表里待确认删除的那一个。放在模型上而不是列表视图的
+    /// @State 里，是为了让模态护栏（`hasModalPresented`）看得见它：
+    /// 这个 alert 同样挂在面板上，不能被面板的闲置收起连带带走。
+    @Published var pendingConversationDeletion: Conversation?
+
+    /// 面板上是否有模态正盖着：首次向导 sheet、腾位确认、删对话确认。
+    /// 呈现期间面板不得被闲置计时收走（`PanelController.isIdle` 问它）、
+    /// Esc 也只能先关它而不是藏面板（面板的 `onCancel` 问它）。
+    /// 以后往面板上加新模态，只改这一处。
+    var hasModalPresented: Bool {
+        showsOnboarding || confirmsEviction || pendingConversationDeletion != nil
+    }
+
     func toggleConversationList() {
         let showing = !showsConversationList
         showsConversationList = showing

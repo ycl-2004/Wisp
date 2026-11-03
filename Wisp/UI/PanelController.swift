@@ -77,6 +77,14 @@ final class PanelController: NSObject, NSWindowDelegate {
         cancelIdleTimer()
         saveFrame(panel)
         flushFrameSave()
+        // 先让模态走 SwiftUI 的正常关闭路径再藏面板：直接 orderOut 的话
+        // sheet/alert 只是跟着面板一起不见，onDismiss 不会触发，
+        // showsOnboarding 会悬空、「这次启动跳过了」也记不上账。
+        if AssistantModel.shared.hasModalPresented {
+            AssistantModel.shared.showsOnboarding = false
+            AssistantModel.shared.confirmsEviction = false
+            AssistantModel.shared.pendingConversationDeletion = nil
+        }
         panel.orderOut(nil)
         isPointerInside = false
         broadcastActivity()
@@ -142,6 +150,8 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     /// 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
     /// 鼠标停在上面、回答正在生成、正在录音或按住说话、正在采集。任何一条成立都不能收。
+    /// 模态（设置向导、删除确认）盖着时同理：那正是用户办事办到一半的时刻
+    /// （比如切去浏览器拿 API Key），计时到了也不能连模态一起把面板收走。
     ///
     /// 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
     /// 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
@@ -155,6 +165,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             && !PushToTalk.shared.isActive
             && !AssistantModel.shared.isCapturing
             && !isWorkingInCapturedApp
+            && !AssistantModel.shared.hasModalPresented
     }
 
     /// 前台应用就是这份上下文读到的那个应用吗？
@@ -242,7 +253,17 @@ final class PanelController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        panel.onCancel = { PanelController.shared.hide() }
+        panel.onCancel = {
+            // Esc 先退最上面一层：有模态盖着就只关模态，面板留着；
+            // 没有模态才轮到把面板整个藏掉。
+            if AssistantModel.shared.hasModalPresented {
+                AssistantModel.shared.showsOnboarding = false
+                AssistantModel.shared.confirmsEviction = false
+                AssistantModel.shared.pendingConversationDeletion = nil
+            } else {
+                PanelController.shared.hide()
+            }
+        }
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
