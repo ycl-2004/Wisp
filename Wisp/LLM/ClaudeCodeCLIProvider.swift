@@ -132,14 +132,7 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     let handle = stdout.fileHandleForReading
 
                     while true {
-                        // 不无条件阻塞在 availableData 上（#36）：切片等可读，
-                        // 进程已退出且管道读干时按 EOF 收尾 — 管道被子进程的
-                        // 后代占着时，真 EOF 永远不会来。
-                        if !PipePoll.waitReadable(handle) {
-                            if !process.isRunning { break }
-                            continue
-                        }
-                        let chunk = handle.availableData
+                        let chunk = PipePoll.awaitData(handle) { process.isRunning } ? handle.availableData : Data()
                         if chunk.isEmpty { break }
                         buffer.append(chunk)
                         while let range = buffer.firstRange(of: Data("\n".utf8)) {

@@ -34,6 +34,33 @@ final class Round4PipeDeadlineTests: XCTestCase {
         XCTAssertTrue(pipe.fileHandleForReading.availableData.isEmpty)
     }
 
+    /// The CLI writes its final event and exits between a slice timing out
+    /// and the isRunning check, while a descendant still holds the pipe so no
+    /// hangup arrives. The tail must still be read, not dropped as "drained".
+    func testAwaitDataReadsATailWrittenJustBeforeExit() throws {
+        let pipe = Pipe()
+        defer { pipe.fileHandleForWriting.closeFile() }
+        let tail = Data("{\"type\":\"result\"}\n".utf8)
+        let readable = PipePoll.awaitData(pipe.fileHandleForReading, slice: 0.05) {
+            try? pipe.fileHandleForWriting.write(contentsOf: tail)
+            return false
+        }
+        XCTAssertTrue(readable)
+        XCTAssertEqual(pipe.fileHandleForReading.availableData, tail)
+    }
+
+    func testAwaitDataEndsOnceTheProcessIsGoneAndThePipeIsSilent() {
+        let pipe = Pipe()
+        defer { pipe.fileHandleForWriting.closeFile() }
+        var checks = 0
+        let readable = PipePoll.awaitData(pipe.fileHandleForReading, slice: 0.05) {
+            checks += 1
+            return checks < 3
+        }
+        XCTAssertFalse(readable, "a dead process with a silent, still-held pipe is end of stream")
+        XCTAssertEqual(checks, 3, "it keeps waiting while the process runs")
+    }
+
     // MARK: - CLICommand against a pipe-holding grandchild
 
     func testRunReturnsWhatArrivedDespitePipeHoldingGrandchild() async {

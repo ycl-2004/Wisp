@@ -155,17 +155,8 @@ struct CodexCLIProvider: ChatProvider {
                         }
                     }
                     while !session.completed {
-                        // 不无条件阻塞在 availableData 上（#36）：切片等可读；
-                        // 进程已退出且管道读干时，把残行按 EOF 冲出再收尾 —
-                        // 管道被子进程的后代占着时，真 EOF 永远不会来。
-                        if !PipePoll.waitReadable(handle) {
-                            if !process.isRunning {
-                                try consume(lines.append(Data(), endOfFile: true))
-                                break
-                            }
-                            continue
-                        }
-                        let chunk = handle.availableData
+                        // 读干或进程退出都按 EOF 把残行冲出再收尾。
+                        let chunk = PipePoll.awaitData(handle) { process.isRunning } ? handle.availableData : Data()
                         try consume(lines.append(chunk, endOfFile: chunk.isEmpty))
                         if chunk.isEmpty { break }
                     }

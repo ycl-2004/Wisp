@@ -193,6 +193,21 @@ enum PipePoll {
         // availableData 会给出数据、或空数据（真 EOF），由读循环定夺。
         return result > 0 && descriptor.revents != 0
     }
+
+    /// 三个 CLI provider 读循环的唯一等待入口：true = 该读一次 availableData，
+    /// false = 进程已退出且管道里没剩东西，按 EOF 收尾。不无条件阻塞在
+    /// availableData 上（#36）：管道被子进程的后代占着时，真 EOF 永远不会来。
+    ///
+    /// 进程退出那一刻再不等待地看一眼管道：切片刚超时、进程紧接着写出最后
+    /// 一行（Claude 的 result、Codex 的 turn/completed）再退出时，只看
+    /// isRunning 会把这最后一个事件丢掉，整次回答被判成失败。
+    static func awaitData(_ handle: FileHandle, slice: TimeInterval = 0.25,
+                          isRunning: () -> Bool) -> Bool {
+        while true {
+            if waitReadable(handle, slice: slice) { return true }
+            guard isRunning() else { return waitReadable(handle, slice: 0) }
+        }
+    }
 }
 
 /// 读线程往里灌、调用方在锁下取快照的管道汇合点（#36）。CLICommand 用它
