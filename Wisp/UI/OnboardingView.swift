@@ -39,7 +39,13 @@ struct OnboardingView: View {
             Divider()
             footer
         }
-        .onAppear { screenRecordingGranted = Permissions.hasScreenRecording }
+        .onAppear {
+            screenRecordingGranted = Permissions.hasScreenRecording
+            // 视图随窗口终身复用（不再是 sheet 时代的每次新建）：上次
+            // 点「开始使用 Wisp」失败留下的提示不该在重开时直接在场，
+            // 每次出现先清掉，用户再点按钮、判定再失败时才会重新出现。
+            showsNeedsHint = false
+        }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification)) { _ in
             // 用户可能刚从系统设置里授权回来。

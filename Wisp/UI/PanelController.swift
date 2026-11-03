@@ -97,14 +97,16 @@ final class PanelController: NSObject, NSWindowDelegate {
         cancelIdleTimer()
         saveFrame(panel)
         flushFrameSave()
-        // 先让模态走正常关闭路径再藏面板：直接 orderOut 的话 alert 只是
-        // 跟着面板一起不见、关不掉，待删标记会悬空。showsOnboarding 同
-        // 理：置 false 后向导窗口由它自己的控制器关闭并走
-        // onboardingWindowClosed() 记账，标记不悬空、「这次启动跳过了」
-        // 也记得上账（UX 改造第 3 项后向导是独立窗口，机理从 sheet 的
-        // onDismiss 换成了控制器收口，语义不变）。
-        if AssistantModel.shared.hasModalPresented {
-            AssistantModel.shared.showsOnboarding = false
+        // 先让面板自家的模态走正常关闭路径再藏面板：直接 orderOut 的话
+        // alert 只是跟着面板一起不见、关不掉，待删标记会悬空。
+        // 向导不在此列（第 3 项检查裁定，修订第 1 项在新宿主下的语义）：
+        // 它已是独立窗口，与面板生命周期解耦——藏面板时连带关掉它，
+        // 是用户看不见因果的跨窗副作用，还会把「关面板」误记成
+        // 「跳过了向导」。它只参与 idle 豁免（见
+        // `AssistantModel.hasModalPresented`），关闭与记账只走它自己的
+        // 路径（窗口关闭按钮、稍后再说、完成交接）。
+        if AssistantModel.shared.confirmsEviction
+            || AssistantModel.shared.pendingConversationDeletion != nil {
             AssistantModel.shared.confirmsEviction = false
             AssistantModel.shared.pendingConversationDeletion = nil
         }
@@ -277,11 +279,12 @@ final class PanelController: NSObject, NSWindowDelegate {
             defer: false
         )
         panel.onCancel = {
-            // Esc 先退最上面一层：有模态盖着就只关模态，面板留着；
-            // 没有模态才轮到把面板整个藏掉。showsOnboarding 现在是向导
-            // 窗口的镜像：置 false 即关窗并由控制器记账（第 3 项）。
-            if AssistantModel.shared.hasModalPresented {
-                AssistantModel.shared.showsOnboarding = false
+            // Esc 先退最上面一层：面板自家的模态（腾位/删对话确认）盖着
+            // 就只关模态，面板留着；没有模态才轮到把面板整个藏掉。
+            // 向导窗口不在此列：同 hide()，它只参与 idle 豁免，不归
+            // 面板的 Esc 管（裁定理由见 hide() 处注释）。
+            if AssistantModel.shared.confirmsEviction
+                || AssistantModel.shared.pendingConversationDeletion != nil {
                 AssistantModel.shared.confirmsEviction = false
                 AssistantModel.shared.pendingConversationDeletion = nil
             } else {

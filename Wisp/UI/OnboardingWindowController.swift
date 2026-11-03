@@ -28,13 +28,17 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
     private var window: NSWindow?
     private var observation: AnyCancellable?
+    private var settingsObservation: AnyCancellable?
+    private var refitTask: Task<Void, Never>?
     private var isPresented = false
     /// windowWillClose 里置模型标记时抑制观察者：窗口已在关闭流程中，
     /// 不让观察者再去 orderOut 它；记账由 windowWillClose 自己收口。
     private var suppressObservation = false
 
-    /// 供面板截图排除自家窗口用（`PanelController.show()` 汇总
-    /// ownWindowIDs 时来取）：向导窗里有 Key 输入框，别进整屏采集。
+    /// 供采集排除自家窗口用：`PanelController.show()` 写 ownWindowIDs
+    /// 快照时来取一份，`AssistantModel.captureShot` 在采集那一刻还会
+    /// 现查一次并入（窗口能独立于 show() 出现，快照会漏）。向导窗里
+    /// 有 Key 输入框，别进整屏采集；不可见时返回 nil、不并入。
     var windowID: CGWindowID? {
         guard let window, window.isVisible else { return nil }
         return CGWindowID(window.windowNumber)
@@ -50,23 +54,46 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
                     if shows { self.present() } else { self.dismiss() }
                 }
             }
+        // 窗内切服务商会改内容高度（CLI/Ollama 矮、云端高），而 fitHeight
+        // 只在 present() 跑一次、窗口又不可缩放——设置一变就防抖重拟合
+        // 一次。objectWillChange 在新值落定前触发，睡一小段同时等落定
+        // 与布局完成；重拟合本身有等值守卫，改的若是与高度无关的设置，
+        // 算出的高度相同就直接返回，不会抖窗（机制细节见 fitHeight）。
+        settingsObservation = AppSettings.shared.objectWillChange
+            .sink { [weak self] _ in
+                guard let self else { return }
+                MainActor.assumeIsolated {
+                    guard self.isPresented, let window = self.window else { return }
+                    self.refitTask?.cancel()
+                    self.refitTask = Task { @MainActor [weak self] in
+                        try? await Task.sleep(nanoseconds: 150_000_000)
+                        guard !Task.isCancelled else { return }
+                        self?.fitHeight(window)
+                    }
+                }
+            }
     }
 
     private func present() {
         guard !isPresented else {
-            // 已经开着（比如设置里又点了一次重跑）：带到前面即可。
+            // 已经开着（比如设置里又点了一次重跑）：带到前面。激活姿态
+            // 与首次呈现保持一致（见下面 present 主体的注释）。
+            NSApp.activate(ignoringOtherApps: true)
             window?.makeKeyAndOrderFront(nil)
             return
         }
         isPresented = true
-        // 展示记账在真正呈现的这一刻落盘：任何入口开的窗都算「展示
-        // 过」，首启自动开窗此后不再触发（见 AppSettings 的注释）。
+        // 展示记账在 present() 被调用时落盘（建窗/orderFront 在这之后，
+        // 它们不抛异常，差异只剩系统级呈现失败）：任何入口开的窗都算
+        // 「展示过」，首启自动开窗此后不再触发（见 AppSettings 注释）。
         AppSettings.shared.hasShownFirstRunOnboarding = true
         let window = ensureWindow()
         fitHeight(window)
         center(window)
-        // 向导是正经的窗口任务（要切去浏览器拿 Key、要打字），不适用
-        // 面板的「永不激活」——那条决定只管面板的召唤路径。
+        // 激活政策（有意决定）：向导是任务型窗口——要切去浏览器拿
+        // Key、回来打字——呈现即整体激活，与面板的「永不激活」是两套
+        // 政策：面板是瞥一眼就走的召唤层，向导是坐下来办完的事。
+        // bring-forward 路径同此姿态，避免同窗两种待遇。
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
@@ -114,7 +141,11 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
     /// 高度按内容拟合、封顶 640：拟合值比封顶小就收窄到拟合值（Ollama/
     /// CLI 两种接法的内容明显更矮），超了就停在封顶、余下交给窗内
-    /// 唯一的滚动区。宽度恒定 560。定位由随后的 `center()` 统一负责。
+    /// 唯一的滚动区。宽度恒定 560。两个调用时机：present() 首拟合
+    /// （定位由随后的 `center()` 统一负责）；呈现中设置变更触发的重
+    /// 拟合（见 start() 的订阅）——此时锚定顶边伸缩，标题栏不跳位。
+    /// 等值守卫兼防拟合回路：重拟合若触发内容重报，算出的还是同一个
+    /// 高度、直接返回，不会来回抖。
     private func fitHeight(_ window: NSWindow) {
         guard let hosting = window.contentView else { return }
         hosting.layoutSubtreeIfNeeded()
@@ -123,8 +154,10 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         let height = min(max(fitting, Self.minHeight), Self.maxHeight)
         var frame = window.frame
         guard abs(frame.height - height) > 0.5 else { return }
+        let top = frame.maxY
         frame.size.height = height
-        window.setFrame(frame, display: false)
+        frame.origin.y = top - height
+        window.setFrame(frame, display: window.isVisible)
     }
 
     /// 居中于当前活跃屏幕（鼠标所在屏，跟随既有 ScreenGeometry 口径）。

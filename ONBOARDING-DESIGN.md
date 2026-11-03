@@ -40,12 +40,12 @@ changes — item 2 of the UX overhaul), so presentation paths only read.
 ### The one stored flag — display bookkeeping, not readiness
 
 `AppSettings.hasShownFirstRunOnboarding` records only that the wizard
-window has actually been presented once; it gates the first-launch
-auto-open and nothing else. It is written by the window controller at
-the moment of presentation (any entry point counts — the window *was*
-shown), and a factory reset wipes it with every other setting, so a
-reset install auto-opens again. Readiness itself stays derived as
-above; the two must never be conflated.
+has been presented once; it gates the first-launch auto-open and
+nothing else. It is written by the window controller when `present()`
+is called (any entry point counts — presentation was requested and
+proceeds synchronously from there), and a factory reset wipes it with
+every other setting, so a reset install auto-opens again. Readiness
+itself stays derived as above; the two must never be conflated.
 
 ## Triggers and the annoyance budget
 
@@ -85,12 +85,33 @@ capped at 640, centered on the active screen):
   the dismissal is now collected by the controller instead of a sheet
   `onDismiss`.
 - The panel's modal guardrail (`hasModalPresented`, UX item 1) still
-  counts the wizard: while it is open the panel must not idle-dismiss
-  (the user is likely off in a browser fetching a key). The window
-  itself is an ordinary window and needs no such protection.
+  counts the wizard — but only for the idle exemption: while it is
+  open the panel must not idle-dismiss (the user is likely off in a
+  browser fetching a key). It is *not* part of the hide()/Esc cleanup
+  set (item-3 review adjudication, revising item 1's semantics for the
+  new host): as a sheet, "hide the panel = close the wizard" was
+  forced by the host relationship; as a standalone window the two
+  lifecycles are decoupled, and hiding the panel or pressing Esc in it
+  must not take the wizard down as an invisible cross-window side
+  effect (nor record it as a skip). The wizard closes and accounts
+  only through its own paths — title-bar close, "稍后再说", and the
+  completion handoff. The window itself is an ordinary window and
+  needs no protection from the panel's idle logic.
+- Activation policy differs from the panel on purpose: the panel
+  never activates (it is a glance-and-dismiss summon layer), while the
+  wizard is a task window — the user leaves for a browser to fetch a
+  key and comes back to type — so presenting it activates the app,
+  on the bring-forward path as well as the first presentation.
+- Height is fitted at presentation and re-fitted (debounced) when
+  settings change the content height — switching provider inside the
+  window (CLI/Ollama are short, cloud is tall) resizes it in place,
+  anchored at the top edge, still capped at 640.
 - The window carries the same screen-privacy treatment as the panel
-  (it contains a key field), and its window ID joins the panel's
-  capture exclusion list.
+  (it contains a key field), and its window ID is excluded from
+  captures: it is merged into the exclusion list at capture time in
+  `captureShot`, not only in the panel's show-time snapshot — the
+  window can appear independently of `show()` (the panel-open offer
+  itself opens it), so a snapshot would miss it.
 
 ### Layout
 

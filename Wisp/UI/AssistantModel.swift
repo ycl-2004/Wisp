@@ -159,7 +159,7 @@ final class AssistantModel: ObservableObject {
 
     /// 第一阶段：截图 + 网址标题。呈现不必等它跑完（UX 改造第 2 项）：
     /// show() 先把面板亮出来，截图随后并发补上——浮窗不进画面靠的是截图
-    /// 按 `ownWindowIDs` 排除自家窗口，不靠「先截图后显示」的时序兜底
+    /// 按排除名单排除自家窗口，不靠「先截图后显示」的时序兜底
     /// （与 ContextCapture 侧的注释同一口径）。只做这些，所以很快——
     /// 读正文留给 `captureText()`，发送时再说。
     func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
@@ -171,7 +171,18 @@ final class AssistantModel: ObservableObject {
         let generation = captureGeneration
         isCapturing = true
         errorText = nil
-        let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: ownWindowIDs,
+        // 排除名单在采集这一刻组装，不用 show() 时刻写下的快照
+        // （`ownWindowIDs`）：向导窗口能独立于 show() 出现——甚至就是
+        // 同一轮 show 的 offer 打开的，快照里还没有它——整屏采集会把
+        // 开着的向导（连同里面的 Key 输入框）截进去。它此刻不可见时
+        // windowID 为 nil、自然不并入。captureText 只读正文、不截图，
+        // 不吃这份名单，无需同样处理。
+        var excludedWindowIDs = ownWindowIDs
+        if let onboardingID = OnboardingWindowController.shared.windowID,
+           !excludedWindowIDs.contains(onboardingID) {
+            excludedWindowIDs.append(onboardingID)
+        }
+        let (result, pending) = await ContextCapture.captureShot(excludingWindowIDs: excludedWindowIDs,
                                                                  fallbackApp: targetApp,
                                                                  screenshotOnly: screenshotOnly)
         // 采集期间用户按了停止、藏了面板、或者更新的采集已经接管：这份结果
@@ -424,8 +435,8 @@ final class AssistantModel: ObservableObject {
 
     /// 首启自动开窗的判定：由 AppDelegate 在首轮 readiness 刷新落地
     /// 之后调用一次——调用方保证此刻读的 `onboardingNeeded` 是算过的
-    /// 值，不是初始 false。需要配置且从未真正展示过才开窗；展示记账
-    /// 在窗口真正呈现时由控制器落盘（见
+    /// 值，不是初始 false。需要配置且从未展示过才开窗；展示记账
+    /// 在控制器 `present()` 被调用时落盘（见
     /// `AppSettings.hasShownFirstRunOnboarding`），这里只读不写。
     func presentOnboardingIfFirstRun() {
         guard onboardingNeeded, !settings.hasShownFirstRunOnboarding else { return }
@@ -490,14 +501,22 @@ final class AssistantModel: ObservableObject {
     /// 这个 alert 同样挂在面板上，不能被面板的闲置收起连带带走。
     @Published var pendingConversationDeletion: Conversation?
 
-    /// 面板上是否有模态正盖着：腾位确认、删对话确认，外加首次向导。
-    /// 向导自 UX 改造第 3 项起是独立窗口、不是面板的模态了，但它开着
-    /// 时面板同样不得被闲置计时收走——用户多半正切去浏览器拿 Key，
-    /// 回来发现面板没了和 sheet 时代是同一种事故；向导窗口本身是普通
-    /// 窗口，不吃面板的 idle 逻辑，不需要谁保护它。
-    /// 呈现期间面板不得被闲置计时收走（`PanelController.isIdle` 问它）、
-    /// Esc 也只能先关它而不是藏面板（面板的 `onCancel` 问它）。
-    /// 以后往面板上加新模态，只改这一处。
+    /// 此刻是否有「人正办事办到一半」的界面开着：面板自家的腾位确认、
+    /// 删对话确认，外加首次向导窗口。唯一用途是 idle 豁免——
+    /// `PanelController.isIdle` 问它，任一为真，面板就不得被闲置计时
+    /// 收走（向导开着时用户多半正切去浏览器拿 Key，回来发现面板没了
+    /// 和 sheet 时代是同一种事故；向导窗口本身是普通窗口，不吃面板的
+    /// idle 逻辑，不需要谁保护它）。
+    ///
+    /// 它不再兼任 hide()/Esc 的清理判据（第 3 项检查裁定，修订第 1 项
+    /// 在新宿主下的语义）：sheet 时代向导长在面板上，「藏面板 = 关
+    /// 向导」是宿主关系决定的；窗口化后两者生命周期解耦，hide() 与
+    /// 面板 onCancel 只清理面板自家的两个模态（它们挂在面板上、不先
+    /// 关就会被 orderOut 悬空），向导只进这份 idle 豁免名单、不进
+    /// 清理名单——藏面板或按 Esc 时连带关掉一个独立窗口，用户看不见
+    /// 因果。向导的关闭与记账只走它自己的路径。
+    /// 以后加新界面：挂在面板上的，idle 豁免与 hide/onCancel 清理两处
+    /// 都要加；独立窗口只加这里。
     var hasModalPresented: Bool {
         showsOnboarding || confirmsEviction || pendingConversationDeletion != nil
     }
