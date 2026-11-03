@@ -373,6 +373,18 @@ macos-14 job kept checking out 2.4.0 (and its tools-6.1 manifest) even
 with `exactVersion: 2.3.0` in the spec. The committed pin was updated to
 2.3.0 (revision 045cf17…) to match.
 
+Round 7 FINAL (2026-11-02): both CI jobs are green on both the push and
+PR runs at 5e62bbf — `test-and-release-check` (macos-15) and
+`test-and-release-check-macos-14` (macos-14) — including the Release
+build, universal-binary and entitlements verification, and the 4 new
+#53 sweep tests (macOS suite is now 214 tests, 2 skipped). The Linux
+harness at the same tree: 236 tests, 233 pass, 3 env-gated Ollama E2E
+skips (pass with OLLAMA_E2E=1), 1 known SwiftPM artifact failure
+(Bundle.main.bundleIdentifier is nil under SwiftPM; not an app bug).
+The branch stands at 50 commits over the audit base. The macos-14 job
+had never executed a test before this round; it now provides real
+minimum-OS coverage.
+
 
 ---
 
