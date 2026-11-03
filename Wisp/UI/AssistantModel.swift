@@ -25,7 +25,19 @@ final class AssistantModel: ObservableObject {
     private var preparationTask: Task<Void, Never>?
     private var responseGeneration = UUID()
     @Published var errorText: String?
-    @Published var showsConversationList = false
+    @Published var showsConversationList = false {
+        didSet {
+            // 删除确认 alert 是对话列表的子视图（ConversationListView 只在
+            // 列表显示时存在）：列表一关，alert 就不存在，待删标记必须
+            // 跟着清。否则标记永久非 nil、`hasModalPresented` 恒真，闲置
+            // 自动收起会在本次运行内整体失效。关列表的路径有多条
+            // （新建/顶替/选择/转写/语音草稿，后者还是非 UI 触发），收口
+            // 在属性本身比逐条路径补清更不会漏。
+            if !showsConversationList, pendingConversationDeletion != nil {
+                pendingConversationDeletion = nil
+            }
+        }
+    }
     @Published var showsNotes = false
     /// 首次设置向导是否正显示（#8）。显示条件由实时状态推导，见
     /// `OnboardingReadiness`，不存「已完成引导」标记。
