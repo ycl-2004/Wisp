@@ -14,6 +14,8 @@ extension KeyboardShortcuts.Name {
                                       default: .init(.space, modifiers: [.control, .option]))
     /// Held, not pressed. Unassigned until the user records one, like the mode shortcuts.
     static let pushToTalk = Self("pushToTalk")
+    /// 录制笔记面板开关。默认不分配，和 pushToTalk 一样等用户自己录。
+    static let toggleNotes = Self("toggleNotes")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -99,6 +101,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 #endif
 
+        // 清掉上次被强杀/崩溃时没来得及删的 CLI 临时目录（里面可能有截图）。
+        // 只删 24 小时以上的 Wisp-* 目录；单个请求上限 300 秒，碰不到正在用的。
+        CLITemporaryDirectory.sweepOrphans()
+
         // 0.2.x 只存一份 API Key，不分服务商。升上来时把它记到当时实际在用的那家名下，
         // 否则设置页按新账号名去读会读成空，用户会以为 Key 丢了。
         KeychainStore.migrateLegacyKeyIfNeeded {
@@ -134,7 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // 启动更新检查默认关闭，用户可以在设置里主动开启。
-        // 只请求一次版本号，不带任何标识信息，也不自动下载。
+        // 只请求一次版本号：User-Agent 是 Wisp/<版本>，不带其他标识信息，也不自动下载。
         if AppSettings.shared.checkForUpdates {
             Task { @MainActor in
                 if case .available(let latest) = await UpdateChecker.check() {
@@ -164,6 +170,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The master switch is checked inside `begin()`; a key-up must always reach `end()`.
         KeyboardShortcuts.onKeyDown(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.begin() } }
         KeyboardShortcuts.onKeyUp(for: .pushToTalk) { Task { @MainActor in PushToTalk.shared.end() } }
+        KeyboardShortcuts.onKeyUp(for: .toggleNotes) {
+            Task { @MainActor in NotesPanelController.shared.toggle() }
+        }
         MainActor.assumeIsolated { QuickCommandStore.shared.registerShortcuts() }
 
         AdvancedShortcutMonitor.shared.configure {

@@ -59,14 +59,35 @@ final class QuickCommandStore: ObservableObject {
         }
     }
 
+    /// 存着的数据解不开时为真（#48）。以前 init 用 try? 解码、失败就当
+    /// 第一次启动装默认指令，用户会以为指令被「重置」了，而随后任何一次
+    /// 编辑都会把原始数据覆盖掉。现在：内存里照样给默认指令用，但保存
+    /// 被压住，界面上明说，只有用户显式「恢复默认」才清掉这个状态。
+    @Published private(set) var loadFailed = false
+
     private let defaults: UserDefaults
-    private var registered: [KeyboardShortcuts.Name] = []
+    /// Names that already have a library handler installed. Handlers
+    /// dispatch by name through the CURRENT command list, so each name is
+    /// hooked exactly once for the life of the process; a deleted
+    /// command's name simply stops resolving (and `delete` /
+    /// `restoreDefaults` reset its recorded shortcut, which is what
+    /// unregisters the system hotkey). This deliberately avoids
+    /// `KeyboardShortcuts.removeHandler(for:)`: it exists only in
+    /// KeyboardShortcuts 2.4.0, whose manifest requires Swift tools 6.1,
+    /// and no Xcode that runs on the macOS 14 CI image provides that
+    /// (its newest is 16.2, tools 6.0) — the 2.3.0 pin is what keeps the
+    /// minimum-OS job able to resolve, build, and test at all.
+    private var hookedNames: Set<KeyboardShortcuts.Name> = []
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        if let data = defaults.data(forKey: Self.key),
-           let saved = try? JSONDecoder().decode([QuickCommand].self, from: data) {
-            commands = saved
+        if let data = defaults.data(forKey: Self.key) {
+            if let saved = try? JSONDecoder().decode([QuickCommand].self, from: data) {
+                commands = saved
+            } else {
+                commands = QuickCommand.defaults
+                loadFailed = true
+            }
         } else {
             commands = QuickCommand.defaults
         }
@@ -87,23 +108,28 @@ final class QuickCommandStore: ObservableObject {
     }
 
     func restoreDefaults() {
+        // 显式恢复是解开 loadFailed 的唯一出口：先清状态，didSet 的保存才会落盘。
+        loadFailed = false
         KeyboardShortcuts.reset(commands.map(\.shortcutName))
         commands = QuickCommand.defaults
     }
 
-    /// Each command's shortcut runs it from any app. Re-registered only when the set of commands
-    /// changes, not on every keystroke in the editor.
+    /// Each command's shortcut runs it from any app. A name's handler is
+    /// installed once and resolves its command at press time, so edits
+    /// and deletions need no re-registration.
     func registerShortcuts() {
-        let names = commands.map(\.shortcutName)
-        guard names != registered else { return }
-        registered.forEach { KeyboardShortcuts.removeHandler(for: $0) }
-        registered = names
-        for command in commands {
-            let id = command.id
-            KeyboardShortcuts.onKeyUp(for: command.shortcutName) {
-                Task { @MainActor in QuickCommandStore.shared.trigger(id) }
+        for command in commands where !hookedNames.contains(command.shortcutName) {
+            hookedNames.insert(command.shortcutName)
+            let name = command.shortcutName
+            KeyboardShortcuts.onKeyUp(for: name) { [weak self] in
+                Task { @MainActor in self?.triggerShortcut(named: name) }
             }
         }
+    }
+
+    private func triggerShortcut(named name: KeyboardShortcuts.Name) {
+        guard let command = commands.first(where: { $0.shortcutName == name }) else { return }
+        trigger(command.id)
     }
 
     /// From a shortcut the panel may be hidden: show it first, so the command reads the app the
@@ -116,6 +142,8 @@ final class QuickCommandStore: ObservableObject {
     }
 
     private func save() {
+        // 解码失败后存着的原始数据还在，不能被默认指令默默覆盖（#48）。
+        guard !loadFailed else { return }
         if let data = try? JSONEncoder().encode(commands) { defaults.set(data, forKey: Self.key) }
     }
 }

@@ -100,7 +100,8 @@ final class UpdateNotice: ObservableObject {
     private init() {}
 }
 
-/// 检查 GitHub 上有没有更新版本。只读一次 releases 接口，不带任何标识信息，
+/// 检查 GitHub 上有没有更新版本。只读一次 releases 接口，请求只带
+/// `Wisp/<版本>` 的 User-Agent，不带其他标识信息（与 PRIVACY.md 的说明一致），
 /// 也不自动下载或安装——发现新版本只是给个链接。
 enum UpdateChecker {
 
@@ -122,6 +123,9 @@ enum UpdateChecker {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
     }
 
+    /// 所有对外请求共用的 User-Agent，从版本号现算，永远不会过期。
+    static var userAgent: String { "Wisp/\(currentVersion)" }
+
     enum Outcome: Equatable {
         case upToDate(current: String)
         case available(latest: String)
@@ -139,7 +143,7 @@ enum UpdateChecker {
     static func check() async -> Outcome {
         var request = URLRequest(url: latestReleaseAPI)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("Wisp/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
         request.cachePolicy = .reloadIgnoringLocalCacheData
 
@@ -147,7 +151,9 @@ enum UpdateChecker {
             let session = URLSession(configuration: OpenAICompatibleProvider.privateSessionConfiguration(),
                                      delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
             defer { session.invalidateAndCancel() }
-            let (data, response) = try await session.data(for: request)
+            // 发布 JSON 通常几十 KB；给 1 MiB 上限，防的是抽风的响应而不是正常版本（#38）。
+            let (data, response) = try await OpenAICompatibleProvider.cappedData(
+                for: request, session: session, limit: 1 << 20)
             guard let http = response as? HTTPURLResponse else {
                 return .failed(String(localized: "没有收到 HTTP 响应。"))
             }

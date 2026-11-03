@@ -38,6 +38,9 @@ struct WispApp: App {
                 .environmentObject(AssistantModel.shared)
                 .environmentObject(ConversationStore.shared)
         }
+        // 设置窗口可缩放，下限就是内容给出的最小尺寸（620×520 起）。
+        // 以前根视图钉死宽高，窗口大小完全不可调（round-3 UI 审查）。
+        .windowResizability(.contentMinSize)
     }
 }
 
@@ -50,6 +53,10 @@ private struct MenuContent: View {
     var body: some View {
         Button(String(localized: "唤起助手")) {
             PanelController.shared.toggle()
+        }
+
+        Button(String(localized: "录制笔记")) {
+            NotesPanelController.shared.toggle()
         }
 
         if listening.isActive {

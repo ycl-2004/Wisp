@@ -11,7 +11,7 @@ import Foundation
 /// workspace 里，见 `stream(messages:config:)` 对工作目录的处理。
 struct ClaudeCodeCLIProvider: ChatProvider {
     /// 实测一次带截图的请求要 16–21 秒，比 AGY 慢，所以上限给得和它一样宽。
-    static let wallClockTimeout: TimeInterval = 300
+    static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// 按估算 token 记的上限。
     ///
@@ -113,9 +113,12 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                         }
                     }
 
-                    guard box.adopt(process) else { throw ProviderError.cancelled }
                     do {
-                        try process.run()
+                        try box.start(process)
+                    } catch let error as ProviderError {
+                        // 已被取消/超时收尾：start 在锁内拒绝了启动，直接上报。
+                        stderrHandle.readabilityHandler = nil
+                        throw error
                     } catch {
                         stderrHandle.readabilityHandler = nil
                         box.finish()
@@ -129,6 +132,13 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     let handle = stdout.fileHandleForReading
 
                     while true {
+                        // 不无条件阻塞在 availableData 上（#36）：切片等可读，
+                        // 进程已退出且管道读干时按 EOF 收尾 — 管道被子进程的
+                        // 后代占着时，真 EOF 永远不会来。
+                        if !PipePoll.waitReadable(handle) {
+                            if !process.isRunning { break }
+                            continue
+                        }
                         let chunk = handle.availableData
                         if chunk.isEmpty { break }
                         buffer.append(chunk)
@@ -146,6 +156,11 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                             case .none:
                                 break
                             }
+                        }
+                        // 残行和 CLIJSONLines 共用一个上限：一直等不到换行的
+                        // 单行事件只会是抽风的 CLI，不能无限攒下去。
+                        guard buffer.count <= CLIJSONLines.maxLineBytes else {
+                            throw ProviderError.network("Oversized CLI JSON event")
                         }
                     }
                     // NDJSON 通常以换行收尾，但不要把“最后一行没有换行”误判成
@@ -348,8 +363,8 @@ struct ClaudeCodeCLIProvider: ChatProvider {
 
     // MARK: - 子进程的跨线程句柄
 
-    /// 读循环阻塞在 availableData 上，Task.isCancelled 它看不见。取消和超时都不去
-    /// 「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
+    /// 读循环在 detached task 里轮询管道，Task.isCancelled 它看不见。取消和超时都不去
+    /// 「通知」那个循环，而是直接杀进程：进程一死，轮询的读循环自然收尾退出。
     private final class RunBox: @unchecked Sendable {
         enum Stop { case cancelled, timedOut }
 
@@ -358,11 +373,15 @@ struct ClaudeCodeCLIProvider: ChatProvider {
         private var stopReason: Stop?
         private var settled = false
 
-        func adopt(_ process: Process) -> Bool {
+        /// 启动与取消共用同一把锁（#37）：以前 adopt 与 run() 是两步，
+        /// 取消落在中间时 stop() 看到进程还没跑起来就直接返回，随后
+        /// run() 却把 claude 拉起来了 — 一个谁也杀不掉的孤儿进程。
+        /// 与 Codex 的 RunBox 同一写法：锁内登记并启动，已被收尾就拒绝。
+        func start(_ process: Process) throws {
             lock.lock(); defer { lock.unlock() }
-            guard !settled else { return false }
+            guard !settled else { throw ProviderError.cancelled }
             self.process = process
-            return true
+            try process.run()
         }
 
         /// - Parameter onlyIfRunning: 看门狗专用。进程已经自己退出了就什么都不做，
@@ -392,20 +411,6 @@ struct ClaudeCodeCLIProvider: ChatProvider {
         var reason: Stop? {
             lock.lock(); defer { lock.unlock() }
             return stopReason
-        }
-    }
-
-    private final class DrainBuffer: @unchecked Sendable {
-        private let lock = NSLock()
-        private var data = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock(); data.append(chunk); lock.unlock()
-        }
-
-        var text: String {
-            lock.lock(); defer { lock.unlock() }
-            return String(data: data, encoding: .utf8) ?? ""
         }
     }
 }

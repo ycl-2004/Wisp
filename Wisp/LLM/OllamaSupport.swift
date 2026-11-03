@@ -22,13 +22,15 @@ enum OllamaSupport {
             let session = URLSession(configuration: OpenAICompatibleProvider.privateSessionConfiguration(),
                                      delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
             defer { session.invalidateAndCancel() }
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await OpenAICompatibleProvider.cappedData(
+                for: request, session: session, limit: OpenAICompatibleProvider.maxSmallResponseBytes)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 return .failed(String(localized: "服务有响应但返回异常"))
             }
-            let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            let list = (object?["data"] as? [[String: Any]])?.compactMap { $0["id"] as? String } ?? []
-            return .running(models: list.sorted())
+            guard let models = models(from: data) else {
+                return .failed(String(localized: "服务有响应，但返回内容无法识别"))
+            }
+            return .running(models: models)
         } catch let error as URLError
             where error.code == .cannotConnectToHost || error.code == .networkConnectionLost
                || error.code == .timedOut {
@@ -36,6 +38,16 @@ enum OllamaSupport {
         } catch {
             return .failed(error.localizedDescription)
         }
+    }
+
+    /// 解析 /v1/models 的响应体。形状不对（不是字典、没有 data 数组、
+    /// 根本不是 JSON）返回 nil，让 probe 报 failed：以前一串可选转换以
+    /// ?? [] 收尾，坏掉的服务会被说成「运行中、零个模型」（#50）。
+    /// data 为空数组是真·零模型，正常返回 []。
+    static func models(from data: Data) -> [String]? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let list = object["data"] as? [[String: Any]] else { return nil }
+        return list.compactMap { $0["id"] as? String }.sorted()
     }
 
     /// 常见安装位置。GUI 应用拿不到登录 shell 的 PATH，只能自己找。

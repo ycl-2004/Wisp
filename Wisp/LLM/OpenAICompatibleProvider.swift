@@ -20,14 +20,39 @@ struct OpenAICompatibleProvider: ChatProvider {
     /// 多久没有任何新数据就判定这条流断了。流式回答里它是「静默上限」，不是总时长上限。
     static let idleTimeout: TimeInterval = 60
 
-    init(configuration: URLSessionConfiguration = OpenAICompatibleProvider.privateSessionConfiguration()) {
-        let config = configuration
-        config.timeoutIntervalForRequest = Self.idleTimeout
+    /// 非 2xx 时最多读多少错误响应体。真正的错误 JSON 只有几百字节，
+    /// `mapError` 用到的信息都在开头；上限之外读进来也只是白占内存。
+    static let maxErrorBodyBytes = 64 * 1024
+
+    /// validate 与 Ollama 探测的响应体上限（#38）。这两处的合法响应都很小，
+    /// 没有理由像 data(for:) 那样把服务端给的字节照单全收进内存。
+    static let maxSmallResponseBytes = 256 * 1024
+
+    /// 默认路径全进程共用一个 session（#46）：以前每次提问都新建 provider、
+    /// 每个 provider 配一个 session 且从不 invalidate，delegate 与连接池
+    /// 随提问次数只涨不落。URLSession 本来就是设计给共享的。
+    private static let sharedSession: URLSession = {
+        let config = privateSessionConfiguration()
+        config.timeoutIntervalForRequest = idleTimeout
         config.timeoutIntervalForResource = 300
         // 关掉它。开着的话断网不会报错，而是最多干等 timeoutIntervalForResource（5 分钟），
         // 期间界面一直显示「生成中」且没有任何提示。宁可立刻失败。
         config.waitsForConnectivity = false
-        session = URLSession(configuration: config, delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
+        return URLSession(configuration: config, delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
+    }()
+
+    /// 注入 configuration 的构造只供测试替身（protocolClasses）使用，
+    /// 那种情况仍是一实例一个 session，生命周期由测试自己管。
+    init(configuration: URLSessionConfiguration? = nil) {
+        if let configuration {
+            let config = configuration
+            config.timeoutIntervalForRequest = Self.idleTimeout
+            config.timeoutIntervalForResource = 300
+            config.waitsForConnectivity = false
+            session = URLSession(configuration: config, delegate: PrivateAPIRedirectPolicy(), delegateQueue: nil)
+        } else {
+            session = Self.sharedSession
+        }
     }
 
     // No disk cache, cookie jar, or stored HTTP credentials for captured content.
@@ -40,6 +65,24 @@ struct OpenAICompatibleProvider: ChatProvider {
         config.urlCredentialStorage = nil
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         return config
+    }
+
+    /// 把字节流收成 Data，超过上限立刻按 dataLengthExceedsMaximum 抛错（#38）。
+    static func accumulate<S: AsyncSequence>(_ bytes: S, limit: Int) async throws -> Data
+        where S.Element == UInt8 {
+        var buffer = CappedDataBuffer(limit: limit)
+        for try await byte in bytes {
+            guard buffer.append(byte) else { throw URLError(.dataLengthExceedsMaximum) }
+        }
+        return buffer.data
+    }
+
+    /// 有上限地读完整响应体，代替 data(for:)（#38）。三个小响应调用点共用：
+    /// validate、Ollama 探测、更新检查 — 合法响应都不大。
+    static func cappedData(for request: URLRequest, session: URLSession,
+                           limit: Int) async throws -> (Data, URLResponse) {
+        let (bytes, response) = try await session.bytes(for: request)
+        return (try await accumulate(bytes, limit: limit), response)
     }
 
     // MARK: - 请求构造
@@ -64,7 +107,7 @@ struct OpenAICompatibleProvider: ChatProvider {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("Wisp/0.1", forHTTPHeaderField: "User-Agent")
+        request.setValue(UpdateChecker.userAgent, forHTTPHeaderField: "User-Agent")
         var payload = ResponsePolicy.applying(config.responseMode, to: Self.speedPreferredBody(body, endpoint: url), endpoint: url)
         if !allowPriority { payload.removeValue(forKey: "service_tier") }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -132,8 +175,13 @@ struct OpenAICompatibleProvider: ChatProvider {
                             throw ProviderError.network(String(localized: "没有收到 HTTP 响应。"))
                         }
                         guard (200..<300).contains(http.statusCode) else {
-                            var data = Data()
-                            for try await byte in bytes { data.append(byte) }
+                            // 错误体只收前 64 KiB：抽风的服务端可以无限吐，
+                            // 但状态码和错误 JSON 的开头已经足够 mapError 判断了。
+                            var errorBody = CappedDataBuffer(limit: Self.maxErrorBodyBytes)
+                            for try await byte in bytes {
+                                if !errorBody.append(byte) { break }
+                            }
+                            let data = errorBody.data
                             if Self.rejectsPriority(status: http.statusCode, data: data, request: urlRequest) {
                                 allowPriority = false
                                 continue
@@ -141,13 +189,29 @@ struct OpenAICompatibleProvider: ChatProvider {
                             throw Self.mapError(status: http.statusCode, data: data, response: http)
                         }
 
-                        for try await line in bytes.lines {
+                        // 不用 `bytes.lines`：它把整行攒齐才交出来，单行没有
+                        // 上限。改走有上限的 SSELineSplitter，超长行直接报错。
+                        // 整条流另有累计上限（#52）：无数条合法短行同样能把
+                        // 一次回答喂到失控，按原始字节计数，超限同样中断。
+                        var splitter = SSELineSplitter()
+                        var byteBudget = StreamByteBudget()
+                        var sawDone = false
+                        for try await byte in bytes {
                             if Task.isCancelled { break }
+                            try byteBudget.add()
+                            guard let line = try splitter.feed(byte) else { continue }
                             switch SSEParser.parse(line: line) {
                             case .delta(let text): continuation.yield(text)
-                            case .done: continuation.finish(); return
+                            case .done: sawDone = true
                             case .ignored: continue
                             }
+                            if sawDone { break }
+                        }
+                        // 没等到 [DONE] 就断流时，最后一行往往没有换行结尾，
+                        // 和 `bytes.lines` 一样把残行也交出去，别丢掉收尾的增量。
+                        if !sawDone, !Task.isCancelled, let line = splitter.finish(),
+                           case .delta(let text) = SSEParser.parse(line: line) {
+                            continuation.yield(text)
                         }
                         try Task.checkCancellation()
                         continuation.finish()
@@ -155,6 +219,10 @@ struct OpenAICompatibleProvider: ChatProvider {
                     }
                 } catch is CancellationError {
                     continuation.finish(throwing: ProviderError.cancelled)
+                } catch is SSELineSplitter.Failure {
+                    continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的单行数据过长，已中断。")))
+                } catch is StreamByteBudget.Failure {
+                    continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的数据总量过大，已中断。")))
                 } catch let error as ProviderError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError {
@@ -194,7 +262,8 @@ struct OpenAICompatibleProvider: ChatProvider {
             let data: Data
             let response: URLResponse
             do {
-                (data, response) = try await session.data(for: urlRequest)
+                (data, response) = try await Self.cappedData(for: urlRequest, session: session,
+                                                             limit: Self.maxSmallResponseBytes)
             } catch let error as URLError {
                 throw Self.mapTransport(error, kind: config.kind)
             }
@@ -274,5 +343,40 @@ struct OpenAICompatibleProvider: ChatProvider {
             return .imageUnsupported(String(localized: "服务端说明：\(message)"))
         }
         return .http(status, message)
+    }
+}
+
+/// 有上限的字节累积：喂多少都只留最前面的 `limit` 字节。
+///
+/// 给「读多少都行、但不能无限读」的数据用（目前是非 2xx 的错误响应体）。
+/// 到上限后多余的字节直接丢弃，`append` 返回 false 让调用方停止读取。
+struct CappedDataBuffer {
+    let limit: Int
+    private(set) var data = Data()
+    private(set) var truncated = false
+
+    init(limit: Int) {
+        self.limit = max(0, limit)
+    }
+
+    /// 喂一个字节。返回 false 表示上限已满（本次字节被丢弃），调用方应停止读取。
+    @discardableResult
+    mutating func append(_ byte: UInt8) -> Bool {
+        guard !truncated else { return false }
+        guard data.count < limit else {
+            truncated = true
+            return false
+        }
+        data.append(byte)
+        return true
+    }
+
+    /// 喂一整块。返回 false 表示中途到顶（块的尾巴被丢弃）。
+    @discardableResult
+    mutating func append(contentsOf chunk: Data) -> Bool {
+        for byte in chunk {
+            guard append(byte) else { return false }
+        }
+        return true
     }
 }

@@ -27,9 +27,16 @@ enum KeychainStore {
     static func hasKey(for provider: CloudProvider) -> Bool { load(for: provider) != nil }
 
     /// 清除全部数据时用：把每一家的 Key 连同旧条目一起删掉。
-    static func deleteAll() {
-        for provider in CloudProvider.allCases { remove(account: provider.keychainAccount) }
-        remove(account: legacyAccount)
+    /// 返回是否全部删干净 — 以前不返回结果，擦除失败时用户以为 Key
+    /// 已经没了，其实还躺在钥匙串里（#43）。
+    @discardableResult
+    static func deleteAll() -> Bool {
+        var allRemoved = true
+        for provider in CloudProvider.allCases {
+            if !remove(account: provider.keychainAccount) { allRemoved = false }
+        }
+        if !remove(account: legacyAccount) { allRemoved = false }
+        return allRemoved
     }
 
     // MARK: - 迁移
@@ -45,7 +52,10 @@ enum KeychainStore {
         if read(account: provider.keychainAccount) == nil {
             _ = write(legacy, account: provider.keychainAccount)
         }
-        remove(account: legacyAccount)
+        // 副本确认存在了才删原件：写入失败时删掉原件，这份 Key 就找不回来了（#43）。
+        if read(account: provider.keychainAccount) != nil {
+            remove(account: legacyAccount)
+        }
     }
 
     // MARK: - 底层

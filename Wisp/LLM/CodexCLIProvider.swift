@@ -4,9 +4,9 @@ import Foundation
 /// 每轮使用独立的临时目录和 ephemeral thread，不连接用户正在运行的服务。
 struct CodexCLIProvider: ChatProvider {
 
-    /// 一次调用的硬上限。codex 卡住不出声时，读循环阻塞在 availableData 上叫不醒，
-    /// 唯一可靠的解法是从外面把进程杀掉，让管道立刻 EOF。
-    static let wallClockTimeout: TimeInterval = 240
+    /// 一次调用的硬上限。codex 卡住不出声时，轮询管道的读循环自己退不出来，
+    /// 唯一可靠的解法是从外面把进程杀掉，让读循环在下一片就收尾。
+    static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// GUI 应用拿不到登录 shell 的 PATH，只能自己找。
     static let searchPaths = [
@@ -28,7 +28,7 @@ struct CodexCLIProvider: ChatProvider {
 
     // MARK: - 子进程的跨线程句柄
 
-    /// 读循环跑在 detached task 里、阻塞在 availableData 上，Task.isCancelled 它看不见。
+    /// 读循环跑在 detached task 里轮询管道，Task.isCancelled 它看不见。
     /// 所以取消和超时都不去「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
     private final class RunBox: @unchecked Sendable {
         enum Stop { case cancelled, timedOut }
@@ -78,27 +78,13 @@ struct CodexCLIProvider: ChatProvider {
         }
     }
 
-    /// 后台把 stderr 抽干。只读 stdout 的话，codex 往 stderr 写满管道缓冲区就会卡死，
-    /// 而它启动时正好会刷一批 skill 扫描的告警。
-    private final class DrainBuffer: @unchecked Sendable {
-        private let lock = NSLock()
-        private var data = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock(); data.append(chunk); lock.unlock()
-        }
-
-        var text: String {
-            lock.lock(); defer { lock.unlock() }
-            return String(data: data, encoding: .utf8) ?? ""
-        }
-    }
-
     // MARK: - App-server streaming
 
     func stream(messages: [[String: Any]], config: ProviderConfig) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let box = RunBox()
+            // stderr 必须在后台抽干：只读 stdout 的话，codex 往 stderr 写满
+            // 管道缓冲区就会卡死，而它启动时正好会刷一批 skill 扫描的告警。
             let stderrBuffer = DrainBuffer()
 
             let work = Task.detached {
@@ -161,13 +147,26 @@ struct CodexCLIProvider: ChatProvider {
                     try send(AppServerSession.initializeRequest)
                     var lines = CLIJSONLines()
                     let handle = stdout.fileHandleForReading
-                    while !session.completed {
-                        let chunk = handle.availableData
-                        for object in try lines.append(chunk, endOfFile: chunk.isEmpty) {
+                    func consume(_ objects: [[String: Any]]) throws {
+                        for object in objects {
                             let update = try session.receive(object)
                             for message in update.requests { try send(message) }
                             for text in update.text { continuation.yield(text) }
                         }
+                    }
+                    while !session.completed {
+                        // 不无条件阻塞在 availableData 上（#36）：切片等可读；
+                        // 进程已退出且管道读干时，把残行按 EOF 冲出再收尾 —
+                        // 管道被子进程的后代占着时，真 EOF 永远不会来。
+                        if !PipePoll.waitReadable(handle) {
+                            if !process.isRunning {
+                                try consume(lines.append(Data(), endOfFile: true))
+                                break
+                            }
+                            continue
+                        }
+                        let chunk = handle.availableData
+                        try consume(lines.append(chunk, endOfFile: chunk.isEmpty))
                         if chunk.isEmpty { break }
                     }
 
@@ -196,7 +195,7 @@ struct CodexCLIProvider: ChatProvider {
             let watchdog = Task.detached {
                 try? await Task.sleep(nanoseconds: UInt64(Self.wallClockTimeout * 1_000_000_000))
                 guard !Task.isCancelled else { return }
-                // 卡在 240 秒线上收尾的那种：读循环已经退出但 finish() 还没跑到，
+                // 卡在墙钟上限边缘收尾的那种：读循环已经退出但 finish() 还没跑到，
                 // 这时进程其实早没了，不能算超时。
                 box.stop(.timedOut, onlyIfRunning: true)
             }
@@ -253,7 +252,7 @@ struct CodexCLIProvider: ChatProvider {
 
         static var initializeRequest: [String: Any] {
             ["id": 0, "method": "initialize", "params": [
-                "clientInfo": ["name": "wisp", "title": "Wisp", "version": "0.4.0"]
+                "clientInfo": ["name": "wisp", "title": "Wisp", "version": UpdateChecker.currentVersion]
             ]]
         }
 
@@ -443,6 +442,10 @@ struct CodexCLIProvider: ChatProvider {
 
 /// Frame bytes before decoding UTF-8: pipe reads can split a character or a JSON line.
 struct CLIJSONLines {
+    /// 单个事件行的上限。正常事件只有几 KB 到几百 KB（result 事件带全文），
+    /// 16 MiB 给足余量；一直攒不到换行的输入只会是抽风的 CLI，不能无限攒下去。
+    static let maxLineBytes = 16 * 1024 * 1024
+
     private var buffer = Data()
 
     mutating func append(_ data: Data, endOfFile: Bool = false) throws -> [[String: Any]] {
@@ -455,6 +458,12 @@ struct CLIJSONLines {
         if endOfFile && !buffer.isEmpty {
             lines.append(buffer)
             buffer = Data()
+        }
+        // 残行（还没等到换行）和已成行的都要过上限：前者防无限攒，
+        // 后者防单个超大事件直接进 JSON 解析。
+        guard buffer.count <= Self.maxLineBytes,
+              lines.allSatisfy({ $0.count <= Self.maxLineBytes }) else {
+            throw ProviderError.network("Oversized CLI JSON event")
         }
         return try lines.compactMap { line in
             if line.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0D }) { return nil }

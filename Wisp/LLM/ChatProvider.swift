@@ -178,6 +178,46 @@ struct ProviderConfig: Sendable {
     }
 }
 
+/// 在管道上等「可读」，每次最多等一个短切片（#36）。
+///
+/// 三个 CLI 读循环原本都无条件阻塞在 availableData 上，靠子进程退出后的
+/// EOF 退场。但子进程 fork 出的后代占着管道写端时，EOF 永远不来：主进程
+/// 早已退出，看门狗的 stop(onlyIfRunning:) 因「没在跑」空转，取消也叫
+/// 不醒阻塞中的读。改成 poll 切片后，读循环每片都能重新判断：进程还在
+/// 就继续等，进程不在且管道读干，就按流结束收尾。
+enum PipePoll {
+    static func waitReadable(_ handle: FileHandle, slice: TimeInterval = 0.25) -> Bool {
+        var descriptor = pollfd(fd: handle.fileDescriptor, events: Int16(POLLIN), revents: 0)
+        let result = poll(&descriptor, 1, Int32(max(0, slice) * 1000))
+        // POLLIN / POLLHUP / POLLERR 都意味着该去读一次：
+        // availableData 会给出数据、或空数据（真 EOF），由读循环定夺。
+        return result > 0 && descriptor.revents != 0
+    }
+}
+
+/// 读线程往里灌、调用方在锁下取快照的管道汇合点（#36）。CLICommand 用它
+/// 代替 readDataToEndOfFile：管道被后代进程占着时 EOF 不来，快照至少能
+/// 把已经到的部分交出去，而不是无限等。
+final class PipeSnapshotBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedOut = Data()
+    private var storedErr = Data()
+    private var outReachedEOF = false
+    private var errReachedEOF = false
+
+    func appendOut(_ chunk: Data) { lock.lock(); storedOut.append(chunk); lock.unlock() }
+    func appendErr(_ chunk: Data) { lock.lock(); storedErr.append(chunk); lock.unlock() }
+    func markOutEOF() { lock.lock(); outReachedEOF = true; lock.unlock() }
+    func markErrEOF() { lock.lock(); errReachedEOF = true; lock.unlock() }
+
+    var out: Data { lock.lock(); defer { lock.unlock() }; return storedOut }
+    var err: Data { lock.lock(); defer { lock.unlock() }; return storedErr }
+    var bothReachedEOF: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return outReachedEOF && errReachedEOF
+    }
+}
+
 /// 跑一条短命令并把输出收全。两个本地 CLI provider 的辅助调用
 /// （`--version`、列模型）都走这里，别再各写一份。
 enum CLICommand {
@@ -212,9 +252,28 @@ enum CLICommand {
             return nil
         }
 
-        // 两条管道并行读到 EOF。进程一死管道就关，两个读随之返回。
-        async let outData = readToEnd(stdout.fileHandleForReading)
-        async let errData = readToEnd(stderr.fileHandleForReading)
+        // 两条管道各由一个线程用 availableData 抽到 EOF、边读边存快照。
+        // 不能 await 读完才返回：进程退出后管道可能被它的后代占着，EOF
+        // 永远不来（#36）— 那时拿快照走人，迟到的字节不是这条命令自己的
+        // 输出。readabilityHandler 在 Linux 语义不靠谱，这里用的是三个
+        // provider 读循环同款的阻塞读，两个平台都验证过。
+        let box = PipeSnapshotBox()
+        let outHandle = stdout.fileHandleForReading
+        let errHandle = stderr.fileHandleForReading
+        DispatchQueue.global(qos: .utility).async {
+            while true {
+                let chunk = outHandle.availableData
+                if chunk.isEmpty { box.markOutEOF(); return }
+                box.appendOut(chunk)
+            }
+        }
+        DispatchQueue.global(qos: .utility).async {
+            while true {
+                let chunk = errHandle.availableData
+                if chunk.isEmpty { box.markErrEOF(); return }
+                box.appendErr(chunk)
+            }
+        }
 
         var timedOut = false
         let deadline = Date().addingTimeInterval(timeout)
@@ -224,8 +283,8 @@ enum CLICommand {
         if process.isRunning {
             timedOut = true
             process.terminate()
-            // SIGTERM 不一定收得住，而收不住就是死局：管道一直开着，上面两个读
-            // 永远回不来，这个调用再也不返回，设置页会一直停在「测试中…」。
+            // SIGTERM 不一定收得住，而收不住就是死局：管道一直开着，这个
+            // 调用再也不返回，设置页会一直停在「测试中…」。
             let killDeadline = Date().addingTimeInterval(1)
             while process.isRunning && Date() < killDeadline {
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -233,25 +292,33 @@ enum CLICommand {
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
         }
 
-        let (out, err) = await (outData, errData)
-        process.waitUntilExit()
-        return Result(status: process.terminationStatus,
-                      stdout: String(data: out, encoding: .utf8) ?? "",
-                      stderr: String(data: err, encoding: .utf8) ?? "",
-                      timedOut: timedOut)
-    }
-
-    private static func readToEnd(_ handle: FileHandle) async -> Data {
-        await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                continuation.resume(returning: handle.readDataToEndOfFile())
-            }
+        // 进程已经不在了：再给管道一个短暂的收尾窗口把存量读干。窗口过了
+        // 还没 EOF（后代占着管道）就拿快照返回 — 迟到的字节不是这条命令
+        // 自己的输出，等它没有意义。
+        let drainDeadline = Date().addingTimeInterval(2)
+        while !box.bothReachedEOF && Date() < drainDeadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
         }
+        // 杀到这一步还活着的进程，status 本来就没有参考价值（见 Result 的
+        // timedOut 说明）；不要再 waitUntilExit 赌它退场 — 某些平台上光是
+        // 回收一个不肯死的子进程就能再堵上几十秒。
+        let status: Int32
+        if process.isRunning {
+            status = -1
+        } else {
+            process.waitUntilExit()
+            status = process.terminationStatus
+        }
+        return Result(status: status,
+                      stdout: String(data: box.out, encoding: .utf8) ?? "",
+                      stderr: String(data: box.err, encoding: .utf8) ?? "",
+                      timedOut: timedOut)
     }
 }
 
 /// CLI 图片输入的短生命周期工作目录。目录权限固定为 0700，命令结束后由
-/// provider 调用 `remove`；如果应用被强制终止，系统临时目录仍会负责后续回收。
+/// provider 调用 `remove`；应用被强制终止留下的孤儿目录由下次启动时的
+/// `sweepOrphans` 清理，再往后系统临时目录仍会负责回收。
 enum CLITemporaryDirectory {
     static func create(prefix: String) throws -> URL {
         let directory = FileManager.default.temporaryDirectory
@@ -272,6 +339,41 @@ enum CLITemporaryDirectory {
         } catch {
             return false
         }
+    }
+
+
+    /// Directory-name prefixes of every per-request scratch directory the
+    /// CLI providers create (their `create(prefix:)` call sites).
+    static let orphanPrefixes = ["Wisp-claude-", "Wisp-codex-", "Wisp-agy-"]
+
+    /// Removes per-request directories orphaned by a force-quit or crash;
+    /// their contents can include captured screenshots the user asked
+    /// about, so they should not linger until the OS gets around to
+    /// reclaiming the temp area. Only directories older than `age` are
+    /// touched — a single request is capped at 300s, so a live directory
+    /// can never be old enough to qualify. Fail-silent per item by
+    /// design: this is hygiene, never worth an error surface. Returns
+    /// how many directories were removed.
+    @discardableResult
+    static func sweepOrphans(olderThan age: TimeInterval = 24 * 60 * 60,
+                             now: Date = Date(),
+                             in directory: URL = FileManager.default.temporaryDirectory) -> Int {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey]) else { return 0 }
+        let cutoff = now.addingTimeInterval(-age)
+        var removed = 0
+        for entry in entries
+        where orphanPrefixes.contains(where: entry.lastPathComponent.hasPrefix) {
+            let values = try? entry.resourceValues(
+                forKeys: [.contentModificationDateKey, .isDirectoryKey])
+            guard values?.isDirectory == true,
+                  let modified = values?.contentModificationDate,
+                  modified < cutoff else { continue }
+            if remove(entry) { removed += 1 }
+        }
+        return removed
     }
 }
 
@@ -316,8 +418,12 @@ enum CLIPrompt {
             let section = sections[index]
             let tokens = estimatedTokens(section)
             guard tokens > 0 else { break }
-            // 要砍掉的 token 数按字符等比折算回字符数。
-            let keep = Double(max(tokens - (total - budget), 1)) / Double(tokens)
+            // 要砍掉的 token 数按字符等比折算回字符数。除了超出预算的部分，
+            // 还要算上截断标记自己：truncate 会在正文中间插一段标记，它不在
+            // 账上时，砍完的总量会被标记顶回预算之上（#32——标记按当前语言
+            // 解析，英文约 93 token、中文约 107，此前正好卡在测试 slack 两边）。
+            let excess = total - budget + truncationMarkerReserve(for: section)
+            let keep = Double(max(tokens - excess, 1)) / Double(tokens)
             let allowance = max(2_000, Int(Double(section.count) * keep))
             guard allowance < section.count else { break }
 
@@ -327,6 +433,22 @@ enum CLIPrompt {
             total = updated
         }
         return sections
+    }
+
+    /// 截断标记自己的估算 token 成本，fit 砍之前先预留出来（#32）。
+    ///
+    /// 按最坏情况取：真实标记里的两个样本是断点前后各 24 个字符的原文，
+    /// 这里按每侧 32 个宽字计，覆盖常见文字与多标量字素；省略字数的位数
+    /// 取正文总字数，真实值不会更大。用当前语言的那份标记文本算——fit 砍
+    /// 的和 truncate 插的是同一次本地化解析，英文环境预留英文的成本、
+    /// 中文环境预留中文的，两个语言下结果都不会被标记顶出预算。
+    /// （估算器本身是粗算，这里保证的是在估算器自己的账上不超。）
+    static func truncationMarkerReserve(for section: String) -> Int {
+        let sample = String(repeating: "字", count: 32)
+        let marker = ContextCapture.omissionMarker(omitted: section.count,
+                                                   previousEnd: sample,
+                                                   nextStart: sample)
+        return estimatedTokens(marker)
     }
 
     /// 粗算 token：中日韩按一字一 token，其余按四字符一 token。
@@ -346,6 +468,45 @@ enum CLIPrompt {
             }
         }
         return wide + narrow / 4
+    }
+}
+
+/// 三个 CLI provider 共用的墙钟上限。
+/// 以前 Claude/AGY 是 300 秒、Codex 单独 240 秒，没有任何理由：慢但能跑完的
+/// Codex 调用会被提前 60 秒掐掉，用户还看不出为什么独独这家先超时。
+enum CLIWallClock {
+    static let timeout: TimeInterval = 300
+}
+
+/// CLI 子进程的 stderr 累积。三个 CLI provider 共用这一份，别再各抄一份。
+///
+/// 只留尾巴：报错信息都在最后，各 provider 的 `condense` 也只读最后几行。
+/// 以前是无限累积——CLI 卡在报错循环里刷 stderr 的话，内存会一直涨到
+/// 300 秒看门狗动手为止。
+final class DrainBuffer: @unchecked Sendable {
+    /// 只留最后 256 KiB。
+    static let maxBytes = 256 * 1024
+
+    private let lock = NSLock()
+    private var data = Data()
+
+    func append(_ chunk: Data) {
+        lock.lock()
+        data.append(chunk)
+        if data.count > Self.maxBytes {
+            data.removeFirst(data.count - Self.maxBytes)
+            // 裁剪点可能落在一个多字节字符中间。开头的续接字节（10xxxxxx）
+            // 留着会让整个 text 解码失败、变成空串，把报错信息全丢掉，必须跳过。
+            while let first = data.first, (first & 0xC0) == 0x80 {
+                data.removeFirst()
+            }
+        }
+        lock.unlock()
+    }
+
+    var text: String {
+        lock.lock(); defer { lock.unlock() }
+        return String(data: data, encoding: .utf8) ?? ""
     }
 }
 

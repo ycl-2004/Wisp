@@ -1,0 +1,6 @@
+/* 權限用途說明（繁體中文）。
+   Info.plist 裡的基礎值是簡體中文（開發語言）；繁體使用者會改用這份，
+   系統權限對話框就不會退回簡體。 */
+"NSMicrophoneUsageDescription" = "Wisp 在你開始錄音後採集麥克風，用於本機即時字幕和可選音訊保存。";
+"NSSpeechRecognitionUsageDescription" = "Wisp 使用裝置端語音辨識，將選定的麥克風或應用音訊轉寫為文字。";
+"NSAppleEventsUsageDescription" = "Wisp 需要控制瀏覽器，以讀取目前頁面的網址與完整正文，作為提問的上下文。";

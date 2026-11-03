@@ -9,7 +9,7 @@ import Foundation
 struct AgyCLIProvider: ChatProvider {
     /// 这是故意比普通网络请求长：AGY 首次启动会扫描本地配置和 skills，
     /// 带截图时还要多一轮读文件的工具调用。
-    static let wallClockTimeout: TimeInterval = 300
+    static let wallClockTimeout: TimeInterval = CLIWallClock.timeout
 
     /// 一次请求塞给 AGY 的上限，按估算 token 记。
     ///
@@ -231,8 +231,21 @@ struct AgyCLIProvider: ChatProvider {
 
         var lines = CLIJSONLines()
         var state = StreamState()
+        let handle = stdout.fileHandleForReading
         while true {
-            let chunk = stdout.fileHandleForReading.availableData
+            // 不无条件阻塞在 availableData 上（#36）：切片等可读；进程已
+            // 退出且管道读干时，把残行按 EOF 冲出再收尾 — 管道被子进程的
+            // 后代占着时，真 EOF 永远不会来。
+            if !PipePoll.waitReadable(handle) {
+                if !process.isRunning {
+                    for object in try lines.append(Data(), endOfFile: true) {
+                        if let text = try state.receive(object) { onText(text) }
+                    }
+                    break
+                }
+                continue
+            }
+            let chunk = handle.availableData
             for object in try lines.append(chunk, endOfFile: chunk.isEmpty) {
                 if let text = try state.receive(object) { onText(text) }
             }
@@ -255,7 +268,7 @@ struct AgyCLIProvider: ChatProvider {
 
     // MARK: - 子进程
 
-    /// 读循环跑在 detached task 里、阻塞在 availableData 上，Task.isCancelled 它看不见。
+    /// 读循环跑在 detached task 里轮询管道，Task.isCancelled 它看不见。
     /// 所以取消和超时都不去「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
     private final class RunBox: @unchecked Sendable {
         enum Stop { case cancelled, timedOut }
@@ -299,20 +312,6 @@ struct AgyCLIProvider: ChatProvider {
         var reason: Stop? {
             lock.lock(); defer { lock.unlock() }
             return stopReason
-        }
-    }
-
-    private final class DrainBuffer: @unchecked Sendable {
-        private let lock = NSLock()
-        private var data = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock(); data.append(chunk); lock.unlock()
-        }
-
-        var text: String {
-            lock.lock(); defer { lock.unlock() }
-            return String(data: data, encoding: .utf8) ?? ""
         }
     }
 

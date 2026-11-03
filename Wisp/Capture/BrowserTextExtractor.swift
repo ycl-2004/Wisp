@@ -368,6 +368,21 @@ enum BrowserTextExtractor {
         var timedOut: Bool = false
     }
 
+    /// osascript 输出的汇合点：两个读线程各写一侧，调用方等两边都写完才读。
+    /// 以前是两个被捕获的可变变量、加上被丢弃的 group.wait 结果 — 子进程
+    /// 退出但管道被它的子进程占着时，wait 超时了也照样读，读到的是正在被
+    /// 写的撕裂数据（#47）。现在读写都过锁，wait 超时直接判失败。
+    final class PipeResultBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storedOut = Data()
+        private var storedErr = Data()
+
+        func setOut(_ data: Data) { lock.lock(); storedOut = data; lock.unlock() }
+        func setErr(_ data: Data) { lock.lock(); storedErr = data; lock.unlock() }
+        var out: Data { lock.lock(); defer { lock.unlock() }; return storedOut }
+        var err: Data { lock.lock(); defer { lock.unlock() }; return storedErr }
+    }
+
     /// 用 osascript 子进程执行，可硬超时，且不阻塞主线程。
     static func runAppleScript(_ source: String, timeout: TimeInterval = 10) -> Result2 {
         let process = Process()
@@ -390,17 +405,16 @@ enum BrowserTextExtractor {
         stdinPipe.fileHandleForWriting.write(Data(source.utf8))
         stdinPipe.fileHandleForWriting.closeFile()
 
-        var outData = Data()
-        var errData = Data()
+        let box = PipeResultBox()
         let group = DispatchGroup()
         group.enter()
         DispatchQueue.global(qos: .userInitiated).async {
-            outData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            box.setOut(stdoutPipe.fileHandleForReading.readDataToEndOfFile())
             group.leave()
         }
         group.enter()
         DispatchQueue.global(qos: .userInitiated).async {
-            errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            box.setErr(stderrPipe.fileHandleForReading.readDataToEndOfFile())
             group.leave()
         }
 
@@ -415,13 +429,17 @@ enum BrowserTextExtractor {
             _ = group.wait(timeout: .now() + 1)
             return .failure(ScriptError(message: String(localized: "脚本超时"), timedOut: true))
         }
-        _ = group.wait(timeout: .now() + 2)
+        // 进程已退出不等于管道已读完：子子进程占着管道时读线程还堵在
+        // readDataToEndOfFile 上。等不到就判超时失败，绝不抢读（#47）。
+        guard group.wait(timeout: .now() + 2) == .success else {
+            return .failure(ScriptError(message: String(localized: "脚本超时"), timedOut: true))
+        }
         process.waitUntilExit()
 
         if process.terminationStatus == 0 {
-            return .success(String(data: outData, encoding: .utf8) ?? "")
+            return .success(String(data: box.out, encoding: .utf8) ?? "")
         }
-        let message = String(data: errData, encoding: .utf8) ?? String(localized: "未知错误")
+        let message = String(data: box.err, encoding: .utf8) ?? String(localized: "未知错误")
         return .failure(ScriptError(message: message.trimmingCharacters(in: .whitespacesAndNewlines),
                                     code: errorCode(in: message)))
     }

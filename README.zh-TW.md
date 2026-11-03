@@ -426,7 +426,7 @@ lipo -info Build/Release/Wisp.app/Contents/MacOS/Wisp
 ditto --norsrc -c -k --keepParent \
   Build/Release/Wisp.app \
   dist/Wisp-macOS-universal.zip
-shasum -a 256 dist/Wisp-macOS-universal.zip > dist/Wisp-macOS-universal.zip.sha256
+(cd dist && shasum -a 256 Wisp-macOS-universal.zip > Wisp-macOS-universal.zip.sha256)
 ```
 
 這裡使用 `--norsrc` 排除資源分叉和 AppleDouble `._` 檔案，也故意不加
@@ -455,7 +455,7 @@ plutil -p Build/Release/Wisp.app/Contents/Info.plist
 codesign --verify --deep --strict Build/Release/Wisp.app
 codesign -d --entitlements :- Build/Release/Wisp.app
 unzip -l dist/Wisp-macOS-universal.zip
-shasum -a 256 -c dist/Wisp-macOS-universal.zip.sha256
+(cd dist && shasum -a 256 -c Wisp-macOS-universal.zip.sha256)
 ```
 
 </details>

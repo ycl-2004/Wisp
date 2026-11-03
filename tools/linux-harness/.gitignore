@@ -1,0 +1,5 @@
+/.build/
+# Synced app-source copies (build artifacts; re-created by sync-sources.sh).
+# HarnessShims.swift is the one hand-written file in that directory and IS tracked.
+/Sources/WispCore/*.swift
+!/Sources/WispCore/HarnessShims.swift

@@ -216,6 +216,13 @@ enum ContextCapture {
         }
     }
 
+    /// 截断时插进正文中间的省略标记。单独成函数，是因为标记的文本只有一份
+    /// 真相：`CLIPrompt.fit` 要在砍之前按同一条格式估算出标记自己的 token
+    /// 成本并预留出来（#32），两处各拼一份迟早会漂移。
+    static func omissionMarker(omitted: Int, previousEnd: String, nextStart: String) -> String {
+        String(localized: "\n\n[…… 此处省略正文中间 \(omitted) 字。上一段结束于「\(previousEnd)」，下一段开始于「\(nextStart)」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n")
+    }
+
     /// 超长正文保留头 75% 与尾 25%，中间标注省略了多少字。
     ///
     /// 切点吸附到最近的段落边界（往回最多找 400 字），别把句子劈成两半——
@@ -234,7 +241,9 @@ enum ContextCapture {
         let omitted = text.count - headCut.count - tailCut.count
         guard omitted > 0 else { return text }
 
-        let marker = String(localized: "\n\n[…… 此处省略正文中间 \(omitted) 字。上一段结束于「\(tailSample(headCut))」，下一段开始于「\(headSample(tailCut))」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n")
+        let marker = omissionMarker(omitted: omitted,
+                                    previousEnd: tailSample(headCut),
+                                    nextStart: headSample(tailCut))
         return headCut + marker + tailCut
     }
 

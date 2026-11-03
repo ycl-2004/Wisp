@@ -109,6 +109,8 @@ final class AppSettings: ObservableObject {
         static let advancedShortcut = "advancedShortcut"
         static let lastActiveConversationID = "lastActiveConversationID"
         static let panelFrame = "panelFrame"
+        static let notesText = "notesText"
+        static let notesPanelFrame = "notesPanelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
         static let showIsland = "showIsland"
         static let showsMenuBarIcon = "showsMenuBarIcon"
@@ -124,6 +126,25 @@ final class AppSettings: ObservableObject {
         static let islandAnchor = "islandAnchor"
         static let appLanguage = "appLanguage"
         static let listeningEnabled = "listeningEnabled"
+
+        /// 全部键的清单，wipeLocalData 靠它一次清干净（恢复出厂，#5）。
+        /// 新增键必须同步加进这里——漏一个，那项设置就会在「删除全部
+        /// 数据」之后留下来；AppSettingsWipeTests 用一份独立枚举对着它查。
+        static let all: [String] = [
+            providerKind, baseURL, cloudProvider, cloudModels,
+            ollamaBaseURL, ollamaModel, codexPath, codexModel,
+            cliProvider, agyPath, agyModel, claudeCodePath,
+            claudeCodeModel, model, excludedBundleIDs, pageTextLimit,
+            captureMode, captureScope, screenHiddenBundleIDs,
+            maxConversations, maxUserTurns, sendScreenshot,
+            shortcutTrigger, advancedShortcut, lastActiveConversationID,
+            panelFrame, notesText, notesPanelFrame, debugDumpEnabled,
+            showIsland, showsMenuBarIcon, hideFromScreenCapture,
+            localCursorEnabled, islandPosition, idleDismissSeconds,
+            panelBackgroundOpacity, panelOpaqueWhenActive,
+            checkForUpdates, lastUpdateCheck, islandOrigin,
+            islandAnchor, appLanguage, listeningEnabled,
+        ]
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -285,7 +306,9 @@ final class AppSettings: ObservableObject {
     }
 
     var pageTextLimit: Int {
-        get { max(2_000, d.integer(forKey: K.pageTextLimit)) }
+        // 下限防误设成 0；上限同样必要：设置里是自由输入框，调到几千万会
+        // 让唯一的网页文本裁剪点失效（云端/本地路径都没有第二道预算，#44）。
+        get { min(500_000, max(2_000, d.integer(forKey: K.pageTextLimit))) }
         set { d.set(newValue, forKey: K.pageTextLimit); objectWillChange.send() }
     }
 
@@ -314,12 +337,12 @@ final class AppSettings: ObservableObject {
     }
 
     var maxConversations: Int {
-        get { max(1, d.integer(forKey: K.maxConversations)) }
+        get { min(50, max(1, d.integer(forKey: K.maxConversations))) }
         set { d.set(newValue, forKey: K.maxConversations); objectWillChange.send() }
     }
 
     var maxUserTurns: Int {
-        get { max(1, d.integer(forKey: K.maxUserTurns)) }
+        get { min(200, max(1, d.integer(forKey: K.maxUserTurns))) }
         set { d.set(newValue, forKey: K.maxUserTurns); objectWillChange.send() }
     }
 
@@ -350,9 +373,32 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// 调试转储（last-context.json / last-screenshot.jpg）不能只认 defaults
+    /// 里的布尔值（#39）：应用没有沙盒，同用户的任何进程都能用
+    /// `defaults write` 把它打开，再到固定路径读走截图 — 等于借 Wisp 的
+    /// 录屏授权当自己的截图通道。所以开关还要有一个「武装文件」：只有
+    /// 应用内这个 setter 会在 0700 的应用支持目录里创建它，关掉就删。
+    /// 单翻 defaults 键、文件不在，转储保持关闭。诚实地说，这挡的是
+    /// 顺手翻键的脚本和普通恶意软件；铁了心读源码仿造文件的同用户进程
+    /// 不在此列 — 那种对手也不缺别的办法。
+    private static var debugDumpArmFile: URL {
+        supportDirectory.appendingPathComponent("debug-dump.armed")
+    }
+
     var debugDumpEnabled: Bool {
-        get { d.bool(forKey: K.debugDumpEnabled) }
-        set { d.set(newValue, forKey: K.debugDumpEnabled); objectWillChange.send() }
+        get {
+            d.bool(forKey: K.debugDumpEnabled)
+                && FileManager.default.fileExists(atPath: Self.debugDumpArmFile.path)
+        }
+        set {
+            d.set(newValue, forKey: K.debugDumpEnabled)
+            if newValue {
+                try? Data().write(to: Self.debugDumpArmFile)
+            } else {
+                try? FileManager.default.removeItem(at: Self.debugDumpArmFile)
+            }
+            objectWillChange.send()
+        }
     }
 
     var responseMode: ResponseMode {
@@ -464,7 +510,7 @@ final class AppSettings: ObservableObject {
         return min(1, max(minimumPanelBackgroundOpacity, value))
     }
 
-    /// 启动时去 GitHub 看一眼有没有新版本。只发一个不带标识的请求，不自动下载。
+    /// 启动时去 GitHub 看一眼有没有新版本。请求只带 `Wisp/<版本>` 的 User-Agent，不自动下载。
     var checkForUpdates: Bool {
         get { d.bool(forKey: K.checkForUpdates) }
         set { d.set(newValue, forKey: K.checkForUpdates); objectWillChange.send() }
@@ -523,6 +569,17 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.panelFrame) }
     }
 
+    /// 录制笔记面板的正文（纯文本）与位置，见 `NotesPanelController`。
+    var notesText: String {
+        get { d.string(forKey: K.notesText) ?? "" }
+        set { d.set(newValue, forKey: K.notesText) }
+    }
+
+    var notesPanelFrame: String? {
+        get { d.string(forKey: K.notesPanelFrame) }
+        set { d.set(newValue, forKey: K.notesPanelFrame) }
+    }
+
     func isExcluded(bundleID: String?) -> Bool {
         guard let bundleID else { return false }
         return excludedBundleIDs.contains(bundleID)
@@ -545,12 +602,17 @@ final class AppSettings: ObservableObject {
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
     }
 
-    /// 清空全部本地数据（对话 JSON、调试文件、UserDefaults）。Keychain 由调用方另行清除。
+    /// 恢复出厂：删除应用支持目录的全部内容（对话 JSON、聆听记录、调试
+    /// 文件），并清掉 AppSettings 的每一个 UserDefaults 键。带注册默认
+    /// 值的键回到注册值、没注册的回到缺失——与全新安装第一次启动读到
+    /// 的状态逐键一致（init 的 register(defaults:) 是易失域，不落盘）。
+    /// 范围只到 AppSettings 自己的键：Keychain 由调用方另行清除；
+    /// KeyboardShortcuts 库自管的快捷键绑定、界面语言钉选
+    /// （AppleLanguages）、本地语音的扫描请求标记不在 K 里，不在此列。
     func wipeLocalData() {
         let dir = AppSettings.supportDirectory
         try? FileManager.default.removeItem(at: dir)
-        for key in [K.lastActiveConversationID, K.panelFrame, K.islandOrigin,
-                    K.islandAnchor, K.cloudModels] {
+        for key in K.all {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

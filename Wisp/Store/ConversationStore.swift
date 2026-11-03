@@ -14,6 +14,12 @@ final class ConversationStore: ObservableObject {
     enum LoadIssue: Equatable {
         /// 文件解不开，已改名备份，当前列表是空的。
         case recovered(backup: String)
+        /// 文件解不开，连改名备份都失败了。为了不覆盖它，本次运行禁止写盘。
+        case backupFailed
+        /// 文件的格式版本号读不出来（不是整数，或小于 1）。为了不覆盖它，本次运行禁止写盘。
+        case unreadableVersion
+        /// 文件存在、却读不出来（被占用、被文件夹占了位置等）。本次运行禁止写盘。
+        case unreadable
         /// 文件来自更新版本的 Wisp。为了不覆盖它，本次运行禁止写盘。
         case newerVersion(found: Int, supported: Int)
 
@@ -21,6 +27,12 @@ final class ConversationStore: ObservableObject {
             switch self {
             case .recovered(let backup):
                 return String(localized: "上次的对话记录读不出来了，已经原样备份成 \(backup)，当前列表是空的。备份文件在 Wisp 的应用支持目录里，没有被删除。")
+            case .backupFailed:
+                return String(localized: "上次的对话记录读不出来了，而且备份也没成功。为了不覆盖原文件，本次运行不会保存任何改动。原文件还在 Wisp 的应用支持目录里，没有被改动。")
+            case .unreadableVersion:
+                return String(localized: "这份对话记录的格式版本号读不出来（可能来自其他版本，或被外部修改过）。为了不按旧格式覆盖它，本次运行不会保存任何改动。")
+            case .unreadable:
+                return String(localized: "对话记录文件读不出来（可能被占用、损坏，或被文件夹占了位置）。本次运行不会保存任何改动，新对话在重启后不会保留。")
             case .newerVersion(let found, let supported):
                 return String(localized: "这份对话记录来自更新版本的 Wisp（格式 v\(found)，本版本只认到 v\(supported)）。为了不覆盖它，本次运行不会保存任何改动。请升级 Wisp，或在设置里把它备份后重新开始。")
             }
@@ -31,15 +43,22 @@ final class ConversationStore: ObservableObject {
     @Published var activeID: UUID?
     /// 有值时界面上要显示提示条。
     @Published private(set) var loadIssue: LoadIssue?
+    /// 写盘失败时置位（磁盘满、目录不可写）。写成功一次就清掉。
+    /// persist 以前把所有失败都吞掉，磁盘满一整场会话的记录会无声消失（#35）。
+    @Published private(set) var saveIssue: String?
 
     /// 读到了更新版本的文件时置位。置位期间一律不写盘，否则会把用户的数据覆盖掉。
     private var persistenceBlocked = false
+    /// 正在流式生成的对话（#45）：由 updateStreaming 维护 — 非最终更新
+    /// 置位，persistNow 的最终更新、占位消息被移除、或对话被删时清掉。
+    /// 只存在于内存里；进程重启后本来也没有流在跑。
+    private var streamingConversationID: UUID?
 
     private let fileURL: URL
     private let settings: AppSettings
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
-        e.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        e.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         e.dateEncodingStrategy = .iso8601
         return e
     }()
@@ -66,29 +85,79 @@ final class ConversationStore: ObservableObject {
     // MARK: - 读写
 
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let data = try? Data(contentsOf: fileURL) else {
+            // 文件不存在是第一次启动，正常留空。但路径上明明有东西、却读不
+            // 出来（比如被文件夹占了位置）时，每次写盘也必然失败 — 与其整场
+            // 静默丢数据，不如一开始就只读并说明（#35）。
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                loadIssue = .unreadable
+                persistenceBlocked = true
+            }
+            return
+        }
 
         // 先只看版本号。比本版本新的文件绝不能碰——读不动，就更不能覆盖。
-        if let probe = try? decoder.decode(ConversationFileVersionProbe.self, from: data),
-           let version = probe.version, version > Self.schemaVersion {
-            loadIssue = .newerVersion(found: version, supported: Self.schemaVersion)
-            persistenceBlocked = true
-            return
+        if let probe = try? decoder.decode(ConversationFileVersionProbe.self, from: data) {
+            // 版本号在、却不是整数（或小于 1）：不能按「缺失 = v1」处理，
+            // 否则容错解码会把它当 v1 加载，下次写盘再按 v1 覆盖回去（#34）。
+            if probe.hasUndecodableVersion || (probe.version.map { $0 < 1 } ?? false) {
+                loadIssue = .unreadableVersion
+                persistenceBlocked = true
+                return
+            }
+            if let version = probe.version, version > Self.schemaVersion {
+                loadIssue = .newerVersion(found: version, supported: Self.schemaVersion)
+                persistenceBlocked = true
+                return
+            }
         }
 
         // 模型层是容错解码的：个别消息坏掉只会丢那一条，不会带走整个文件。
         if let file = try? decoder.decode(ConversationFile.self, from: data) {
-            conversations = file.conversations
+            conversations = Self.deduplicated(file.conversations)
             return
         }
 
         // 走到这里说明整份 JSON 都不成形了。备份改名，并且明确告诉用户。
-        let backup = fileURL.deletingPathExtension()
-            .appendingPathExtension("corrupt-\(Int(Date().timeIntervalSince1970)).json")
-        if (try? FileManager.default.moveItem(at: fileURL, to: backup)) != nil {
+        if let backup = moveCorruptFileAside() {
             loadIssue = .recovered(backup: backup.lastPathComponent)
             pruneCorruptBackups()
+        } else {
+            // 备份没成功就绝不能假装恢复过：原文件留在原地，本次运行只读，
+            // 否则下一次 persist 就会把唯一一份（虽然损坏的）记录覆盖掉。
+            loadIssue = .backupFailed
+            persistenceBlocked = true
         }
+    }
+
+    /// 加载时按 id 去重、保留第一份（#49）：其余查找全是 first-match，
+    /// 唯独 delete 是 removeAll — 重复 id（手改或合并出来的文件）会让
+    /// 一份记录永远写不进去、删除时却被连带清掉。
+    private static func deduplicated(_ input: [Conversation]) -> [Conversation] {
+        var seenConversations = Set<UUID>()
+        return input.compactMap { conversation in
+            guard seenConversations.insert(conversation.id).inserted else { return nil }
+            var seenMessages = Set<UUID>()
+            var copy = conversation
+            copy.messages = conversation.messages.filter { seenMessages.insert($0.id).inserted }
+            return copy
+        }
+    }
+
+    /// 把损坏文件改名备份。备份名只有秒级精度，同一秒内第二次损坏会撞上
+    /// 已存在的备份名 — 撞名就加序号重试；不是撞名（权限之类）重试也没用，
+    /// 直接放弃并交回 nil，让调用方走「备份失败」分支。
+    private func moveCorruptFileAside() -> URL? {
+        let stamp = Int(Date().timeIntervalSince1970)
+        for attempt in 0..<100 {
+            let name = attempt == 0 ? "corrupt-\(stamp)" : "corrupt-\(stamp)-\(attempt)"
+            let backup = fileURL.deletingPathExtension().appendingPathExtension("\(name).json")
+            if (try? FileManager.default.moveItem(at: fileURL, to: backup)) != nil {
+                return backup
+            }
+            guard FileManager.default.fileExists(atPath: backup.path) else { return nil }
+        }
+        return nil
     }
 
     /// 损坏备份只留最新几份，否则每坏一次留一个几十 MB 的文件，无上限地涨。
@@ -109,24 +178,40 @@ final class ConversationStore: ObservableObject {
         guard !persistenceBlocked else { return }
 
         let file = ConversationFile(conversations: conversations)
-        guard let data = try? encoder.encode(file) else { return }
+        guard let data = try? encoder.encode(file) else { return noteSaveFailure() }
         let tmp = fileURL.appendingPathExtension("tmp")
         // Do not fall back to writing private content if directory protection fails.
         do { try AppSettings.ensurePrivateDirectory(fileURL.deletingLastPathComponent()) }
-        catch { return }
+        catch { return noteSaveFailure() }
         do {
             try data.write(to: tmp, options: .atomic)
             _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: tmp)
         } catch {
-            try? data.write(to: fileURL, options: .atomic)
+            do { try data.write(to: fileURL, options: .atomic) }
+            catch {
+                try? FileManager.default.removeItem(at: tmp)
+                return noteSaveFailure()
+            }
             try? FileManager.default.removeItem(at: tmp)
         }
+        if saveIssue != nil { saveIssue = nil }
+    }
+
+    /// 写盘失败的唯一出口：记下来让界面提示，只在状态变化时赋值，
+    /// 免得磁盘一直满时每次 persist 都触发一遍界面刷新（#35）。
+    private func noteSaveFailure() {
+        guard saveIssue == nil else { return }
+        saveIssue = String(localized: "对话记录保存失败（磁盘空间不足或目录不可写）。本次打开期间的改动在重启后会丢失。")
     }
 
     // MARK: - 提示条
 
     func dismissLoadIssue() {
         loadIssue = nil
+    }
+
+    func dismissSaveIssue() {
+        saveIssue = nil
     }
 
     /// 「更新版本的文件」这种情况下的逃生口：把它另存一份，然后从空白开始。
@@ -165,9 +250,13 @@ final class ConversationStore: ObservableObject {
     }
 
     /// 满额时会被顶掉的那一个：最久没更新的。UI 拿它来问用户「删这个可以吗」。
+    /// 正在流式生成的那个永不作数：流卡住时它的 updatedAt 不再刷新，
+    /// 按时间挑正好会挑中它，答案会连同还在烧的 token 一起消失（#45）。
     var evictionCandidate: Conversation? {
         guard !canCreateNew else { return nil }
-        return conversations.min { $0.updatedAt < $1.updatedAt }
+        return conversations
+            .filter { $0.id != streamingConversationID }
+            .min { $0.updatedAt < $1.updatedAt }
     }
 
     // MARK: - 变更
@@ -225,6 +314,12 @@ final class ConversationStore: ObservableObject {
               let mi = conversations[ci].messages.firstIndex(where: { $0.id == messageID }) else { return }
         conversations[ci].messages[mi].text = text
         conversations[ci].updatedAt = Date()
+        // persistNow 的那次更新是收尾（完成或中断标记），其余都是生成中（#45）。
+        if persistNow {
+            if streamingConversationID == id { streamingConversationID = nil }
+        } else {
+            streamingConversationID = id
+        }
         if persistNow { persist() }
     }
 
@@ -240,11 +335,13 @@ final class ConversationStore: ObservableObject {
     func removeMessage(_ messageID: UUID, from id: UUID) {
         guard let ci = conversations.firstIndex(where: { $0.id == id }) else { return }
         conversations[ci].messages.removeAll { $0.id == messageID }
+        if streamingConversationID == id { streamingConversationID = nil }
         persist()
     }
 
     func delete(_ id: UUID) {
         conversations.removeAll { $0.id == id }
+        if streamingConversationID == id { streamingConversationID = nil }
         if activeID == id {
             activeID = conversations.first?.id
             settings.lastActiveConversationID = activeID?.uuidString
@@ -256,6 +353,7 @@ final class ConversationStore: ObservableObject {
         // 用户是奔着「本机什么都不留」来的，挡着写盘的那份文件也一并作废。
         // 不清掉标志位的话，这一轮之后新建的对话会一直静默地写不进去。
         persistenceBlocked = false
+        streamingConversationID = nil
         loadIssue = nil
         conversations.removeAll()
         activeID = nil

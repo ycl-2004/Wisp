@@ -16,6 +16,9 @@ cm.err
 # Local-only research notes
 docs/agy-cli-research.md
 
+# Agent work notes (local only; previously tracked — untracked in round 5, #24)
+.fable/
+
 # Local environment and signing material
 .env
 .env.*
