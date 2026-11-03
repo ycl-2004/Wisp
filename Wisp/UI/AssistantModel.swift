@@ -27,6 +27,13 @@ final class AssistantModel: ObservableObject {
     @Published var errorText: String?
     @Published var showsConversationList = false
     @Published var showsNotes = false
+    /// 首次设置向导是否正显示（#8）。显示条件由实时状态推导，见
+    /// `OnboardingReadiness`，不存「已完成引导」标记。
+    @Published var showsOnboarding = false
+    /// 当前是否没有任何可用模型路径（云端 Key / 本地 Ollama / 本地 CLI 全缺）。
+    @Published private(set) var onboardingNeeded = false
+    private var onboardingOfferedThisLaunch = false
+    private var onboardingDismissedThisLaunch = false
     /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
     @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
@@ -277,6 +284,44 @@ final class AssistantModel: ObservableObject {
         Task { await captureShot() }
     }
 
+    /// 面板每次打开都重新推导一次是否需要引导；满足条件且本轮启动还没
+    /// 弹过、也没被用户跳过，才主动打开（#8 的打扰预算）。
+    func panelDidShow() {
+        Task {
+            await refreshOnboardingReadiness()
+            if OnboardingReadiness.shouldOfferOnPanelOpen(
+                needsSetup: onboardingNeeded,
+                alreadyOfferedThisLaunch: onboardingOfferedThisLaunch,
+                dismissedThisLaunch: onboardingDismissedThisLaunch) {
+                onboardingOfferedThisLaunch = true
+                showsOnboarding = true
+            }
+        }
+    }
+
+    /// 从实时状态推导引导条件：钥匙串里有没有当前云端服务商的 Key、
+    /// Ollama 在不在跑、本地有没有装任何一个 Agent CLI。
+    func refreshOnboardingReadiness() async {
+        var signals = OnboardingSignals()
+        signals.hasCloudKey = KeychainStore.hasKey(for: settings.cloudProvider)
+        signals.cloudBaseURLIsEmpty = settings.baseURL
+            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        signals.anyCLIInstalled = ClaudeCodeCLIProvider.detectedPath != nil
+            || CodexCLIProvider.detectedPath != nil
+            || AgyCLIProvider.detectedPath != nil
+        if case .running = await OllamaSupport.probe(baseURL: settings.ollamaBaseURL) {
+            signals.ollamaRunning = true
+        }
+        onboardingNeeded = OnboardingReadiness.needsSetup(signals)
+    }
+
+    /// 向导关掉之后：还没配置好就记下「这次启动跳过了」，面板打开路径
+    /// 不再主动弹；同时重新推导一次，用户在向导里配好了就立刻消掉标记。
+    func onboardingSheetDismissed() {
+        if onboardingNeeded { onboardingDismissedThisLaunch = true }
+        Task { await refreshOnboardingReadiness() }
+    }
+
     func panelDidHide() {
         // 还在飞的采集就此作废（#41）：它回来时不许再写 packet。
         captureGeneration += 1
@@ -378,7 +423,11 @@ final class AssistantModel: ObservableObject {
     /// `mode` 只管这一次：常用指令可以带着自己的模式发，不改输入框旁边那个开关。
     func send(question raw: String, mode: ResponseMode) {
         let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, canStartQuestion, let config = requestConfig(for: mode) else { return }
+        guard !question.isEmpty, canStartQuestion else { return }
+        // 一个模型都没连上时，先打开首次设置向导，而不是让这次提问
+        // 撞上一句没有出路的配置错误（#8）。
+        if onboardingNeeded { showsOnboarding = true; return }
+        guard let config = requestConfig(for: mode) else { return }
         let conversationID = store.active?.id
         let sendScreenshot = settings.sendScreenshot
         let generation = beginResponse(config)
