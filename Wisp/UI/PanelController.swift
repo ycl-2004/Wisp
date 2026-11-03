@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// 无边框、半透明、贴屏幕上方的悬浮面板。
-/// 截图在面板显示之前完成，所以面板永远不会被截进去。
+/// 面板靠窗口 ID 从截图里排除自己（见 `show()`），所以呈现不必等截图跑完。
 @MainActor
 final class PanelController: NSObject, NSWindowDelegate {
     static let shared = PanelController()
@@ -30,13 +30,15 @@ final class PanelController: NSObject, NSWindowDelegate {
         isVisible ? hide() : show()
     }
 
-    /// `then` runs once the panel is on screen with this capture done, so an action started from a
-    /// shortcut in another app reads that app rather than a stale context.
+    /// `then` runs once this show's capture has finished — the panel itself is already
+    /// on screen by then. The callback still waits for the capture because a quick
+    /// command started from a shortcut goes through run() → send(), and
+    /// `canStartQuestion` refuses to start while a capture is in flight.
     func show(then: (@MainActor () -> Void)? = nil) {
         presentationGeneration = UUID()
         let generation = presentationGeneration
         let model = AssistantModel.shared
-        // 必须在激活自己之前记住目标应用。
+        // 必须在切换焦点之前记住目标应用。
         if let front = NSWorkspace.shared.frontmostApplication,
            front.bundleIdentifier != Bundle.main.bundleIdentifier {
             model.targetApp = front
@@ -50,19 +52,29 @@ final class PanelController: NSObject, NSWindowDelegate {
         // 每次唤起都回到输入尺寸，发送时再自动展开。
         model.setCollapsedSilently(true)
         isPointerInside = false
+
+        // 呈现不再等截图（UX 改造第 2 项）：先定位、亮出来、成为 key window，
+        // 用户立刻就能打字。浮窗不会进自己的截图——截图按 ownWindowIDs
+        // 排除自家窗口（上面刚写进 model），不靠「先截图后显示」的时序兜底。
+        // 截图转到下面的并发 Task 里补，落地前 captureShot 内部有代次校验：
+        // 藏面板（panelDidHide 自增代次）或新一轮采集都会让在飞的这份作废。
+        position(panel)
+        panel.makeKeyAndOrderFront(nil)
+        // 永不激活：面板样式本来就是 .nonactivatingPanel，成为 key window 已
+        // 足够收键盘输入，不需要把整个 App 激活、把用户从当前应用里拽走。
+        // 这是有意决定，靠真机验证门兜底（中文 IME 组字、Cmd+V/Z/A/X、听写、
+        // hide 后焦点交还）。若验证不过，回退方式是把
+        // `NSApp.activate(ignoringOtherApps: true)` 加回此处——在 orderFront
+        // 的同一时刻立即执行；绝不能改成延迟激活：延迟会在用户组字中途
+        // 切换激活状态，是所有时机里最差的一个。
+        NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
+        refreshIdleTimer()
+        // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。
+        model.startFollowingFrontWindow()
         Task {
-            // 只等第一阶段：截图必须赶在浮窗出现之前，否则浮窗会进画面。
             await model.captureShot()
-            // Hide or a newer show can arrive while capture is suspended. An old
-            // completion must not reopen a dismissed window or run its send action.
+            // 藏面板或更新的一次唤起之后才跑完的这一轮，不许再触发它的回调。
             guard self.presentationGeneration == generation else { return }
-            position(panel)
-            panel.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            NotificationCenter.default.post(name: .wispPanelDidShow, object: nil)
-            refreshIdleTimer()
-            // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。
-            model.startFollowingFrontWindow()
             // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
             // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
             then?()

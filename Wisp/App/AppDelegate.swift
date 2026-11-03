@@ -142,6 +142,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in self?.configureLocalCursor() }
             }
             PanelController.shared.restoreStoredFrame()
+            // 就绪判断在启动时先算一次写进缓存，之后靠设置变更防抖重算
+            // （AssistantModel init 里的订阅）；面板打开与发送路径只读缓存，
+            // 不在展示路径上现算（Ollama probe 最长要等 4 秒）。
+            Task { await AssistantModel.shared.refreshOnboardingReadiness() }
             IslandController.shared.start()
             // 菜单栏图标关着的时候，启动完成后什么都不显示等于「打开了但找不到」。
             // 这时候先把面板亮出来，设置也能从它的齿轮进。

@@ -74,10 +74,10 @@ enum ContextCapture {
 
     /// 第一阶段：确定目标应用 → 截图 → 问浏览器要网址和标题。
     ///
-    /// 刻意不注入读正文的脚本，所以这一阶段很快。面板必须等它跑完才能显示
-    /// （否则浮窗会被截进画面里），但也**只**该等它这么久：读正文动辄几秒，
-    /// 滑动采集更久，那些要留到面板出现之后再做，不然用户按下快捷键会看到
-    /// 屏幕先自己动起来、面板迟迟不出现。
+    /// 刻意不注入读正文的脚本，所以这一阶段很快。浮窗靠 `excludingWindowIDs`
+    /// 从截图里排除自己，不靠「先截图后显示」的时序兜底，所以面板呈现不必
+    /// 等它跑完。读正文动辄几秒，滑动采集更久，那些要留到面板出现之后再做，
+    /// 不然用户按下快捷键会看到屏幕先自己动起来、面板迟迟不出现。
     ///
     /// `excludingWindowIDs` 传入 Wisp 自己的窗口，双保险防止把浮窗截进去。
     /// `fallbackApp` 用于浮窗已经抢到焦点后再次刷新的情况：此时前台应用是 Wisp 自己。
@@ -108,11 +108,20 @@ enum ContextCapture {
         let mode = settings.captureMode
 
         // 先问浏览器当前分页是什么。快，而且能给截图指出该截哪个窗口。
+        // 但浏览器不响应时 AppleScript 能卡很久，所以这一步带 2 秒超时：
+        // 超时就按「问不到浏览器」继续（截图照截，只是没有网址/标题、
+        // 正文阶段跳过），不许拖住整份采集。
         let family = BrowserTextExtractor.family(for: bundleID)
         let browser: BrowserTextExtractor.Result?
         if !screenshotOnly, let bundleID, let family {
-            browser = await runOffMain {
+            if let info = await runOffMain(timeout: 2, {
                 BrowserTextExtractor.basicInfo(bundleID: bundleID, family: family, appName: appName)
+            }) {
+                browser = info
+            } else {
+                var failed = BrowserTextExtractor.Result()
+                failed.basicFailed = true
+                browser = failed
             }
         } else {
             browser = nil
@@ -213,6 +222,43 @@ enum ContextCapture {
             DispatchQueue.global(qos: .userInitiated).async {
                 continuation.resume(returning: work())
             }
+        }
+    }
+
+    /// 带超时的版本，竞速/放弃语义：`work` 迟迟不回（浏览器卡死时
+    /// AppleScript 能挂很久，它自带的 timeout 也掐不断已跑起来的等待），
+    /// 超时就先按 nil 返回，让调用方按「拿不到」继续。被放弃的那次调用
+    /// 还留在全局队列的线程上等浏览器自己恢复或脚本内部超时，迟到的
+    /// 结果被 ResumeGate 挡下直接丢弃——不阻塞主线程，也不阻塞后续采集。
+    private static func runOffMain<T: Sendable>(timeout: TimeInterval,
+                                                _ work: @escaping @Sendable () -> T) async -> T? {
+        await withCheckedContinuation { continuation in
+            let gate = ResumeGate(continuation)
+            DispatchQueue.global(qos: .userInitiated).async {
+                gate.resume(with: work())
+            }
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout) {
+                gate.resume(with: nil)
+            }
+        }
+    }
+
+    /// 让 continuation 只被 resume 一次：竞速里先到者（真结果或超时）赢，
+    /// 后到者静默丢弃。
+    private final class ResumeGate<T>: @unchecked Sendable {
+        private let lock = NSLock()
+        private var continuation: CheckedContinuation<T?, Never>?
+
+        init(_ continuation: CheckedContinuation<T?, Never>) {
+            self.continuation = continuation
+        }
+
+        func resume(with value: T?) {
+            lock.lock()
+            let pending = continuation
+            continuation = nil
+            lock.unlock()
+            pending?.resume(returning: value)
         }
     }
 

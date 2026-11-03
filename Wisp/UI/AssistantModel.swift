@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -42,7 +43,10 @@ final class AssistantModel: ObservableObject {
     /// 首次设置向导是否正显示（#8）。显示条件由实时状态推导，见
     /// `OnboardingReadiness`，不存「已完成引导」标记。
     @Published var showsOnboarding = false
-    /// 当前是否没有任何可用模型路径（云端 Key / 本地 Ollama / 本地 CLI 全缺）。
+    /// 就绪判断的缓存：当前选中的连接到底能不能用（没有 Key / Ollama 没在跑 /
+    /// 选中的 CLI 找不到）。启动时算一次、设置变更时防抖重算（见 init 与
+    /// `refreshOnboardingReadiness()`），所以读它不需要做任何 I/O——展示
+    /// 路径（panelDidShow、send 拦截）只读这份缓存。
     @Published private(set) var onboardingNeeded = false
     private var onboardingOfferedThisLaunch = false
     private var onboardingDismissedThisLaunch = false
@@ -102,6 +106,26 @@ final class AssistantModel: ObservableObject {
                 // 头部要立刻跟上新的应用和网址，不必等用户手动刷新。
                 self.followFrontWindow()
             }
+        }
+
+        // 就绪判断前置缓存（UX 改造第 2 项）：设置一变就防抖重算一次，
+        // 展示路径只读缓存。objectWillChange 在新值真正写入之前就会发，
+        // 不能在回调里同步读设置；防抖的这段延迟同时把「等新值落定」
+        // 和「连续改设置只算一次」都办了。
+        settingsObserver = settings.objectWillChange.sink { [weak self] _ in
+            Task { @MainActor in self?.scheduleReadinessRefresh() }
+        }
+    }
+
+    private var settingsObserver: AnyCancellable?
+    private var readinessRefreshTask: Task<Void, Never>?
+
+    private func scheduleReadinessRefresh() {
+        readinessRefreshTask?.cancel()
+        readinessRefreshTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.refreshOnboardingReadiness()
         }
     }
 
@@ -296,23 +320,27 @@ final class AssistantModel: ObservableObject {
         Task { await captureShot() }
     }
 
-    /// 面板每次打开都重新推导一次是否需要引导；满足条件且本轮启动还没
-    /// 弹过、也没被用户跳过，才主动打开（#8 的打扰预算）。
+    /// 面板打开时要不要主动给向导，只读缓存做判定（#8 的打扰预算）：
+    /// 本轮启动还没弹过、也没被用户跳过，才主动打开。展示路径不做 I/O——
+    /// readiness 是前置缓存（启动时算、设置变更时防抖重算）；这里另起一个
+    /// 不阻塞的后台刷新让缓存向真实状态收敛（比如用户刚在别处删了 Key），
+    /// 但这次 offer 不等它：判定慢半拍最多是下次打开面板时再给，绝不能
+    /// 让向导在面板出现之后才迟到滑出。
     func panelDidShow() {
-        Task {
-            await refreshOnboardingReadiness()
-            if OnboardingReadiness.shouldOfferOnPanelOpen(
-                needsSetup: onboardingNeeded,
-                alreadyOfferedThisLaunch: onboardingOfferedThisLaunch,
-                dismissedThisLaunch: onboardingDismissedThisLaunch) {
-                onboardingOfferedThisLaunch = true
-                showsOnboarding = true
-            }
+        if OnboardingReadiness.shouldOfferOnPanelOpen(
+            needsSetup: onboardingNeeded,
+            alreadyOfferedThisLaunch: onboardingOfferedThisLaunch,
+            dismissedThisLaunch: onboardingDismissedThisLaunch) {
+            onboardingOfferedThisLaunch = true
+            showsOnboarding = true
         }
+        Task { await refreshOnboardingReadiness() }
     }
 
-    /// 从实时状态推导引导条件，只看当前选中的连接：云端有没有 Key、
-    /// Ollama 在不在跑、选中的 Agent CLI 找不找得到（先认设置里填的路径）。
+    /// 从实时状态推导引导条件并写进 `onboardingNeeded` 缓存，只看当前
+    /// 选中的连接：云端有没有 Key、Ollama 在不在跑、选中的 Agent CLI
+    /// 找不找得到（先认设置里填的路径）。触发点：启动时、设置变更防抖、
+    /// panelDidShow 的后台收敛、向导关闭时——都不在展示路径的临界点上。
     func refreshOnboardingReadiness() async {
         let selection = ProviderConfig.selection(settings: settings)
         var signals = OnboardingSignals()
@@ -461,7 +489,8 @@ final class AssistantModel: ObservableObject {
         let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, canStartQuestion else { return }
         // 一个模型都没连上时，先打开首次设置向导，而不是让这次提问
-        // 撞上一句没有出路的配置错误（#8）。
+        // 撞上一句没有出路的配置错误（#8）。onboardingNeeded 是前置缓存
+        // （启动/设置变更时算好），这里只读，不现算、不做 I/O。
         if onboardingNeeded { showsOnboarding = true; return }
         guard let config = requestConfig(for: mode) else { return }
         let conversationID = store.active?.id
