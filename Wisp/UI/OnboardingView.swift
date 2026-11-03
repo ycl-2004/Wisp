@@ -15,6 +15,14 @@ struct OnboardingView: View {
     @Environment(\.openSettings) private var openSettings
 
     @State private var screenRecordingGranted = Permissions.hasScreenRecording
+    /// 「系统申请已无效」的会话内信号：macOS 不区分「未请求 / 已拒绝」
+    /// （CGPreflight 只回布尔），只能自己记——本会话点过一次「去授权」
+    /// 且仍未授权，说明首次之后 CGRequestScreenCaptureAccess 已是无声
+    /// no-op，按钮改跳系统设置，别让用户对着死按钮点（UX 改造第 5
+    /// 项，与设置页权限行常驻「系统设置…」入口同一兜底口径）。本视图
+    /// 随窗口终身复用，@State 天然活满整个会话；不落盘，下次启动重新
+    /// 给一次系统弹窗的机会。
+    @State private var screenRecordingRequestAttempted = false
     @State private var showsNeedsHint = false
     /// 「开始使用 Wisp」正在跑真验证（实际发一次测试请求，要等网络
     /// 往返）。期间主按钮禁用，避免连点发两次。
@@ -139,10 +147,17 @@ struct OnboardingView: View {
                 Text("已授权")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
+            } else if screenRecordingRequestAttempted {
+                // 申请已无效（被拒绝过）：再点 CGRequest 也不会有任何
+                // 反应，直接送去系统设置里手动开。
+                Button("系统设置…") { Permissions.openScreenRecordingSettings() }
             } else {
                 Button("去授权") {
                     Permissions.requestScreenRecording()
-                    // 首次请求系统会弹窗；授权与否回来时由 didBecomeActive 刷新。
+                    screenRecordingRequestAttempted = true
+                    screenRecordingGranted = Permissions.hasScreenRecording
+                    // 首次请求系统会弹窗；弹窗里当场授权的上面一行即时
+                    // 生效，从系统设置授权回来的由 didBecomeActive 刷新。
                 }
             }
         }

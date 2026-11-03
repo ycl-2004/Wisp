@@ -120,13 +120,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppSettings.shared.adoptLegacyCloudConfig()
         }
 
-        // 首次启动时把屏幕录制授权框弹出来，别等到用户第一次按快捷键才发现没权限。
-        if !Permissions.hasScreenRecording {
-            DispatchQueue.global(qos: .userInitiated).async {
-                _ = Permissions.requestScreenRecording()
-            }
-        }
-
         MainActor.assumeIsolated {
             // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
             WispCursorPolicy.install()

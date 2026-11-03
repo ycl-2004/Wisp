@@ -103,11 +103,18 @@ menu-bar space and third-party menu utilities remain controlled by macOS/the uti
 2. Move `Wisp.app` to `~/Applications` or `/Applications`.
 3. On first launch, Control-click `Wisp.app`, choose **Open**, and confirm.
    The public build is not notarized, so a regular double-click may be blocked
-   by Gatekeeper.
-4. Grant **Screen Recording** permission in System Settings. The first time
-   Wisp reads a browser page, grant Wisp **Automation** access to that browser.
-5. Open **Settings → Model**, choose a provider (changes save automatically), and
-   click **Test Connection**.
+   by Gatekeeper. If **Open** doesn't appear, open **System Settings →
+   Privacy & Security**, scroll down to the Wisp notice, and click **Open
+   Anyway**.
+4. The first-run wizard opens on its own. Connect a model there: paste an API
+   key (the default provider, OpenRouter, has free models, so you can start
+   without paying), run a local Ollama, or reuse an Agent CLI you are already
+   signed in to. Clicking **Start Using Wisp** sends one real test request to
+   verify the connection before you start.
+5. In the wizard you can also grant **Screen Recording** (optional — text-only
+   questions work without it) and change the summon shortcut. The first time
+   Wisp reads a browser page, grant Wisp **Automation** access to that
+   browser.
 6. Return to the window you want to ask about and press `⌃⌥Space`.
 
 If Control-click → **Open** is unavailable, clear the quarantine flag:
