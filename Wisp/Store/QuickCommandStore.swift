@@ -55,7 +55,7 @@ struct QuickCommand: Codable, Identifiable, Equatable {
 @MainActor
 final class QuickCommandStore: ObservableObject {
     static let shared = QuickCommandStore()
-    static let key = "quickCommands"
+    static let key = AppSettings.quickCommandsKey
 
     @Published var commands: [QuickCommand] {
         didSet {

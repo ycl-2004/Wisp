@@ -33,9 +33,16 @@ struct ConversationListView: View {
                         .font(DS.meta)
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let candidate = model.evictionCandidateTitle {
-                        Button("删掉「\(candidate)」并新建") { model.confirmsEviction = true }
-                            .font(DS.meta)
+                    let candidates = model.evictionCandidateTitles
+                    if let candidate = candidates.first {
+                        Group {
+                            if candidates.count == 1 {
+                                Button("删掉「\(candidate)」并新建") { model.confirmsEviction = true }
+                            } else {
+                                Button("删掉最旧的 \(candidates.count) 个并新建") { model.confirmsEviction = true }
+                            }
+                        }
+                        .font(DS.meta)
                     }
                 }
                 .padding(.horizontal, DS.gutter)

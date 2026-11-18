@@ -30,7 +30,7 @@
   ·
   <a href="#build-from-source">Build from source</a>
   ·
-  <a href="README.zh-TW.md">繁體中文</a>
+  <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 Wisp lives in the menu bar. Press `⌃⌥Space`, and it remembers the frontmost
@@ -402,7 +402,11 @@ specific localization.
 - Wisp starts a local Codex app-server, creates a temporary directory for image
   input, uses an ephemeral thread and a read-only sandbox, and removes the
   temporary directory when the command ends. Codex's own account, network,
-  and service-side logging are outside Wisp's control.
+  and service-side logging are outside Wisp's control. The read-only sandbox
+  stops commands Codex runs from writing or using the network, but not from
+  reading: Codex can read any file your account can, and a captured page could
+  try to talk it into it. See [PRIVACY.md](PRIVACY.md#what-leaves-your-mac) for the
+  comparison with Claude Code's restricted mode.
 - Wisp starts Antigravity locally, in its own temporary working directory, with
   `--sandbox` and Antigravity's JSON headless mode. An attached screenshot is written
   into that directory and named in the prompt so Antigravity reads it from disk; the
@@ -652,6 +656,15 @@ The Release must not contain `com.apple.security.get-task-allow`. The repository
 includes an XCTest target and a GitHub Actions workflow that runs the tests,
 builds Universal 2 Release, and rejects that entitlement.
 
+`xcodebuild test` hosts the tests inside a Debug build of the app. To run the
+Foundation-only core tests without starting the app (or on Linux):
+
+```bash
+cd tools/linux-harness
+./sync-sources.sh   # copy the app sources and the matching WispTests files
+swift test
+```
+
 </details>
 
 ## Project layout
@@ -664,14 +677,18 @@ builds Universal 2 Release, and rejects that entitlement.
   prompt assembly.
 - `Wisp/Store/` — local conversation JSON and macOS Keychain access.
 - `Wisp/UI/` — floating panel, persistent island, chat, context header,
-  conversation list, and Settings.
+  conversation list; `Wisp/UI/Settings/` holds one file per Settings tab.
 - `Wisp/Support/` — permissions, screen geometry, UserDefaults settings, login
   item, and update checking.
 - `Wisp/Resources/` — the string catalog.
-- `WispTests/` — unit tests for CLI isolation, event and auth parsing, prompt
-  truncation, completion checks, and temporary-directory cleanup.
+- `WispTests/` — the only test sources: providers and stream parsing, stores,
+  listening, capture scripts, and UI rendering.
+- `tools/linux-harness/` — a SwiftPM package that compiles the Foundation-only part
+  of the app and runs the matching subset of `WispTests` (copied in by
+  `sync-sources.sh`, never edited there), on Linux or on a Mac without starting the app.
 - `Wisp/Assets.xcassets/` — macOS app icon and image assets.
 - `docs/screenshots/` — the current offline-rendered README screenshots.
+- `docs/records/` — audit rounds, the coverage map and the onboarding design record.
 - `project.yml` — XcodeGen project source, version settings, dependencies,
   localization configuration, and signing configuration.
 - `LICENSE`, `THIRD-PARTY-NOTICES.txt`, `PRIVACY.md`, `CHANGELOG.md` — licence,
@@ -722,6 +739,10 @@ resolution, and public documentation are tracked.
 - Because releases are ad-hoc signed, every build has a new code identity.
   macOS ties Screen Recording, Automation, and Keychain access to that identity,
   so updating the app can require granting those permissions again.
+- Codex's read-only sandbox does not limit reads. A page you capture could try to
+  get Codex to read local files and include them in its turn; Claude Code runs in a
+  restricted, Read-only workspace instead. Prefer Claude Code, a cloud endpoint or
+  Ollama for pages you do not trust.
 - App exclusions are per bundle identifier. There is no per-URL or per-domain
   exclusion, which is the exclusion most useful in a browser.
 - Conversation history is stored as unencrypted JSON and is not evicted by age.
@@ -735,13 +756,18 @@ resolution, and public documentation are tracked.
 
 ## Credits
 
-Wisp bundles [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts)
-3.1.0 by Sindre Sorhus, under the MIT License. Its full notice ships inside the
-app — Settings → General → **Open-source licenses** — and is checked in as
-[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+Wisp bundles three third-party components:
 
-Everything else is written from scratch in SwiftUI and AppKit, with no other
-third-party dependencies.
+- [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) 3.1.0 by
+  Sindre Sorhus, under the MIT License, for global shortcuts.
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.7, under the Apache
+  License 2.0, for local speech recognition models.
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime), under the MIT License,
+  which sherpa-onnx runs models on. It is most of the app's size.
+
+Their full notices ship inside the app — Settings → General → **Open-source
+licenses** — and are checked in as [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+The rest is written in SwiftUI and AppKit.
 
 ## License
 
@@ -756,4 +782,4 @@ Wisp is copyright © 2026 YC and available under the [MIT License](LICENSE).
 - [Release notes](CHANGELOG.md)
 - [Privacy policy](PRIVACY.md)
 - [Third-party notices](THIRD-PARTY-NOTICES.txt)
-- [Traditional Chinese README](README.zh-TW.md)
+- [Simplified Chinese README](README.zh-CN.md)

@@ -80,10 +80,6 @@ final class ListeningModel: ObservableObject {
         return state == .recording ? String(localized: "正在听…") : String(localized: "语音输入")
     }
 
-    var pendingText: String {
-        transcript?.unstagedText(excluding: stagedSegmentIDs) ?? ""
-    }
-
     /// Anything worth showing in the transcript view, including a finished session.
     var hasTranscript: Bool { transcript?.segments.isEmpty == false }
 
@@ -144,17 +140,20 @@ final class ListeningModel: ObservableObject {
 
     @discardableResult
     private func transferPendingSpeech(question: String?) -> Bool {
-        let text = pendingText
-        guard !text.isEmpty else {
+        guard let transcript, transcript.hasUnstagedText(excluding: stagedSegmentIDs) else {
             error = String(localized: "还没有可用的转写文字。")
             return false
         }
-        guard AssistantModel.shared.stageSpeechDraft(text, fallbackQuestion: question) else {
+        guard let consumed = AssistantModel.shared.stageSpeechDraft(
+            transcript, excluding: stagedSegmentIDs, fallbackQuestion: question
+        ) else {
             error = String(localized: "请等待回答结束，或缩短输入框文字后重试。")
             return false
         }
         error = nil
-        stagedSegmentIDs.formUnion(transcript?.segments.map(\.id) ?? [])
+        // 只记真正交出去的：进了草稿的已定稿段落，和草稿开头声明过的被丢段落。
+        // 临时段落留着，定稿后下一次交出去会带上它的最终文字。
+        stagedSegmentIDs.formUnion(consumed)
         // 快捷键可能是在别的应用里按的：草稿和回答都在面板里，面板得先在。
         if !PanelController.shared.isVisible { PanelController.shared.show() }
         return true
@@ -253,6 +252,11 @@ final class ListeningModel: ObservableObject {
                     }, onFailure: { [weak self] message in
                         Task { @MainActor in
                             self?.reportFailure(message, sessionID: session.id)
+                        }
+                    }, onNotice: { [weak self] message in
+                        Task { @MainActor in
+                            guard let self, self.transcript?.id == session.id else { return }
+                            self.error = message
                         }
                     })
                 try AppSettings.ensurePrivateDirectory(Self.rootDirectory)
@@ -393,6 +397,11 @@ final class ListeningModel: ObservableObject {
     }
 
     /// Data reset must invalidate callbacks before deleting files, or a late result recreates them.
+    /// 恢复出厂之后重新读一遍偏好：内存里那份还是旧的，不重读的话下一次改动又把它整份写回去。
+    func reloadPreferences() {
+        preferences = ListeningPreferences.load(from: .standard)
+    }
+
     func discardForDataReset() {
         terminate()
         transcript = nil

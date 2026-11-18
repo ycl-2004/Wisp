@@ -1,5 +1,5 @@
 import XCTest
-@testable import WispCore
+@testable import Wisp
 
 /// Audit round 6, part B: the app's compiled provider code against a
 /// REAL local Ollama server (no doubles): the probe reads the server's
@@ -26,7 +26,7 @@ final class Round6RealOllamaTests: XCTestCase {
 
     override func setUpWithError() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["OLLAMA_E2E"] != nil,
-                          "OLLAMA_E2E not set — real-server leg is opt-in (see AUDIT-ROUND5.md)")
+                          "OLLAMA_E2E not set — real-server leg is opt-in (see docs/records/AUDIT-ROUND5.md)")
     }
 
     func testProbeAgainstRealOllamaListsPulledModel() async {

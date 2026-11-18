@@ -378,11 +378,15 @@ final class AssistantModel: ObservableObject {
 
     var conversationLimitMessage: String? {
         guard !store.canCreateNew else { return nil }
+        let count = store.conversations.count
+        if count > store.maxConversations {
+            return String(localized: "已经有 \(count) 个对话，超过了上限 \(store.maxConversations) 个。可以自己删几个，或者让它顶掉最久没用的那几个。")
+        }
         return String(localized: "已经有 \(store.maxConversations) 个对话，到上限了。可以自己删一个，或者让它顶掉最久没用的那个。")
     }
 
-    /// 满额时要被顶掉的那个对话。UI 拿它的标题去问用户。
-    var evictionCandidateTitle: String? { store.evictionCandidate?.displayTitle }
+    /// 满额时要被顶掉的对话的标题（通常一个；上限调低过时可能几个）。UI 拿它们去问用户。
+    var evictionCandidateTitles: [String] { store.evictionCandidates.map(\.displayTitle) }
 
     @Published var confirmsEviction = false
 
@@ -570,8 +574,22 @@ final class AssistantModel: ObservableObject {
     /// ——一键分析总得带着问题过去，否则模型只收到一段没有指令的会议记录。
     @discardableResult
     func stageSpeechDraft(_ text: String, fallbackQuestion: String? = nil) -> Bool {
-        let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        let existing = typed.isEmpty ? (fallbackQuestion ?? "") : input
+        stageSpeechDraft(text, existing: speechDraftPrefix(fallbackQuestion))
+    }
+
+    func stageSpeechDraft(_ transcript: ListeningTranscript, excluding ids: Set<UUID>,
+                          fallbackQuestion: String?) -> Set<UUID>? {
+        let existing = speechDraftPrefix(fallbackQuestion)
+        let draft = transcript.unstagedDraft(
+            excluding: ids, characterLimit: ListeningTranscript.remainingDraftCapacity(after: existing))
+        return stageSpeechDraft(draft.text, existing: existing) ? draft.consumed : nil
+    }
+
+    private func speechDraftPrefix(_ fallbackQuestion: String?) -> String {
+        input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (fallbackQuestion ?? "") : input
+    }
+
+    private func stageSpeechDraft(_ text: String, existing: String) -> Bool {
         guard !text.isEmpty, !isStreaming, !isPreparingResponse,
               let draft = ListeningTranscript.appendingToDraft(text, existing: existing) else { return false }
         input = draft

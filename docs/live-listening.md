@@ -21,13 +21,17 @@ still running stops, and the rest of the audio settings are hidden with it.
    recognition text; short-batch processing still has a few seconds of latency.
 3. Click Stop or press Control–Option–R again. After trailing recognition drains,
    unstaged speech is appended to your existing input: everything said since the last
-   transfer, capped at 12,000 characters. Preparation
+   transfer. The 12,000-character limit includes your existing draft, or the default
+   question for one-key analysis. When more was said than fits, the oldest
+   part is left out and the draft names the time span it skipped. The full text stays
+   in the raw transcript. A line still being recognized goes in marked as provisional
+   and is sent again in its final wording the next time. Preparation
    cancellation, hiding, sleep, errors and exit do not initiate a new automatic
    transfer. Full session transcripts remain in the local records folder.
 4. While recording or after stopping, the Add to draft button or Control–Option–D
    snapshots current unstaged speech without stopping capture. Already staged
-   segment IDs are excluded from subsequent transfers, so a meeting can be analysed
-   repeatedly without repeating itself; later corrections do not rewrite the draft. If the combined draft is too large or a response is streaming,
+   segment IDs are excluded from subsequent transfers. Later corrections leave the
+   staged draft as it was. If the existing draft leaves no room for speech or a response is streaming,
    an inline error asks you to retry. No text is sent automatically.
 5. Edit the draft, then press Enter or click Send. Voice follows the same send
    pipeline as typed input: current screen/page context, the screenshot setting,
@@ -164,9 +168,11 @@ Each session has a UUID folder under
 - `session.json`: start/stop time, language, application name, retention choice,
   source-labeled segments, provisional/final flags, and a stop reason if applicable.
 - `transcript.txt`: readable timestamped text, checkpointed every two seconds only when changed.
-- Only when **Save audio** was selected: one or more `<source>-<part>.caf` PCM files.
-  Each source has its own track. A format change starts another file. These are
-  source recordings, not a mixed, synchronized video timeline.
+- Only when **Save audio** was selected: one or more `<source>-<part>.caf` files.
+  Common device formats (44.1 or 48 kHz, mono or stereo) are saved as AAC at 64 kbps
+  per channel, about 8 KB/s; other formats are saved as uncompressed PCM. Each source
+  has its own track. A format change starts another file. These are source
+  recordings, not a mixed, synchronized video timeline.
 
 Folders use the existing `0700` protection. Records are plaintext and remain
 accessible to the current user and administrators; there is no encryption or
@@ -176,8 +182,11 @@ when stopped, or use Settings → Data → Listening records → Clear. The sepa
 Delete all records and API keys action also removes chat records and keys.
 
 A session stops after two hours, 200,000 transcript characters, 2,000,000 UTF-8 text
-bytes, 7,200 segments, or
-256 MiB of saved PCM per source (512 MiB combined maximum, plus container overhead).
+bytes, or 7,200 segments. Saved audio is capped at 256 MiB per source (512 MiB combined
+maximum, plus container overhead). At AAC rates that cap is not reached within the
+two-hour limit; when uncompressed PCM reaches it, only audio saving stops: a notice
+appears in the voice row and transcription continues. (Before, reaching the cap stopped
+the whole session about 22 minutes into a 48 kHz recording.)
 The queue is bounded; sustained overload stops with an error instead of silently
 dropping audio. Each source can create at most 128 audio parts. The archive admits at most 100
 sessions and reserves space within a 2 GiB logical-file budget before starting:

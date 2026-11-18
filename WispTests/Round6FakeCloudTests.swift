@@ -1,5 +1,5 @@
 import XCTest
-@testable import WispCore
+@testable import Wisp
 
 /// Audit round 6, part A.1: the REAL `OpenAICompatibleProvider` driven
 /// end-to-end against a scripted in-process endpoint (URLProtocol — the
@@ -8,7 +8,7 @@ import XCTest
 /// mapping, SSE assembly, and the round 2/4/5 caps (#10 line + error
 /// body, #52 cumulative) are all exercised through its public stream API.
 ///
-/// Fidelity notes (also in AUDIT-ROUND5.md): on Linux the provider
+/// Fidelity notes (also in docs/records/AUDIT-ROUND5.md): on Linux the provider
 /// reads through the harness's whole-response `bytes(for:)` shim, so
 /// bytes arrive buffered rather than incrementally. Everything except
 /// *timing* (time-to-first-token, mid-stream partial delivery before a
@@ -121,19 +121,63 @@ final class Round6FakeCloudTests: XCTestCase {
     }
 
     func testMalformedLinesMidStreamAreSkipped() async {
-        // Unparseable lines are dropped. An in-stream {"error": ...}
-        // object is NOT dropped, by design: the parser surfaces it as a
-        // visible note inside the answer (the gateway is telling the
-        // user something; silently swallowing it would fake success).
         let body = sse("A")
             + "data: {not json at all\n\n"
-            + "data: {\"error\":{\"message\":\"in-stream noise\"}}\n\n"
             + "garbage line without prefix\n\n"
             + sse("B") + "data: [DONE]\n\n"
         Round6StubProtocol.script = .init(chunks: [Data(body.utf8)])
         let (chunks, error) = await collect(provider(), config())
         XCTAssertNil(error)
-        XCTAssertEqual(chunks, ["A", "\n\n[服务端错误] in-stream noise", "B"])
+        XCTAssertEqual(chunks, ["A", "B"])
+    }
+
+    func testInStreamErrorEndsTheAnswerWithAnErrorNotText() async {
+        // HTTP 200, then the gateway reports a failure inside the stream. The
+        // text so far is kept; the error is an error, never part of the answer.
+        let body = sse("A")
+            + "data: {\"error\":{\"message\":\"Provider returned error\"}}\n\n"
+            + sse("never shown") + "data: [DONE]\n\n"
+        Round6StubProtocol.script = .init(chunks: [Data(body.utf8)])
+        let (chunks, error) = await collect(provider(), config())
+        XCTAssertEqual(chunks, ["A"])
+        guard case ProviderError.upstream(let message)? = error as? ProviderError else {
+            return XCTFail("expected .upstream, got \(String(describing: error))")
+        }
+        XCTAssertEqual(message, "Provider returned error")
+    }
+
+    func testStreamThatEndsWithoutDoneOrFinishReasonIsIncomplete() async {
+        // A proxy closing the connection cleanly mid-answer used to be saved as a
+        // complete answer.
+        Round6StubProtocol.script = .init(chunks: [Data((sse("half an ") + sse("answer")).utf8)])
+        let (chunks, error) = await collect(provider(), config())
+        XCTAssertEqual(chunks, ["half an ", "answer"])
+        guard case ProviderError.incompleteStream? = error as? ProviderError else {
+            return XCTFail("expected .incompleteStream, got \(String(describing: error))")
+        }
+    }
+
+    func testFinishReasonWithoutDoneStillCompletes() async {
+        // Some gateways close after the finish_reason chunk without sending [DONE].
+        let finish = "data: {\"choices\":[{\"delta\":{\"content\":\".\"},\"finish_reason\":\"stop\"}]}\n\n"
+        Round6StubProtocol.script = .init(chunks: [Data((sse("done") + finish).utf8)])
+        let (chunks, error) = await collect(provider(), config())
+        XCTAssertNil(error)
+        XCTAssertEqual(chunks, ["done", "."])
+    }
+
+    func testOutputLimitKeepsPartialTextButNeverCompletesSuccessfully() async {
+        let finish = #"data: {"choices":[{"delta":{"content":"last words"},"finish_reason":"length"}]}"#
+        for ending in ["", "\n\ndata: [DONE]\n\n"] {
+            let body = sse("partial ") + finish + ending
+            Round6StubProtocol.script = .init(chunks: [Data(body.utf8)])
+            let (chunks, error) = await collect(provider(), config())
+            XCTAssertEqual(chunks, ["partial ", "last words"])
+            guard case ProviderError.outputLimitReached? = error as? ProviderError else {
+                XCTFail("expected .outputLimitReached, got \(String(describing: error))")
+                continue
+            }
+        }
     }
 
     // MARK: - Error mapping
@@ -190,10 +234,9 @@ final class Round6FakeCloudTests: XCTestCase {
         let content = String(repeating: "x", count: 1_100_000)
         Round6StubProtocol.script = .init(chunks: [Data(sse(content).utf8)])
         let (_, error) = await collect(provider(), config())
-        guard case ProviderError.network(let message)? = error as? ProviderError else {
-            return XCTFail("expected .network from the line cap, got \(String(describing: error))")
+        guard case ProviderError.streamLineTooLong? = error as? ProviderError else {
+            return XCTFail("expected .streamLineTooLong, got \(String(describing: error))")
         }
-        XCTAssertTrue(message.contains("单行数据过长"), message)
     }
 
     func testEndlessStreamIsTerminatedByCumulativeCap() async {
@@ -211,10 +254,9 @@ final class Round6FakeCloudTests: XCTestCase {
         if !batch.isEmpty { chunks.append(Data(batch.utf8)) }
         Round6StubProtocol.script = .init(chunks: chunks)
         let (received, error) = await collect(provider(), config())
-        guard case ProviderError.network(let message)? = error as? ProviderError else {
-            return XCTFail("expected .network from the cumulative cap, got \(String(describing: error))")
+        guard case ProviderError.streamTooLarge? = error as? ProviderError else {
+            return XCTFail("expected .streamTooLarge, got \(String(describing: error))")
         }
-        XCTAssertTrue(message.contains("数据总量过大"), message)
         let assembled = received.joined().count
         XCTAssertLessThanOrEqual(assembled, StreamByteBudget.maxTotalBytes,
                                  "assembly must stop at the cap, got \(assembled)")

@@ -66,9 +66,9 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         let defaults = UserDefaults.standard
         switch language {
         case .system:
-            defaults.removeObject(forKey: "AppleLanguages")
+            defaults.removeObject(forKey: AppSettings.appleLanguagesKey)
         case .english, .simplifiedChinese:
-            defaults.set([language.rawValue], forKey: "AppleLanguages")
+            defaults.set([language.rawValue], forKey: AppSettings.appleLanguagesKey)
         }
     }
 }

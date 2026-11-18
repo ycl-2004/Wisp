@@ -10,22 +10,28 @@ final class AppSettingsWipeTests: XCTestCase {
     private var suiteName: String!
     private var defaults: UserDefaults!
     private var settings: AppSettings!
+    private var fixtureDirectory: URL!
 
-    override func setUp() {
-        super.setUp()
+    override func setUpWithError() throws {
         suiteName = "wisp-wipe-test-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
         settings = AppSettings(defaults: defaults)
+        fixtureDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(suiteName)
+        try AppSettings.ensurePrivateDirectory(fixtureDirectory)
     }
 
     override func tearDown() {
+        if let fixtureDirectory { try? FileManager.default.removeItem(at: fixtureDirectory) }
         defaults.removePersistentDomain(forName: suiteName)
         defaults = nil
         settings = nil
         super.tearDown()
     }
 
-    /// All 41 AppSettings keys by their persisted string names.
+    /// Every persisted key the app owns, by its string name — including the
+    /// ones other types read and write (listening preferences, quick
+    /// commands, the scan flag, the language pin, the settings tab), which
+    /// the first version of this wipe missed.
     private let allKeys = [
         "providerKind", "baseURL", "cloudProvider", "cloudModels",
         "ollamaBaseURL", "ollamaModel", "codexPath", "codexModel",
@@ -40,24 +46,35 @@ final class AppSettingsWipeTests: XCTestCase {
         "panelBackgroundOpacity", "panelOpaqueWhenActive",
         "checkForUpdates", "lastUpdateCheck", "islandOrigin",
         "islandAnchor", "appLanguage", "listeningEnabled",
+        "responseMode", "responseModels", "settingsTab",
+        "listeningPreferences", "quickCommands", "localSpeechScanRequested",
+        "AppleLanguages",
     ]
 
-    func testWipeRemovesEveryAppSettingsKey() {
+    func testKeysOwnedByOtherTypesAreTheRegisteredOnes() {
+        XCTAssertEqual(ListeningPreferences.key, "listeningPreferences")
+        XCTAssertEqual(AppSettings.quickCommandsKey, "quickCommands")
+        XCTAssertEqual(AppSettings.localSpeechScanRequestedKey, "localSpeechScanRequested")
+        XCTAssertEqual(AppSettings.appleLanguagesKey, "AppleLanguages")
+        XCTAssertEqual(AppSettings.settingsTabKey, "settingsTab")
+    }
+
+    func testWipeRemovesEveryAppSettingsKey() throws {
         for key in allKeys { defaults.set("wisp-sentinel", forKey: key) }
-        settings.wipeLocalData()
+        try settings.wipeLocalData(in: fixtureDirectory)
         for key in allKeys {
             XCTAssertNotEqual(defaults.object(forKey: key) as? String, "wisp-sentinel",
                               "\(key) survived the wipe")
         }
     }
 
-    func testWipeRestoresFirstLaunchValues() {
+    func testWipeRestoresFirstLaunchValues() throws {
         settings.baseURL = "https://example.invalid/v1"
         settings.model = "some-custom-model"
         defaults.set(123_456, forKey: "pageTextLimit")
         defaults.set(Date(), forKey: "lastUpdateCheck")
 
-        settings.wipeLocalData()
+        try settings.wipeLocalData(in: fixtureDirectory)
 
         // Registered defaults re-apply, exactly as on first launch.
         XCTAssertEqual(settings.baseURL, CloudProvider.openRouter.baseURL)
@@ -73,22 +90,40 @@ final class AppSettingsWipeTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: "cloudModels"))
     }
 
-    func testWipeLeavesOtherDefaultsAlone() {
-        // The wipe is scoped to AppSettings' own keys: library- and
-        // UI-owned entries in the same domain are not its business.
+    func testWipeLeavesOtherDefaultsAlone() throws {
+        // The wipe removes only registered keys. Library-owned entries in the
+        // same domain are reset through their own API by the Settings flow
+        // (KeyboardShortcuts.reset), and anything unregistered is left alone.
+        // ("settingsTab" used to be the UI-owned example here; it is now
+        // registered, so the full reset also reopens Settings on its first tab.)
         defaults.set(true, forKey: "KeyboardShortcuts_toggleAssistant")
-        defaults.set("data", forKey: "settingsTab")
-        settings.wipeLocalData()
+        defaults.set("data", forKey: "SomeOtherComponent_state")
+        try settings.wipeLocalData(in: fixtureDirectory)
         XCTAssertEqual(defaults.bool(forKey: "KeyboardShortcuts_toggleAssistant"), true)
-        XCTAssertEqual(defaults.string(forKey: "settingsTab"), "data")
+        XCTAssertEqual(defaults.string(forKey: "SomeOtherComponent_state"), "data")
     }
 
     func testWipeRemovesSupportDirectoryContents() throws {
-        let dir = AppSettings.supportDirectory
-        try AppSettings.ensurePrivateDirectory(dir)
-        let marker = dir.appendingPathComponent("wisp-wipe-marker.txt")
-        try Data("x".utf8).write(to: marker)
-        settings.wipeLocalData()
-        XCTAssertFalse(FileManager.default.fileExists(atPath: marker.path))
+        let support = fixtureDirectory.appendingPathComponent("Wisp", isDirectory: true)
+        let listening = support.appendingPathComponent("Listening", isDirectory: true)
+        try AppSettings.ensurePrivateDirectory(listening)
+        let sibling = fixtureDirectory.appendingPathComponent("other-app-data.txt")
+        let fixture = Data("fixture".utf8)
+        try fixture.write(to: support.appendingPathComponent("conversations.json"))
+        try fixture.write(to: listening.appendingPathComponent("transcript.txt"))
+        try fixture.write(to: sibling)
+
+        try settings.wipeLocalData(in: support)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: support.path))
+        XCTAssertEqual(try Data(contentsOf: sibling), fixture)
+        XCTAssertNoThrow(try settings.wipeLocalData(in: support))
+    }
+
+    func testFailedFileRemovalLeavesSettingsAvailableForRetry() {
+        // An overlong component reliably fails on both APFS and Linux, even as root.
+        let invalidPath = fixtureDirectory.appendingPathComponent(String(repeating: "x", count: 512))
+        settings.model = "fixture-model"
+        XCTAssertThrowsError(try settings.wipeLocalData(in: invalidPath))
+        XCTAssertEqual(settings.model, "fixture-model")
     }
 }

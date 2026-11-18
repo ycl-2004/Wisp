@@ -1,7 +1,7 @@
 import Foundation
 
 struct ListeningPreferences: Codable, Equatable {
-    static let key = "listeningPreferences"
+    static let key = AppSettings.listeningPreferencesKey
     static let locales = ["en-US", "zh-CN", "zh-TW", "ja-JP"]
     var mode: ListeningMode = .application
     var locale = "en-US"
@@ -151,6 +151,7 @@ struct ListeningTranscript: Codable {
     static let maximumUTF8Bytes = 2_000_000
     static let maximumSegments = 7_200
     static let draftLimit = 12_000
+    private static let draftSeparator = "\n\n"
     let id: UUID
     let startedAt: Date
     let locale: String
@@ -179,23 +180,54 @@ struct ListeningTranscript: Codable {
         return true
     }
 
+    static func remainingDraftCapacity(after existing: String) -> Int {
+        existing.isEmpty ? draftLimit : draftLimit - existing.count - draftSeparator.count
+    }
+
     static func appendingToDraft(_ text: String, existing: String) -> String? {
-        let combined = existing.isEmpty ? text : existing + "\n\n" + text
-        return combined.count <= draftLimit ? combined : nil
+        guard text.count <= remainingDraftCapacity(after: existing) else { return nil }
+        return existing.isEmpty ? text : existing + draftSeparator + text
+    }
+
+    /// 一次交出去的语音草稿，和交出去之后应当记为「已交」的段落。
+    struct SpeechDraft: Equatable {
+        var text: String
+        /// 进了 `text` 的已定稿段落，加上因为超出预算而被丢掉、并在 `text` 开头声明过的更早段落。
+        /// 进了 `text` 的临时段落不在其中：它的定稿文字还没到，定稿后下一次交出去要能带上。
+        var consumed: Set<UUID>
     }
 
     /// 还没交出去的话——从上一次放进草稿／发出去之后算起，一直到现在。
     ///
     /// 这里**不设时间窗口**：会议里每隔几分钟按一次分析，中间那几分钟正是要给模型的东西。
     /// 早先按「最近 90 秒」取，间隔一旦超过 90 秒，中间说的话就再也不会进入任何一次发送，
-    /// 只剩本地记录里有。唯一的闸是草稿字数，超了从最旧的一端整段丢。
-    func unstagedText(excluding ids: Set<UUID>) -> String {
-        var pending = self
-        pending.segments.removeAll { ids.contains($0.id) }
-        return pending.spokenText()
+    /// 只剩本地记录里有。唯一的闸是草稿字数，超了从最旧的一端整段丢——丢了就在开头写明
+    /// 丢的是哪一段，用户和模型都知道这不是全部，不能悄悄少一截。
+    func unstagedDraft(excluding ids: Set<UUID>, characterLimit: Int = draftLimit) -> SpeechDraft {
+        let pending = segments.filter { !ids.contains($0.id) }
+        guard characterLimit > 0, let first = pending.first else { return .init(text: "", consumed: []) }
+        let fitted = Self.fit(pending, characterLimit: characterLimit)
+        let consumed = Set(pending.lazy.filter(\.isFinal).map(\.id))
+        guard fitted.kept < pending.count || fitted.clippedLast else {
+            return .init(text: fitted.text, consumed: consumed)
+        }
+
+        // The first timestamp is fixed. Use the latest end time to reserve enough
+        // space even when the omitted range crosses an hour boundary.
+        let latestEnd = pending.lazy.map(\.end).max() ?? first.end
+        let room = characterLimit - Self.omissionNotice(from: first.start, to: latestEnd).count - 1
+        guard room > 0 else { return .init(text: "", consumed: []) }
+        let shortened = Self.fit(pending, characterLimit: room)
+        let omittedCount = pending.count - shortened.kept + (shortened.clippedLast ? 1 : 0)
+        let notice = Self.omissionNotice(from: first.start, to: pending[omittedCount - 1].end)
+        return .init(text: notice + "\n" + shortened.text, consumed: consumed)
     }
 
-    /// 和 `unstagedText` 同一个判断，只是不拼字符串：语音条每秒都要问一次还能不能分析。
+    static func omissionNotice(from start: TimeInterval, to end: TimeInterval) -> String {
+        String(localized: "（\(ListeningSegment.clock(start))–\(ListeningSegment.clock(end)) 有转写超出单次上限，已省略；完整内容在转写原文里。）")
+    }
+
+    /// 和 `unstagedDraft` 同一个判断，只是不拼字符串：语音条每秒都要问一次还能不能分析。
     /// 窗口是相对剩下那些段落的最新时间算的，所以只要还有没交出去的段落，取到的文字就非空。
     func hasUnstagedText(excluding ids: Set<UUID>) -> Bool {
         segments.contains { !ids.contains($0.id) }
@@ -215,7 +247,13 @@ struct ListeningTranscript: Codable {
     /// 裁剪必须在合并**之前**做。一个人连说半小时会并成一整段，那时候再裁就只能从中间
     /// 切字；按识别批次裁，丢掉的边界总是某一句的开头。
     func spokenText(characterLimit: Int = draftLimit) -> String {
-        guard characterLimit > 0 else { return "" }
+        Self.fit(segments, characterLimit: characterLimit).text
+    }
+
+    /// `segments` 末尾放得进预算的那几段（`kept` 段）和它们拼成的文字。
+    private static func fit(_ segments: [ListeningSegment], characterLimit: Int)
+        -> (text: String, kept: Int, clippedLast: Bool) {
+        guard characterLimit > 0 else { return ("", 0, false) }
         var kept: [ListeningSegment] = []
         var budget = characterLimit
         for segment in segments.reversed() {
@@ -226,13 +264,14 @@ struct ListeningTranscript: Codable {
         }
         // 合并之后还要加说话人和「临时文字」标记，可能再次越界；从最旧的一批开始让位。
         while !kept.isEmpty {
-            let text = Self.spoken(kept).joined(separator: "\n")
-            if text.count <= characterLimit { return text }
+            let text = spoken(kept).joined(separator: "\n")
+            if text.count <= characterLimit { return (text, kept.count, false) }
             kept.removeFirst()
         }
         // 一批就已经超预算的极端情况：至少把最近说的那几个字留下。
-        guard let last = segments.last else { return "" }
-        return String(Self.spoken([last]).joined().suffix(characterLimit))
+        guard let last = segments.last else { return ("", 0, false) }
+        let text = spoken([last]).joined()
+        return (String(text.suffix(characterLimit)), 1, text.count > characterLimit)
     }
 
     /// 把按批次切开的识别结果还原成「谁说了什么」。

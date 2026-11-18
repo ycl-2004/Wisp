@@ -8,6 +8,13 @@ enum ProviderError: LocalizedError {
     case imageUnsupported(String)
     case http(Int, String)
     case network(String)
+    case streamLineTooLong
+    case streamTooLarge
+    /// HTTP 200 之后，网关在流里报了错。
+    case upstream(String)
+    /// 流在模型说完之前就结束了：没有 `[DONE]`，也没有 `finish_reason`。
+    case incompleteStream
+    case outputLimitReached
     case cancelled
     case codexNotFound
     case codexFailed(String, status: Int32)
@@ -45,6 +52,16 @@ enum ProviderError: LocalizedError {
             return String(localized: "请求失败（HTTP \(code)）：\(message)")
         case .network(let message):
             return String(localized: "网络错误：\(message)")
+        case .streamLineTooLong:
+            return String(localized: "服务端返回的单行数据过长，已中断。")
+        case .streamTooLarge:
+            return String(localized: "服务端返回的数据总量过大，已中断。")
+        case .upstream(let message):
+            return String(localized: "服务端在回答途中报错：\(message)")
+        case .incompleteStream:
+            return String(localized: "连接在回答说完之前就断开了，已收到的部分保留在上面。可以重新发送一次。")
+        case .outputLimitReached:
+            return String(localized: "模型已达到输出上限，回答未完成。")
         case .cancelled:
             return String(localized: "已取消。")
         case .codexNotFound:

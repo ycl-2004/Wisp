@@ -68,12 +68,17 @@ enum KeychainStore {
         ]
     }
 
+    /// 原地更新，没有条目时才新增。以前是先删再加：加失败时（钥匙串拒绝、用户点了拒绝）
+    /// 旧的那份能用的 Key 已经被删了，界面却只说「这次输入没有保存下来」。
     private static func write(_ key: String, account: String) -> Bool {
-        SecItemDelete(query(account) as CFDictionary)
-
-        var attributes = query(account)
-        attributes[kSecValueData as String] = Data(key.utf8)
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        let value: [String: Any] = [
+            kSecValueData as String: Data(key.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+        ]
+        let status = SecItemUpdate(query(account) as CFDictionary, value as CFDictionary)
+        if status == errSecSuccess { return true }
+        guard status == errSecItemNotFound else { return false }
+        let attributes = query(account).merging(value) { _, new in new }
         return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
     }
 

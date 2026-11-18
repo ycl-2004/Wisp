@@ -126,6 +126,16 @@ final class AppSettings: ObservableObject {
         static let islandAnchor = "islandAnchor"
         static let appLanguage = "appLanguage"
         static let listeningEnabled = "listeningEnabled"
+        static let responseMode = "responseMode"
+        static let responseModels = "responseModels"
+        static let settingsTab = "settingsTab"
+        // 下面几项由别的类型读写，但键只在这里定义一次，好让恢复出厂一并清掉
+        // （以前它们不在清单里，「删除全部数据」之后还留着，#5 的漏网）。
+        static let listeningPreferences = "listeningPreferences"
+        static let quickCommands = "quickCommands"
+        static let localSpeechScanRequested = "localSpeechScanRequested"
+        /// 系统键：界面语言钉选（AppLanguage）写在本 App 自己的域里。
+        static let appleLanguages = "AppleLanguages"
 
         /// 全部键的清单，wipeLocalData 靠它一次清干净（恢复出厂，#5）。
         /// 新增键必须同步加进这里——漏一个，那项设置就会在「删除全部
@@ -144,6 +154,9 @@ final class AppSettings: ObservableObject {
             panelBackgroundOpacity, panelOpaqueWhenActive,
             checkForUpdates, lastUpdateCheck, islandOrigin,
             islandAnchor, appLanguage, listeningEnabled,
+            responseMode, responseModels, settingsTab,
+            listeningPreferences, quickCommands, localSpeechScanRequested,
+            appleLanguages,
         ]
     }
 
@@ -405,26 +418,26 @@ final class AppSettings: ObservableObject {
         get {
             // Older releases stored Standard. Treat it as the new balanced
             // default rather than exposing a removed third mode after upgrade.
-            guard let raw = d.string(forKey: "responseMode"), raw != ResponseMode.standard.rawValue,
+            guard let raw = d.string(forKey: K.responseMode), raw != ResponseMode.standard.rawValue,
                   let mode = ResponseMode(rawValue: raw) else { return .quick }
             return mode
         }
-        set { objectWillChange.send(); d.set(newValue.rawValue, forKey: "responseMode") }
+        set { objectWillChange.send(); d.set(newValue.rawValue, forKey: K.responseMode) }
     }
 
     func responseModel(for mode: ResponseMode, connection: String) -> String {
-        let models = d.dictionary(forKey: "responseModels") as? [String: String] ?? [:]
+        let models = d.dictionary(forKey: K.responseModels) as? [String: String] ?? [:]
         return models[connection + "|" + mode.rawValue] ?? ""
     }
 
     func setResponseModel(_ model: String, for mode: ResponseMode, connection: String) {
         guard mode != .standard else { return }
-        var models = d.dictionary(forKey: "responseModels") as? [String: String] ?? [:]
+        var models = d.dictionary(forKey: K.responseModels) as? [String: String] ?? [:]
         let key = connection + "|" + mode.rawValue
         let value = model.trimmingCharacters(in: .whitespacesAndNewlines)
         if value.isEmpty { models.removeValue(forKey: key) } else { models[key] = value }
         objectWillChange.send()
-        d.set(models, forKey: "responseModels")
+        d.set(models, forKey: K.responseModels)
     }
 
     /// 语音功能的总开关。关掉之后面板上不再留那一行，快捷键也不响应。
@@ -440,6 +453,12 @@ final class AppSettings: ObservableObject {
 
     /// `@AppStorage` 要直接绑这个键，所以键名必须能从 App 层拿到。
     static let showsMenuBarIconKey = K.showsMenuBarIcon
+    static let settingsTabKey = K.settingsTab
+    /// 由各自的类型读写、但登记在 `K.all` 里随恢复出厂一起清掉的键。
+    static let listeningPreferencesKey = K.listeningPreferences
+    static let quickCommandsKey = K.quickCommands
+    static let localSpeechScanRequestedKey = K.localSpeechScanRequested
+    static let appleLanguagesKey = K.appleLanguages
 
     /// 菜单栏图标由系统绘制，`sharingType` 对它无效，所以录屏里一定看得见。
     /// 关掉它是唯一能让菜单栏不留痕的办法；关掉后靠全局快捷键唤起面板，
@@ -603,15 +622,18 @@ final class AppSettings: ObservableObject {
     }
 
     /// 恢复出厂：删除应用支持目录的全部内容（对话 JSON、聆听记录、调试
-    /// 文件），并清掉 AppSettings 的每一个 UserDefaults 键。带注册默认
+    /// 文件），并清掉 `K.all` 里的每一个 UserDefaults 键。带注册默认
     /// 值的键回到注册值、没注册的回到缺失——与全新安装第一次启动读到
     /// 的状态逐键一致（init 的 register(defaults:) 是易失域，不落盘）。
-    /// 范围只到 AppSettings 自己的键：Keychain 由调用方另行清除；
-    /// KeyboardShortcuts 库自管的快捷键绑定、界面语言钉选
-    /// （AppleLanguages）、本地语音的扫描请求标记不在 K 里，不在此列。
-    func wipeLocalData() {
-        let dir = AppSettings.supportDirectory
-        try? FileManager.default.removeItem(at: dir)
+    /// Keychain、KeyboardShortcuts 库自管的快捷键绑定，以及已经读进内存的
+    /// 语音偏好和常用指令，由调用方（设置页的「删除全部数据」）另行重置。
+    func wipeLocalData(in directory: URL) throws {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch let error as CocoaError where
+            error.code == .fileNoSuchFile && error.filePath == directory.path {
+            // A retry after the directory has already been removed can still reset settings.
+        }
         for key in K.all {
             d.removeObject(forKey: key)
         }

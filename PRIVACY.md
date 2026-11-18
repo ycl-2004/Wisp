@@ -27,7 +27,7 @@ understand before pointing it at a page you would not paste into a chat box.
 | What | Where |
 | --- | --- |
 | Conversation text and page-text snapshots | `~/Library/Application Support/Wisp/conversations.json` |
-| Live listening sessions: text, metadata, optional PCM audio | `~/Library/Application Support/Wisp/Listening/<session-id>/` |
+| Live listening sessions: text, metadata, optional audio (AAC, or PCM for unusual device formats) | `~/Library/Application Support/Wisp/Listening/<session-id>/` |
 | API key | macOS Keychain, service `com.yichenlin.Wisp` |
 | Settings, window positions, island position | `UserDefaults` for `com.yichenlin.Wisp` |
 | Temporary CLI screenshots | A per-request `Wisp-*` directory in the macOS temporary directory, permissions `0700`; removed when the command ends |
@@ -81,8 +81,8 @@ No completion notification, sound, automatic copy, or automatic send from recogn
 callbacks is generated. Audio is not sent to the configured provider.
 
 Session folders are protected by `0700` permissions, not encryption. History has
-no automatic expiry. A session has a two-hour/text limit and a 256 MiB PCM limit per
-source. New sessions require reserved room within a 2 GiB logical-file / 100-session
+no automatic expiry. A session has a two-hour/text limit; saved audio is capped at 256 MiB per
+source, after which only audio saving stops. New sessions require reserved room within a 2 GiB logical-file / 100-session
 archive budget; old sessions are never automatically deleted. Resetting
 all data deletes these records too, after stopping and invalidating capture.
 The separate Data → Listening records → Clear action removes just listening files,
@@ -113,6 +113,15 @@ capture is undetectable, or that OS prompts/indicators are hidden from shared sc
   `ephemeral: true`, read-only thread and `approvalPolicy: never`. Wisp stops
   its own app-server and deletes that directory when the request ends. Codex's own
   account, network use, and server-side logging are outside Wisp's control.
+  **Codex's `read-only` sandbox blocks writes and network access for commands
+  Codex runs; it does not limit what those commands can read.** Codex can read any
+  file your macOS account can read, and a captured page or screenshot could try to
+  talk it into doing so; whatever it reads goes to OpenAI as part of the turn. Wisp
+  tells every provider that page text, screenshots and transcripts are data, not
+  instructions, but that is a prompt, not a boundary. Claude Code runs with
+  `--restricted` and only the `Read` tool inside its own temporary workspace (below).
+  The Codex app-server protocol Wisp targets has no setting that narrows reads; until
+  it does, prefer Claude Code, a cloud endpoint or Ollama for pages you do not trust.
 - **AGY CLI.** Wisp starts the local `agy` process in a private temporary
   workspace with `--sandbox`. Attached screenshots are written there for AGY
   to read, and Wisp deletes the directory when the command ends. AGY's own

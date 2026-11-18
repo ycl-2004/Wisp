@@ -1,5 +1,5 @@
 import XCTest
-@testable import WispCore
+@testable import Wisp
 
 /// Audit round 6, part A.1/A.2 (real-socket leg): a throwaway Python
 /// HTTP server on 127.0.0.1 serving scripted responses, driven through

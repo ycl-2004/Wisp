@@ -7,32 +7,23 @@ import XCTest
 /// overwrite the user's only copy" contract at the variants the
 /// round-2/round-4 matrices did not reach.
 ///
-/// This is the macOS original; the Linux harness port runs the same
-/// bodies behind a @MainActor bridge.
-@MainActor
+/// The test entry points are nonisolated and hop into @MainActor bodies
+/// through `onMainActor` (MainActorBridge.swift): corelibs-xctest traps
+/// when it discovers a @MainActor test, and this one file serves both
+/// macOS CI and the Linux harness.
 final class Round4StoreGuardTests: XCTestCase {
-
-    @MainActor
-    private func withStore(prewritten: Data? = nil,
-                           _ body: (ConversationStore, URL, AppSettings) throws -> Void) throws {
-        let suite = "wisp-round4-guard-" + UUID().uuidString
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer {
-            defaults.removePersistentDomain(forName: suite)
-            try? FileManager.default.removeItem(at: directory)
-        }
-        let settings = AppSettings(defaults: defaults)
-        let file = directory.appendingPathComponent("conversations.json")
-        if let prewritten { try prewritten.write(to: file) }
-        try body(ConversationStore(fileURL: file, settings: settings), file, settings)
-    }
+    func testStringVersionBlocksPersistence() throws { try onMainActor { try self.impl_testStringVersionBlocksPersistence() } }
+    func testFractionalVersionBlocksPersistence() throws { try onMainActor { try self.impl_testFractionalVersionBlocksPersistence() } }
+    func testNegativeVersionBlocksPersistence() throws { try onMainActor { try self.impl_testNegativeVersionBlocksPersistence() } }
+    func testMissingVersionStillLoadsAsV1() throws { try onMainActor { try self.impl_testMissingVersionStillLoadsAsV1() } }
+    func testPathOccupiedByDirectoryBlocksWithNotice() throws { try onMainActor { try self.impl_testPathOccupiedByDirectoryBlocksWithNotice() } }
+    func testPersistFailureSurfacesSaveIssueAndSuccessClearsIt() throws { try onMainActor { try self.impl_testPersistFailureSurfacesSaveIssueAndSuccessClearsIt() } }
+    func testEvictionSkipsTheStreamingConversation() throws { try onMainActor { try self.impl_testEvictionSkipsTheStreamingConversation() } }
 
     // MARK: - #34: a present-but-undecodable version must block, not load as v1
 
     @MainActor
-    func testStringVersionBlocksPersistence() throws {
+    private func impl_testStringVersionBlocksPersistence() throws {
         let raw = Data(#"{"version":"2","conversations":[]}"#.utf8)
         try withStore(prewritten: raw) { store, file, _ in
             XCTAssertTrue(store.isReadOnly)
@@ -46,7 +37,7 @@ final class Round4StoreGuardTests: XCTestCase {
     }
 
     @MainActor
-    func testFractionalVersionBlocksPersistence() throws {
+    private func impl_testFractionalVersionBlocksPersistence() throws {
         let raw = Data(#"{"version":2.5,"conversations":[]}"#.utf8)
         try withStore(prewritten: raw) { store, file, _ in
             XCTAssertTrue(store.isReadOnly)
@@ -59,7 +50,7 @@ final class Round4StoreGuardTests: XCTestCase {
     }
 
     @MainActor
-    func testNegativeVersionBlocksPersistence() throws {
+    private func impl_testNegativeVersionBlocksPersistence() throws {
         let raw = Data(#"{"version":-1,"conversations":[]}"#.utf8)
         try withStore(prewritten: raw) { store, _, _ in
             XCTAssertTrue(store.isReadOnly)
@@ -70,7 +61,7 @@ final class Round4StoreGuardTests: XCTestCase {
     }
 
     @MainActor
-    func testMissingVersionStillLoadsAsV1() throws {
+    private func impl_testMissingVersionStillLoadsAsV1() throws {
         // Files written before versioning existed carry no version key;
         // the tolerant full decode treats them as v1. That must keep
         // working — only a *present* but unreadable version blocks.
@@ -83,7 +74,7 @@ final class Round4StoreGuardTests: XCTestCase {
     // MARK: - #35: load/persist failures must surface, never vanish
 
     @MainActor
-    func testPathOccupiedByDirectoryBlocksWithNotice() throws {
+    private func impl_testPathOccupiedByDirectoryBlocksWithNotice() throws {
         // conversations.json exists but is a directory: Data(contentsOf:)
         // fails, and every persist would fail too. Before #35 this was
         // indistinguishable from "no file yet" — empty store, no notice,
@@ -108,7 +99,7 @@ final class Round4StoreGuardTests: XCTestCase {
     }
 
     @MainActor
-    func testPersistFailureSurfacesSaveIssueAndSuccessClearsIt() throws {
+    private func impl_testPersistFailureSurfacesSaveIssueAndSuccessClearsIt() throws {
         // The store's directory is blocked by a regular file, so every
         // persist fails. Before #35 persist() swallowed all of it.
         let suite = "wisp-round4-guard-blocked-" + UUID().uuidString
@@ -140,7 +131,7 @@ final class Round4StoreGuardTests: XCTestCase {
     // MARK: - #45: eviction must never take the conversation being streamed into
 
     @MainActor
-    func testEvictionSkipsTheStreamingConversation() throws {
+    private func impl_testEvictionSkipsTheStreamingConversation() throws {
         // A is time-oldest but mid-stream (stalled: no chunks arriving,
         // so its updatedAt is no longer being bumped). B and C carry
         // future updatedAts so the ordering survives the runtime clock.
@@ -155,14 +146,14 @@ final class Round4StoreGuardTests: XCTestCase {
         let data = try encoder.encode(ConversationFile(conversations: [a, b, c]))
         try withStore(prewritten: data) { store, _, settings in
             settings.maxConversations = 3
-            XCTAssertEqual(store.evictionCandidate?.id, a.id, "sanity: A is the time-oldest")
+            XCTAssertEqual(store.evictionCandidates.first?.id, a.id, "sanity: A is the time-oldest")
 
             store.updateStreaming(text: "partial", messageID: placeholder.id, in: a.id, persistNow: false)
-            XCTAssertEqual(store.evictionCandidate?.id, b.id,
+            XCTAssertEqual(store.evictionCandidates.first?.id, b.id,
                            "the streaming conversation must be exempt from eviction")
 
             store.updateStreaming(text: "partial", messageID: placeholder.id, in: a.id, persistNow: true)
-            XCTAssertEqual(store.evictionCandidate?.id, a.id,
+            XCTAssertEqual(store.evictionCandidates.first?.id, a.id,
                            "the final (persistNow) update lifts the exemption")
         }
     }

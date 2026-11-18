@@ -1,57 +1,17 @@
-// Ported from WispTests/NonAudioAcceptanceTests.swift for the Linux harness.
-// Kept: the 4 ConversationStore tests (subjects in the Foundation-only closure).
-// Dropped (AppKit/SwiftUI subjects; still run on macOS CI): testChatEmptyAnswerStreamingErrorAndHistoryRenderWithoutAudio, testComposerTypingSelectionSubmitAndEscapeKeepArrowArtwork, testDismissBeforePresentationCompletesDoesNotReopenOrRunAction, testNonAudioSettingsTabsRenderAtTheirActualWindowSize, testRepeatedCursorSessionsReleaseWindowsAndDoNotAccumulateHideCounts.
-// The private render() helper used only by the dropped tests went with them.
-// @MainActor test bodies are bridged (see bridge below): corelibs-xctest discovery
-// traps on @MainActor test methods. Assertions are byte-identical to the original.
-// AppKit/SwiftUI imports dropped too. Everything kept is verbatim.
 import XCTest
-@testable import WispCore
+@testable import Wisp
 
-
-final class NonAudioAcceptanceTests: XCTestCase {
-
-    // swift-corelibs-xctest cannot discover @MainActor test methods (its
-    // discovery cast traps the whole run), so the ported tests keep their
-    // original @MainActor bodies as private impls and bridge into them.
-    private static func bridge(_ body: @MainActor @escaping () throws -> Void) throws {
-        // corelibs-xctest runs tests on the main thread, so the body can be
-        // executed in place under an isolation assertion; a semaphore hop
-        // would deadlock against the very executor it waits for.
-        if Thread.isMainThread {
-            try MainActor.assumeIsolated { try body() }
-            return
-        }
-        final class Box { var error: Error? }
-        let box = Box()
-        let sem = DispatchSemaphore(value: 0)
-        Task { @MainActor in
-            do { try body() } catch { box.error = error }
-            sem.signal()
-        }
-        sem.wait()
-        if let error = box.error { throw error }
-    }
-
-    func testConversationCreateStreamReloadSelectAndDelete() throws { try Self.bridge { try self.impl_testConversationCreateStreamReloadSelectAndDelete() } }
-    func testConversationLimitsRequireExplicitEviction() throws { try Self.bridge { try self.impl_testConversationLimitsRequireExplicitEviction() } }
-    func testNewerConversationFormatIsPreservedUntilExplicitArchive() throws { try Self.bridge { try self.impl_testNewerConversationFormatIsPreservedUntilExplicitArchive() } }
-    func testCorruptHistoryIsBackedUpAndSurvivingMessagesRemainReadable() throws { try Self.bridge { try self.impl_testCorruptHistoryIsBackedUpAndSurvivingMessagesRemainReadable() } }
-
-    @MainActor
-    private func withStore(_ body: (ConversationStore, URL, AppSettings) throws -> Void) throws {
-        let suite = "wisp-acceptance-" + UUID().uuidString
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer {
-            defaults.removePersistentDomain(forName: suite)
-            try? FileManager.default.removeItem(at: directory)
-        }
-        let settings = AppSettings(defaults: defaults)
-        let file = directory.appendingPathComponent("conversations.json")
-        try body(ConversationStore(fileURL: file, settings: settings), file, settings)
-    }
+/// Non-audio acceptance: the conversation store's user-visible contract
+/// (create → stream → reload → select → delete, explicit eviction at the
+/// limit, newer-format preservation, corrupt-history recovery). Split out of
+/// NonAudioAcceptanceTests so the Foundation-only half also runs in the
+/// Linux harness; the AppKit/SwiftUI half stays there. Entry points hop into
+/// @MainActor bodies through `onMainActor` (MainActorBridge.swift).
+final class ConversationAcceptanceTests: XCTestCase {
+    func testConversationCreateStreamReloadSelectAndDelete() throws { try onMainActor { try self.impl_testConversationCreateStreamReloadSelectAndDelete() } }
+    func testConversationLimitsRequireExplicitEviction() throws { try onMainActor { try self.impl_testConversationLimitsRequireExplicitEviction() } }
+    func testNewerConversationFormatIsPreservedUntilExplicitArchive() throws { try onMainActor { try self.impl_testNewerConversationFormatIsPreservedUntilExplicitArchive() } }
+    func testCorruptHistoryIsBackedUpAndSurvivingMessagesRemainReadable() throws { try onMainActor { try self.impl_testCorruptHistoryIsBackedUpAndSurvivingMessagesRemainReadable() } }
 
     @MainActor
     private func impl_testConversationCreateStreamReloadSelectAndDelete() throws {
@@ -93,7 +53,7 @@ final class NonAudioAcceptanceTests: XCTestCase {
             let second = try XCTUnwrap(store.createNew())
             XCTAssertNil(store.createNew())
             XCTAssertEqual(Set(store.conversations.map(\.id)), [first.id, second.id])
-            XCTAssertEqual(store.evictionCandidate?.id, first.id)
+            XCTAssertEqual(store.evictionCandidates.first?.id, first.id)
             let replacement = try XCTUnwrap(store.createNewEvictingOldest())
             XCTAssertEqual(Set(store.conversations.map(\.id)), [replacement.id, second.id])
         }
@@ -134,15 +94,4 @@ final class NonAudioAcceptanceTests: XCTestCase {
             XCTAssertNil(recovered.loadIssue)
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 }

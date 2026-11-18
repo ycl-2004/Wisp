@@ -8,7 +8,7 @@ struct ContextHeaderView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var listening = ListeningModel.shared
     @ObservedObject private var pushToTalk = PushToTalk.shared
-    @AppStorage("settingsTab") private var settingsTab: SettingsView.Tab = .model
+    @AppStorage(AppSettings.settingsTabKey) private var settingsTab: SettingsView.Tab = .model
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {

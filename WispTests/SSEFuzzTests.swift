@@ -17,7 +17,10 @@ import XCTest
 private func describe(_ event: SSEParser.Event) -> String {
     switch event {
     case .delta(let text): return "delta:" + text
+    case .finished(let text): return "finished:" + text
+    case .outputLimitReached(let text): return "output-limit:" + text
     case .done: return "done"
+    case .failure(let message): return "failure:" + message
     case .ignored: return "ignored"
     }
 }
@@ -57,32 +60,18 @@ final class SSESplitInvarianceTests: XCTestCase {
         "data: {\"choices\":[{\"delta\":{\"content\":\"tail\"}}]}"
 
 
-    /// The in-stream error delta carries localized prose; map it to a
-    /// fixed token so the pinned baseline holds in any locale. The raw
-    /// event sequence is still compared unmodified across chunkings.
-    private func normalized(_ events: [String]) -> [String] {
-        events.map { event in
-            if event.hasPrefix("delta:\n\n["), event.hasSuffix("] boom") {
-                return "delta:<server-error>"
-            }
-            return event
-        }
-    }
-
     func testRandomSplitsNeverChangeTheEventSequence() throws {
         let bytes = [UInt8](streamText.utf8)
         let whole = try runPipeline(bytes, chunks: [bytes])
         // The unsplit baseline itself is pinned, so "equal to itself"
-        // cannot hide a broken parse. The error delta's prose is
-        // localized, so it is normalized to a token for the pin; chunked
-        // runs below still compare raw against `whole`.
-        XCTAssertEqual(normalized(whole), [
+        // cannot hide a broken parse.
+        XCTAssertEqual(whole, [
             "delta:héllo",
             "ignored",
             "delta: 你好😀界",
             "ignored",
             "delta:abcd",
-            "delta:<server-error>",
+            "failure:boom",
             "ignored",
             "done",
             "delta:tail",
@@ -281,16 +270,28 @@ final class SSEParserBranchTests: XCTestCase {
             line: #"data: {"choices":[{"delta":{"content":42}}]}"#)), "ignored")
     }
 
-    func testInStreamErrorBecomesDeltaWithServerErrorPrefix() {
-        // The prefix prose is localized; its frame ("\n\n[" ... "] ")
-        // and the server message payload are not.
-        let rendered = describe(SSEParser.parse(
-            line: #"data: {"error":{"message":"boom"}}"#))
-        XCTAssertTrue(rendered.hasPrefix("delta:\n\n["), rendered)
-        XCTAssertTrue(rendered.hasSuffix("] boom"), rendered)
-        // An error object without a message string is not surfaced.
+    func testInStreamErrorIsAFailureNeverAnswerText() {
+        // A gateway error after HTTP 200 must not become answer text: it would be
+        // saved as the reply and sent back to the model as "your previous answer".
         XCTAssertEqual(describe(SSEParser.parse(
-            line: #"data: {"error":{"code":500}}"#)), "ignored")
+            line: #"data: {"error":{"message":"boom"}}"#)), "failure:boom")
+        XCTAssertEqual(describe(SSEParser.parse(
+            line: #"data: {"error":"plain words"}"#)), "failure:plain words")
+        // An error object without a message is still an error.
+        XCTAssertEqual(describe(SSEParser.parse(line: #"data: {"error":{"code":500}}"#)),
+                       "failure:" + String(localized: "服务端没有返回说明。"))
+        XCTAssertEqual(describe(SSEParser.parse(line: #"data: {"error":null,"choices":[]}"#)), "ignored")
+    }
+
+    func testFinishReasonMarksTheLastChunkWithOrWithoutText() {
+        XCTAssertEqual(describe(SSEParser.parse(
+            line: #"data: {"choices":[{"delta":{},"finish_reason":"stop"}]}"#)), "finished:")
+        XCTAssertEqual(describe(SSEParser.parse(
+            line: #"data: {"choices":[{"delta":{"content":"end."},"finish_reason":"length"}]}"#)), "output-limit:end.")
+        XCTAssertEqual(describe(SSEParser.parse(
+            line: #"data: {"choices":[{"message":{"content":"full"},"finish_reason":"stop"}]}"#)), "finished:full")
+        XCTAssertEqual(describe(SSEParser.parse(
+            line: #"data: {"choices":[{"delta":{"content":"mid"},"finish_reason":null}]}"#)), "delta:mid")
     }
 
     func testDoneAndNonDataAndMalformedLines() {

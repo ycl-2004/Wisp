@@ -249,14 +249,20 @@ final class ConversationStore: ObservableObject {
         conversation.userTurnCount >= maxUserTurns
     }
 
-    /// 满额时会被顶掉的那一个：最久没更新的。UI 拿它来问用户「删这个可以吗」。
+    /// 满额时为了新建一个对话必须删掉的那些，最久没更新的在前。UI 拿它们来问用户
+    /// 「删这些可以吗」。平时只有一个；用户把上限调低到现有数量以下时不止一个——
+    /// 只删一个仍然是满的，新对话建不出来，用户却已经永久失去了一个对话。
     /// 正在流式生成的那个永不作数：流卡住时它的 updatedAt 不再刷新，
     /// 按时间挑正好会挑中它，答案会连同还在烧的 token 一起消失（#45）。
-    var evictionCandidate: Conversation? {
-        guard !canCreateNew else { return nil }
-        return conversations
+    /// 除它之外不够删的话返回空：这条路不提供。
+    var evictionCandidates: [Conversation] {
+        guard !canCreateNew else { return [] }
+        let needed = conversations.count - maxConversations + 1
+        let eligible = conversations
             .filter { $0.id != streamingConversationID }
-            .min { $0.updatedAt < $1.updatedAt }
+            .sorted { $0.updatedAt < $1.updatedAt }
+        guard eligible.count >= needed else { return [] }
+        return Array(eligible.prefix(needed))
     }
 
     // MARK: - 变更
@@ -272,13 +278,14 @@ final class ConversationStore: ObservableObject {
         return conversation
     }
 
-    /// 满额时腾位置再新建：删掉最久没更新的那个。
+    /// 满额时腾位置再新建：删掉 `evictionCandidates`（通常就是最久没更新的那一个）。
     /// 会真的删数据，所以只在用户点了确认之后调用。
     @discardableResult
     func createNewEvictingOldest() -> Conversation? {
-        if let victim = evictionCandidate {
-            conversations.removeAll { $0.id == victim.id }
-            if activeID == victim.id { activeID = nil }
+        let victims = Set(evictionCandidates.map(\.id))
+        if !victims.isEmpty {
+            conversations.removeAll { victims.contains($0.id) }
+            if let activeID, victims.contains(activeID) { self.activeID = nil }
         }
         return createNew()
     }
@@ -349,16 +356,15 @@ final class ConversationStore: ObservableObject {
         persist()
     }
 
-    func deleteAll() {
-        // 用户是奔着「本机什么都不留」来的，挡着写盘的那份文件也一并作废。
-        // 不清掉标志位的话，这一轮之后新建的对话会一直静默地写不进去。
+    /// Call after the factory reset has removed the store from disk.
+    func resetAfterDataWipe() {
         persistenceBlocked = false
         streamingConversationID = nil
         loadIssue = nil
+        saveIssue = nil
         conversations.removeAll()
         activeID = nil
         settings.lastActiveConversationID = nil
-        persist()
     }
 
     func flush() { persist() }

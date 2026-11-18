@@ -144,14 +144,15 @@ enum CloudProvider: String, CaseIterable, Identifiable {
 
         case .anthropic:
             return [
-                .init(slug: "claude-haiku-4-5-20251001",
-                      title: "Claude Haiku 4.5",
+                // 当前一代（5.5）。官方 ID 本身就是完整的，不带日期后缀。
+                .init(slug: "claude-haiku-5-5",
+                      title: "Claude Haiku 5.5",
                       note: String(localized: "最快最省的一档，适合看一眼截图就答")),
-                .init(slug: "claude-sonnet-5",
-                      title: "Claude Sonnet 5",
+                .init(slug: "claude-sonnet-5-5",
+                      title: "Claude Sonnet 5.5",
                       note: String(localized: "日常主力，长正文和截图混着读也稳")),
-                .init(slug: "claude-opus-5",
-                      title: "Claude Opus 5",
+                .init(slug: "claude-opus-5-5",
+                      title: "Claude Opus 5.5",
                       note: String(localized: "最强的一档，慢且贵，留给硬问题")),
             ]
 

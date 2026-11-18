@@ -9,32 +9,27 @@ import XCTest
 /// persistenceBlocked only for newer schema, deleteAll as the wipe
 /// escape. Each test below names the contract clause it pins.
 ///
-/// This is the macOS original; the Linux harness port of this file
-/// runs the same bodies behind a @MainActor bridge (corelibs-xctest
-/// traps on @MainActor test discovery).
-@MainActor
+/// The test entry points are nonisolated and hop into @MainActor bodies
+/// through `onMainActor` (MainActorBridge.swift): corelibs-xctest traps
+/// when it discovers a @MainActor test, and this one file serves both
+/// macOS CI and the Linux harness.
 final class ConversationStoreMatrixTests: XCTestCase {
-
-
-    @MainActor
-    private func withStore(prewritten: Data? = nil,
-                           _ body: (ConversationStore, URL, AppSettings) throws -> Void) throws {
-        let suite = "wisp-matrix-" + UUID().uuidString
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer {
-            defaults.removePersistentDomain(forName: suite)
-            try? FileManager.default.removeItem(at: directory)
-        }
-        let settings = AppSettings(defaults: defaults)
-        let file = directory.appendingPathComponent("conversations.json")
-        if let prewritten { try prewritten.write(to: file) }
-        try body(ConversationStore(fileURL: file, settings: settings), file, settings)
-    }
+    func testMissingAndZeroByteFiles() throws { try onMainActor { try self.impl_testMissingAndZeroByteFiles() } }
+    func testTruncatedJSONAtCutPointsRecoversWithBackup() throws { try onMainActor { try self.impl_testTruncatedJSONAtCutPointsRecoversWithBackup() } }
+    func testWrongTypeFieldsFallBackSilently() throws { try onMainActor { try self.impl_testWrongTypeFieldsFallBackSilently() } }
+    func testTopLevelArrayIsRecoveredNotLoaded() throws { try onMainActor { try self.impl_testTopLevelArrayIsRecoveredNotLoaded() } }
+    func testDuplicateIDsAreKeptAndDeleteRemovesAllCopies() throws { try onMainActor { try self.impl_testDuplicateIDsAreKeptAndDeleteRemovesAllCopies() } }
+    func testVersionBoundaryValues() throws { try onMainActor { try self.impl_testVersionBoundaryValues() } }
+    func testDeleteAllUnblocksNewerVersionStore() throws { try onMainActor { try self.impl_testDeleteAllUnblocksNewerVersionStore() } }
+    func testArchiveWithoutBlockIsANoOp() throws { try onMainActor { try self.impl_testArchiveWithoutBlockIsANoOp() } }
+    func testCorruptBackupsArePrunedToThree() throws { try onMainActor { try self.impl_testCorruptBackupsArePrunedToThree() } }
+    func testSecondRecoveryWithinTheSameSecondStillRecovers() throws { try onMainActor { try self.impl_testSecondRecoveryWithinTheSameSecondStillRecovers() } }
+    func testNoOpsOnUnknownIDsDoNotRewriteTheFile() throws { try onMainActor { try self.impl_testNoOpsOnUnknownIDsDoNotRewriteTheFile() } }
+    func testLoweredLimitEvictsEnoughForTheNewConversation() throws { try onMainActor { try self.impl_testLoweredLimitEvictsEnoughForTheNewConversation() } }
+    func testCreateNewEvictingOldestWhenNotFullJustCreates() throws { try onMainActor { try self.impl_testCreateNewEvictingOldestWhenNotFullJustCreates() } }
 
     @MainActor
-    func testMissingAndZeroByteFiles() throws {
+    private func impl_testMissingAndZeroByteFiles() throws {
         try withStore { store, file, _ in
             // Missing file: silent empty start, no issue, writable.
             XCTAssertTrue(store.conversations.isEmpty)
@@ -57,7 +52,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testTruncatedJSONAtCutPointsRecoversWithBackup() throws {
+    private func impl_testTruncatedJSONAtCutPointsRecoversWithBackup() throws {
         // Build a real persisted file first.
         let suite = "wisp-matrix-src-" + UUID().uuidString
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -91,7 +86,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testWrongTypeFieldsFallBackSilently() throws {
+    private func impl_testWrongTypeFieldsFallBackSilently() throws {
         // Contract (Conversation.swift): tolerant decode — a field with
         // the wrong type falls back, it does not fail the file. These
         // loads are silent: no recovery, no backup, no read-only.
@@ -119,7 +114,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testTopLevelArrayIsRecoveredNotLoaded() throws {
+    private func impl_testTopLevelArrayIsRecoveredNotLoaded() throws {
         try withStore(prewritten: Data("[]".utf8)) { store, file, _ in
             guard case .recovered(let backup) = store.loadIssue else {
                 return XCTFail("top-level array must recover")
@@ -130,7 +125,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testDuplicateIDsAreKeptAndDeleteRemovesAllCopies() throws {
+    private func impl_testDuplicateIDsAreKeptAndDeleteRemovesAllCopies() throws {
         // Since audit #49 the load path dedupes: the app's own lookups
         // are all first-match (append/update) except delete's removeAll,
         // so duplicate IDs made one copy unreachable-but-deletable.
@@ -154,7 +149,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testVersionBoundaryValues() throws {
+    private func impl_testVersionBoundaryValues() throws {
         // version == current loads; current + 1 blocks (the acceptance
         // suite only ever tried 999).
         try withStore(prewritten: Data(#"{"version":1,"conversations":[]}"#.utf8)) { store, _, _ in
@@ -176,22 +171,24 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testDeleteAllUnblocksNewerVersionStore() throws {
-        // The wipe escape documented in deleteAll(): without clearing
+    private func impl_testDeleteAllUnblocksNewerVersionStore() throws {
+        // The factory reset must clear the read-only flag. Otherwise
         // the flag, everything created after a wipe would silently
         // never persist.
         try withStore(prewritten: Data(#"{"version":999,"conversations":[]}"#.utf8)) { store, file, settings in
             XCTAssertTrue(store.isReadOnly)
-            store.deleteAll()
+            try settings.wipeLocalData(in: file.deletingLastPathComponent())
+            store.resetAfterDataWipe()
             XCTAssertFalse(store.isReadOnly)
             XCTAssertNil(store.loadIssue)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
             XCTAssertNotNil(store.createNew())
             XCTAssertEqual(ConversationStore(fileURL: file, settings: settings).conversations.count, 1)
         }
     }
 
     @MainActor
-    func testArchiveWithoutBlockIsANoOp() throws {
+    private func impl_testArchiveWithoutBlockIsANoOp() throws {
         try withStore { store, file, _ in
             XCTAssertNil(store.archiveBlockingFileAndReset())
             XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
@@ -199,7 +196,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testCorruptBackupsArePrunedToThree() throws {
+    private func impl_testCorruptBackupsArePrunedToThree() throws {
         // Seed the directory BEFORE the store loads: three older backups
         // (equal-width epochs, so the name sort the pruner uses matches
         // age order) plus a fresh corrupt file. The load's recovery adds
@@ -243,7 +240,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     /// one second — but the silent no-issue path contradicts load()'s
     /// own "不静默吞掉" contract.)
     @MainActor
-    func testSecondRecoveryWithinTheSameSecondStillRecovers() throws {
+    private func impl_testSecondRecoveryWithinTheSameSecondStillRecovers() throws {
         // Audit round 4, #33: the recovery backup name has one-second
         // granularity, so a second recovery inside the same second found
         // its destination already taken, moveItem failed, and the whole
@@ -283,7 +280,7 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testNoOpsOnUnknownIDsDoNotRewriteTheFile() throws {
+    private func impl_testNoOpsOnUnknownIDsDoNotRewriteTheFile() throws {
         try withStore { store, file, _ in
             let conversation = try XCTUnwrap(store.createNew())
             let before = try Data(contentsOf: file)
@@ -303,12 +300,34 @@ final class ConversationStoreMatrixTests: XCTestCase {
     }
 
     @MainActor
-    func testCreateNewEvictingOldestWhenNotFullJustCreates() throws {
+    private func impl_testCreateNewEvictingOldestWhenNotFullJustCreates() throws {
         try withStore { store, _, settings in
             settings.maxConversations = 3
-            XCTAssertNil(store.evictionCandidate)
+            XCTAssertTrue(store.evictionCandidates.isEmpty)
             let created = try XCTUnwrap(store.createNewEvictingOldest())
             XCTAssertEqual(store.conversations.map(\.id), [created.id])
+        }
+    }
+    /// The user had 10 conversations and lowered the limit to 5. One confirmation
+    /// used to delete one conversation and create nothing (9 ≥ 5), every time.
+    @MainActor
+    private func impl_testLoweredLimitEvictsEnoughForTheNewConversation() throws {
+        let now = Date()
+        let old = (0..<10).map { index in
+            Conversation(title: "C\(index)", createdAt: now,
+                         updatedAt: now.addingTimeInterval(Double(index) * 60))
+        }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(ConversationFile(conversations: old))
+        try withStore(prewritten: data) { store, _, settings in
+            settings.maxConversations = 5
+            XCTAssertEqual(store.evictionCandidates.map(\.title), ["C0", "C1", "C2", "C3", "C4", "C5"],
+                           "six must go so the new conversation fits under five")
+            let created = try XCTUnwrap(store.createNewEvictingOldest())
+            XCTAssertEqual(store.conversations.count, 5)
+            XCTAssertEqual(store.conversations.first?.id, created.id)
+            XCTAssertEqual(Set(store.conversations.dropFirst().map(\.title)), ["C6", "C7", "C8", "C9"])
         }
     }
 }

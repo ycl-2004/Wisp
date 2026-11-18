@@ -82,9 +82,17 @@ struct StreamByteBudget {
 
 /// 解析 OpenAI 风格的 SSE 行，取出 choices[0].delta.content。
 enum SSEParser {
-    enum Event {
+    enum Event: Equatable {
         case delta(String)
+        /// 正常结束的最后一块，也可能带最后一段文字。
+        /// 有的网关不发 `[DONE]` 就关连接，这是另一个「回答完整」的信号。
+        case finished(String)
+        /// `finish_reason: "length"`：流已收尾，模型的回答被输出上限截断。
+        case outputLimitReached(String)
         case done
+        /// 网关把错误塞进了流里（HTTP 状态已经是 200）。不能当回答正文：
+        /// 它会被存进对话，下一轮还会作为「上一轮回答」发回给模型。
+        case failure(String)
         case ignored
     }
 
@@ -97,29 +105,35 @@ enum SSEParser {
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return .ignored
         }
-        // 有的网关会把错误塞进流里。
-        if let error = object["error"] as? [String: Any],
-           let message = error["message"] as? String {
-            return .delta(String(localized: "\n\n[服务端错误] \(message)"))
+        if let error = object["error"] as? [String: Any] {
+            let message = (error["message"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            return .failure(message ?? String(localized: "服务端没有返回说明。"))
         }
+        if let message = object["error"] as? String, !message.isEmpty { return .failure(message) }
         guard let choices = object["choices"] as? [[String: Any]],
               let first = choices.first else { return .ignored }
-        if let delta = first["delta"] as? [String: Any] {
-            if let content = delta["content"] as? String, !content.isEmpty {
-                return .delta(content)
-            }
+        let text = content(of: first)
+        if let reason = first["finish_reason"] as? String, !reason.isEmpty {
+            return reason == "length" ? .outputLimitReached(text) : .finished(text)
+        }
+        return text.isEmpty ? .ignored : .delta(text)
+    }
+
+    private static func content(of choice: [String: Any]) -> String {
+        if let delta = choice["delta"] as? [String: Any] {
+            if let content = delta["content"] as? String, !content.isEmpty { return content }
             // 少数网关把内容包成数组。
             if let parts = delta["content"] as? [[String: Any]] {
                 let text = parts.compactMap { $0["text"] as? String }.joined()
-                if !text.isEmpty { return .delta(text) }
+                if !text.isEmpty { return text }
             }
         }
         // 非流式回退。
-        if let message = first["message"] as? [String: Any],
-           let content = message["content"] as? String, !content.isEmpty {
-            return .delta(content)
+        if let message = choice["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content
         }
-        return .ignored
+        return ""
     }
 
     /// 从非流式错误响应里挖出可读信息。

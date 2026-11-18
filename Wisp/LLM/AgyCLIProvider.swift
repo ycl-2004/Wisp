@@ -112,7 +112,7 @@ struct AgyCLIProvider: ChatProvider {
         let flattened = CodexCLIProvider.flattenBody(messages)
 
         return AsyncThrowingStream { continuation in
-            let box = RunBox()
+            let box = CLIRunBox()
             let work = Task.detached(priority: .userInitiated) {
                 var workDirectory: URL?
                 do {
@@ -185,7 +185,7 @@ struct AgyCLIProvider: ChatProvider {
                                     binary: String,
                                     model: String,
                                     workDirectory: URL,
-                                    box: RunBox,
+                                    box: CLIRunBox,
                                     onText: (String) -> Void) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: binary)
@@ -256,53 +256,6 @@ struct AgyCLIProvider: ChatProvider {
     }
 
     // MARK: - 子进程
-
-    /// 读循环跑在 detached task 里轮询管道，Task.isCancelled 它看不见。
-    /// 所以取消和超时都不去「通知」那个循环，而是直接杀进程：管道一 EOF，循环自然退出。
-    private final class RunBox: @unchecked Sendable {
-        enum Stop { case cancelled, timedOut }
-
-        private let lock = NSLock()
-        private var process: Process?
-        private var stopReason: Stop?
-        private var settled = false
-
-        func start(_ process: Process) throws {
-            lock.lock(); defer { lock.unlock() }
-            guard !settled else { throw ProviderError.cancelled }
-            self.process = process
-            try process.run()
-        }
-
-        /// - Parameter onlyIfRunning: 看门狗专用。进程已经自己退出了就什么都不做，
-        ///   否则答案明明已经拿到，却还要挨一句「超时」。
-        func stop(_ reason: Stop, onlyIfRunning: Bool = false) {
-            lock.lock()
-            guard !settled else { lock.unlock(); return }
-            if onlyIfRunning, process?.isRunning != true { lock.unlock(); return }
-            stopReason = reason
-            let target = process
-            settled = true
-            process = nil
-            lock.unlock()
-
-            guard let target, target.isRunning else { return }
-            target.terminate()
-            // SIGTERM 不一定收得住，补一刀兜底。
-            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
-                if target.isRunning { kill(target.processIdentifier, SIGKILL) }
-            }
-        }
-
-        func finish() {
-            lock.lock(); settled = true; process = nil; lock.unlock()
-        }
-
-        var reason: Stop? {
-            lock.lock(); defer { lock.unlock() }
-            return stopReason
-        }
-    }
 
     private static func pathForUse(_ configured: String) async -> String? {
         let trimmed = configured.trimmingCharacters(in: .whitespacesAndNewlines)

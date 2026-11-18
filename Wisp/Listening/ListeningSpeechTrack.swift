@@ -128,10 +128,15 @@ final class ListeningSpeechScheduler {
 /// Groups audio without omitting quiet speech. A short pause is preferred as a
 /// boundary; continuous speech is flushed after four seconds. File IO shares the queue.
 final class ListeningSpeechTrack {
+    /// 单条音轨保存音频的上限。到了只停保存，不停录音和转写。
+    static let audioByteLimit: Int64 = 256 * 1024 * 1024
+
     private let source: ListeningSource
     private let scheduler: ListeningSpeechScheduler
     private let onFailure: (String) -> Void
+    private let onNotice: (String) -> Void
     private let directory: URL?
+    private let audioByteLimit: Int64
     private var buffers: [AVAudioPCMBuffer] = []
     private var duration: TimeInterval = 0
     private var quietDuration: TimeInterval = 0
@@ -139,37 +144,68 @@ final class ListeningSpeechTrack {
     private var file: AVAudioFile?
     private var filePart = 0
     private var writtenBytes: Int64 = 0
+    private var bytesPerSecond: Double = 0
+    private var audioCapped = false
     private var stopped = false
 
     init(source: ListeningSource, scheduler: ListeningSpeechScheduler, directory: URL?,
-         onFailure: @escaping (String) -> Void) {
+         onFailure: @escaping (String) -> Void, onNotice: @escaping (String) -> Void = { _ in },
+         audioByteLimit: Int64 = ListeningSpeechTrack.audioByteLimit) {
         self.source = source
         self.scheduler = scheduler
         self.directory = directory
+        self.audioByteLimit = audioByteLimit
         self.onFailure = onFailure
+        self.onNotice = onNotice
+    }
+
+    /// 保存音频用的文件格式和它每秒大约写多少字节（用来记账）。
+    ///
+    /// 能压就压成 AAC：原样存 float32 时 48 kHz 单声道每秒 192 KB，256 MiB 二十来分钟就满，
+    /// AAC 每声道 64 kbps 只有 8 KB/s，两小时的会话上限内也到不了顶。只在 44.1/48 kHz、
+    /// 单/双声道时用 AAC——实测 16 kHz 配这个码率在创建时失败，96 kHz 要到写入时才失败；
+    /// 其余格式照旧存 PCM。
+    static func fileSettings(for format: AVAudioFormat) -> (settings: [String: Any], bytesPerSecond: Double) {
+        if [44_100, 48_000].contains(format.sampleRate), (1...2).contains(format.channelCount) {
+            let bitRate = 64_000 * Int(format.channelCount)
+            return ([AVFormatIDKey: kAudioFormatMPEG4AAC,
+                     AVSampleRateKey: format.sampleRate,
+                     AVNumberOfChannelsKey: format.channelCount,
+                     AVEncoderBitRateKey: bitRate], Double(bitRate) / 8)
+        }
+        let bytesPerFrame = Double(format.streamDescription.pointee.mBytesPerFrame)
+            * Double(format.isInterleaved ? 1 : format.channelCount)
+        return (format.settings, format.sampleRate * bytesPerFrame)
     }
 
     func append(_ buffer: AVAudioPCMBuffer, offset: TimeInterval) {
         guard !stopped, buffer.frameLength > 0 else { return }
         do {
-            if let directory {
+            if let directory, !audioCapped {
                 if file == nil || file?.processingFormat != buffer.format {
                     guard filePart < 128 else {
                         throw ListeningFailure(message: String(localized: "音频格式变化过多，录音已停止。请检查音频设备后重试。"))
                     }
                     filePart += 1
                     let url = directory.appendingPathComponent("\(source.rawValue)-\(filePart).caf")
-                    file = try AVAudioFile(forWriting: url, settings: buffer.format.settings,
+                    let format = Self.fileSettings(for: buffer.format)
+                    file = try AVAudioFile(forWriting: url, settings: format.settings,
                                            commonFormat: buffer.format.commonFormat,
                                            interleaved: buffer.format.isInterleaved)
+                    bytesPerSecond = format.bytesPerSecond
                 }
-                let bytes = Int64(buffer.frameLength) * Int64(buffer.format.streamDescription.pointee.mBytesPerFrame)
-                    * Int64(buffer.format.isInterleaved ? 1 : buffer.format.channelCount)
-                if writtenBytes + bytes > 256 * 1024 * 1024 {
-                    throw ListeningFailure(message: String(localized: "本次音频已达到保存上限，录音已停止。可以开始新的记录。"))
+                let seconds = Double(buffer.frameLength) / buffer.format.sampleRate
+                let bytes = Int64((seconds * bytesPerSecond).rounded(.up))
+                if writtenBytes + bytes > audioByteLimit {
+                    // 以前这里抛错，整场录音连同转写一起停。音频只是附带保存的东西，
+                    // 满了就停存音频、关文件，转写照常往下走。
+                    audioCapped = true
+                    file = nil
+                    onNotice(String(localized: "这段录音的音频已经存到上限，之后只保留文字转写，录音继续。"))
+                } else {
+                    try file?.write(from: buffer)
+                    writtenBytes += bytes
                 }
-                try file?.write(from: buffer)
-                writtenBytes += bytes
             }
             if let previous = buffers.last, previous.format != buffer.format { flush() }
             if buffers.isEmpty { self.offset = offset }

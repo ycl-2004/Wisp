@@ -5,7 +5,7 @@ import SwiftUI
 /// 首次设置向导（#8）：一个模型都没连上时打开。一张 sheet、四块内容、
 /// 一个出口 —— 连接模型直接复用设置页的 `ModelSettingsView` 本体，
 /// 两处永远不可能对「什么算配置好了」有不同理解。设计见
-/// `ONBOARDING-DESIGN.md`。
+/// `docs/records/ONBOARDING-DESIGN.md`。
 struct OnboardingView: View {
     @EnvironmentObject private var model: AssistantModel
     @Environment(\.openSettings) private var openSettings

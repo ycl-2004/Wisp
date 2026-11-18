@@ -1,5 +1,5 @@
 import XCTest
-@testable import WispCore
+@testable import Wisp
 
 /// Audit round 6, part A.3: executable Python fakes standing in for the
 /// real `claude` / `codex` / `agy` binaries, emitting each tool's real
@@ -141,7 +141,11 @@ final class Round6CLIProviderTests: XCTestCase {
         XCTAssertLessThan(elapsed, 11, "completion must beat the grandchild's 12 s hold; took \(elapsed)s")
     }
 
-    func testClaudeMissingBinaryIsNotFound() async {
+    func testClaudeMissingBinaryIsNotFound() async throws {
+        // A missing configured path falls back to a detected install by design. On a
+        // machine that has a real `claude`, this test would run it and spend a real
+        // request, so it only runs where no claude is installed (CI runners).
+        try XCTSkipIf(ClaudeCodeCLIProvider.detectedPath != nil, "a real claude is installed; the provider would fall back to it")
         let provider = ClaudeCodeCLIProvider()
         let config = ProviderConfig(cliPath: "/nonexistent/definitely-not-claude")
         let (_, error, timedOut) = await collect(provider.stream(messages: messages(), config: config), timeout: 10)
@@ -235,7 +239,11 @@ final class Round6CLIProviderTests: XCTestCase {
         }
     }
 
-    func testCodexMissingBinaryIsNotFound() async {
+    func testCodexMissingBinaryIsNotFound() async throws {
+        // A missing configured path falls back to a detected install by design. On a
+        // machine that has a real `codex`, this test would run it and spend a real
+        // request, so it only runs where no codex is installed (CI runners).
+        try XCTSkipIf(CodexCLIProvider.detectedPath != nil, "a real codex is installed; the provider would fall back to it")
         let provider = CodexCLIProvider()
         let config = ProviderConfig(kind: .codexCLI, cliPath: "/nonexistent/definitely-not-codex")
         let (_, error, timedOut) = await collect(provider.stream(messages: messages(), config: config), timeout: 10)
@@ -282,7 +290,11 @@ final class Round6CLIProviderTests: XCTestCase {
         XCTAssertTrue(detail.contains("quota exhausted"), detail)
     }
 
-    func testAgyMissingBinaryIsNotFound() async {
+    func testAgyMissingBinaryIsNotFound() async throws {
+        // A missing configured path falls back to a detected install by design. On a
+        // machine that has a real `agy`, this test would run it and spend a real
+        // request, so it only runs where no agy is installed (CI runners).
+        try XCTSkipIf(AgyCLIProvider.detectedPath != nil, "a real agy is installed; the provider would fall back to it")
         let provider = AgyCLIProvider()
         let config = ProviderConfig(cliPath: "/nonexistent/definitely-not-agy")
         let (_, error, timedOut) = await collect(provider.stream(messages: messages(), config: config), timeout: 15)

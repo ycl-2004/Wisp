@@ -39,7 +39,7 @@ final class LocalSpeechCatalog: ObservableObject {
     /// Set once the user asks for a scan. Reading ~/Documents raises a macOS permission prompt,
     /// so Settings only scans on its own after that, or while a local model is selected: opening
     /// the page never raises the prompt unasked.
-    private static let scanRequestedKey = "localSpeechScanRequested"
+    private static let scanRequestedKey = AppSettings.localSpeechScanRequestedKey
 
     private init() {}
 

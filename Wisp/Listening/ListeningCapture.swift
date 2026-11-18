@@ -15,7 +15,8 @@ final class ListeningAudioSink: @unchecked Sendable {
     private var acceptsAudio = true
 
     init(mode: ListeningMode, locale: String, recognition: LocalSpeechRecognition? = nil, directory: URL?,
-         onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
+         onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void,
+         onNotice: @escaping @Sendable (String) -> Void = { _ in }) throws {
         self.onFailure = onFailure
         if let recognition {
             scheduler = ListeningSpeechScheduler(queue: queue, recognize: recognition.recognize,
@@ -25,7 +26,7 @@ final class ListeningAudioSink: @unchecked Sendable {
         }
         for source in mode.sources {
             tracks[source] = ListeningSpeechTrack(source: source, scheduler: scheduler,
-                                                  directory: directory, onFailure: onFailure)
+                                                  directory: directory, onFailure: onFailure, onNotice: onNotice)
         }
     }
 
@@ -92,11 +93,13 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     private var engineObserver: NSObjectProtocol?
     private var accepting = true
 
+    /// `onNotice`：不中断录音的提示（比如音频保存到了上限）。
     init(mode: ListeningMode, locale: String, recognition: LocalSpeechRecognition? = nil, directory: URL?,
-         onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
+         onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void,
+         onNotice: @escaping @Sendable (String) -> Void = { _ in }) throws {
         self.onFailure = onFailure
         sink = try ListeningAudioSink(mode: mode, locale: locale, recognition: recognition, directory: directory,
-                                      onSegment: onSegment, onFailure: onFailure)
+                                      onSegment: onSegment, onFailure: onFailure, onNotice: onNotice)
         super.init()
     }
 

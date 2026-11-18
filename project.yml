@@ -57,7 +57,7 @@ targets:
       path: Wisp/App/Info.plist
       properties:
         CFBundleName: Wisp
-        CFBundleLocalizations: [zh-Hans, zh-Hant, en]
+        CFBundleLocalizations: [zh-Hans, en]
         CFBundleDevelopmentRegion: zh-Hans
         CFBundleDisplayName: Wisp
         CFBundleShortVersionString: $(MARKETING_VERSION)

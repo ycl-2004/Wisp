@@ -2,7 +2,77 @@
 
 ## Unreleased
 
+### Added
+
+- First-run onboarding: a sheet that connects a model, grants screen capture and teaches
+  the summon shortcut. Readiness is judged on the connection actually selected.
+- Recording notes panel: a floating notes field for talking points during a recording,
+  with its own optional shortcut.
+- Saved listening audio uses AAC for common device formats (44.1/48 kHz, mono or
+  stereo), about 8 KB/s per channel instead of 192 KB/s of float PCM; other formats are
+  still saved as PCM.
+
+### Changed
+
+- The interface ships in English and Simplified Chinese only. The machine-converted
+  Traditional Chinese localization, never reviewed, is removed; the Chinese README is
+  now Simplified Chinese (`README.zh-CN.md`).
+- Anthropic presets move to the current models: Claude Haiku 5.5, Sonnet 5.5 and
+  Opus 5.5. A model already saved in Settings is kept.
+- KeyboardShortcuts 3.1.0 (its recorder works on macOS 26 and later); CI builds on
+  macos-26 with Xcode 26.
+- Conversations are stored as compact JSON instead of pretty-printed.
+- The Settings window can be resized.
+
 ### Fixed
+
+- A long meeting sent with Stop & analyze no longer loses its beginning silently. When
+  the transcript exceeds the space left in the 12,000-character draft after the
+  question, the transcript starts with the time span it left out. A provisional line
+  stays pending so its final wording can go out next time.
+- An error a gateway sends inside an HTTP 200 stream is shown as an error, not saved as
+  the answer (and no longer sent back to the model as its previous reply). A stream that
+  ends without `[DONE]` or a `finish_reason` is marked as unfinished. A model that reaches
+  its output limit also leaves a marked partial answer and reports why it stopped.
+- Saving a new API key updates the Keychain item in place. A failed save no longer
+  deletes the key that was working.
+- After lowering the conversation limit below the number of conversations, “delete the
+  oldest and create” removes as many as needed and creates the conversation; it used to
+  delete one conversation per click and create nothing.
+- With **Save audio** on, reaching the audio cap stops only audio saving; transcription
+  and the session continue. It used to stop the whole session about 22 minutes in.
+- “Delete all data and settings” now also resets response modes and their models,
+  voice preferences (including Save audio), custom commands, the local-model scan flag,
+  the interface-language pin and app shortcuts. If files or API keys could not be
+  deleted, the Settings window reports the failure.
+- Page text keeps repeated lines. Code (`}`, `return`), tables and chat messages lost
+  every repeated line, because the first read deduplicated lines on every page; only
+  later scroll-collection passes deduplicate now.
+- Choosing an enhanced trigger (Shift, Globe, double/triple tap) unregisters the
+  standard `⌃⌥Space` hotkey, which otherwise stayed captured system-wide and did
+  nothing. The hide-menu-bar dialog names the shortcut that actually works.
+- Audit rounds 1–7 (53 issues): bounded every CLI and HTTP read, capped streamed and
+  error bodies, closed process-launch and capture races, made the conversation store
+  refuse to overwrite unreadable or newer files and report read/write failures, never
+  evict the conversation that is streaming, surfaced corrupt custom commands instead of
+  overwriting them, and fixed the release checksum commands. Records are in
+  `docs/records/`.
+- Permission prompts follow the interface language (English strings added).
+
+### Documentation
+
+- PRIVACY.md and the README say plainly that Codex's read-only sandbox does not limit
+  reads, unlike Claude Code's restricted mode.
+- README credits list sherpa-onnx and ONNX Runtime, which the app bundles.
+
+### Tests
+
+- `WispTests` is the only place tests are written. The Linux harness copies the
+  Foundation-only test files in at sync time instead of keeping diverged ports, also
+  runs on a Mac without launching the app, and the round-6 end-to-end suites now run in
+  macOS CI too. Tests that would fall back to a real installed CLI skip instead of
+  spending a real request. Factory reset tests use temporary storage, and the stream
+  and transcript checks also run under the English interface.
 
 - Privacy cursor lock is no longer disabled when window hiding is off. Enabling the lock
   enables its required window hiding; turning off window hiding also turns off the lock.

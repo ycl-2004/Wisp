@@ -6,7 +6,7 @@ struct ChatView: View {
     @EnvironmentObject var store: ConversationStore
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var commands = QuickCommandStore.shared
-    @AppStorage("settingsTab") private var settingsTab: SettingsView.Tab = .model
+    @AppStorage(AppSettings.settingsTabKey) private var settingsTab: SettingsView.Tab = .model
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var focusRequest = 0
@@ -95,7 +95,12 @@ struct ChatView: View {
             Button("删掉最旧的并新建", role: .destructive) { model.evictOldestAndCreate() }
             Button("取消", role: .cancel) { model.confirmsEviction = false }
         } message: {
-            Text("「\(model.evictionCandidateTitle ?? "")」是最久没更新的那个，它会被永久删除，无法撤销。")
+            let candidates = model.evictionCandidateTitles
+            if candidates.count > 1 {
+                Text("上限比现有的对话少，要删掉最久没更新的 \(candidates.count) 个：\(ListFormatter.localizedString(byJoining: candidates))。它们会被永久删除，无法撤销。")
+            } else {
+                Text("「\(candidates.first ?? "")」是最久没更新的那个，它会被永久删除，无法撤销。")
+            }
         }
     }
 

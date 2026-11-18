@@ -195,34 +195,47 @@ struct OpenAICompatibleProvider: ChatProvider {
                         // 一次回答喂到失控，按原始字节计数，超限同样中断。
                         var splitter = SSELineSplitter()
                         var byteBudget = StreamByteBudget()
+                        // 有的网关正常收尾时只发 finish_reason，不发 [DONE]。
+                        // 输出上限和服务端错误由对应事件报告，没等到结束信号则视为断流。
                         var sawDone = false
+                        var sawFinish = false
+                        func handle(_ event: SSEParser.Event) throws {
+                            switch event {
+                            case .delta(let text): continuation.yield(text)
+                            case .finished(let text):
+                                if !text.isEmpty { continuation.yield(text) }
+                                sawFinish = true
+                            case .outputLimitReached(let text):
+                                if !text.isEmpty { continuation.yield(text) }
+                                throw ProviderError.outputLimitReached
+                            case .done: sawDone = true
+                            case .failure(let message): throw ProviderError.upstream(message)
+                            case .ignored: break
+                            }
+                        }
                         for try await byte in bytes {
                             if Task.isCancelled { break }
                             try byteBudget.add()
                             guard let line = try splitter.feed(byte) else { continue }
-                            switch SSEParser.parse(line: line) {
-                            case .delta(let text): continuation.yield(text)
-                            case .done: sawDone = true
-                            case .ignored: continue
-                            }
+                            try handle(SSEParser.parse(line: line))
                             if sawDone { break }
                         }
                         // 没等到 [DONE] 就断流时，最后一行往往没有换行结尾，
                         // 和 `bytes.lines` 一样把残行也交出去，别丢掉收尾的增量。
-                        if !sawDone, !Task.isCancelled, let line = splitter.finish(),
-                           case .delta(let text) = SSEParser.parse(line: line) {
-                            continuation.yield(text)
+                        if !sawDone, !Task.isCancelled, let line = splitter.finish() {
+                            try handle(SSEParser.parse(line: line))
                         }
                         try Task.checkCancellation()
+                        guard sawDone || sawFinish else { throw ProviderError.incompleteStream }
                         continuation.finish()
                         return
                     }
                 } catch is CancellationError {
                     continuation.finish(throwing: ProviderError.cancelled)
                 } catch is SSELineSplitter.Failure {
-                    continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的单行数据过长，已中断。")))
+                    continuation.finish(throwing: ProviderError.streamLineTooLong)
                 } catch is StreamByteBudget.Failure {
-                    continuation.finish(throwing: ProviderError.network(String(localized: "服务端返回的数据总量过大，已中断。")))
+                    continuation.finish(throwing: ProviderError.streamTooLarge)
                 } catch let error as ProviderError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError {

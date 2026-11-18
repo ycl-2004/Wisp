@@ -62,17 +62,20 @@ enum PageTextScript {
         return s;
       }
       // 把当前渲染出来的文字并进累积结果，返回这次新增了多少行。
-      // 虚拟滚动会把同一块反复渲染，所以一律按整行内容去重。
-      // 代价是文档里完全相同的两行会被合成一行——散文里极罕见；换来的是
-      // 「正文」「封面」这类短标签不会每滚一屏就被重新追加一次。
-      function wAbsorb(s) {
+      // keepRepeats：第一次读（普通页面唯一的一次）原样保留重复行——代码里的 `}`、
+      // `return`，表格里相同的数值，聊天里的「好的」都是真内容，以前也被合成了一行。
+      // 只有滚动采集的后续几次才按整行去重：虚拟滚动会把同一块反复渲染，「正文」
+      // 「封面」这类短标签不能每滚一屏就被重新追加一次。代价是后几屏里与前文
+      // 完全相同的行会被合掉，只发生在用户打开了滚动采集的页面上。
+      function wAbsorb(s, keepRepeats) {
         var root = wReadRoot();
         var raw = root ? (root.innerText || root.textContent || "") : "";
         var lines = raw.split("\n");
         var added = 0;
         for (var i = 0; i < lines.length; i++) {
           var ln = lines[i].replace(/[ \t\u00A0\u200B]+/g, " ").trim();
-          if (!ln || s.seen[ln]) continue;
+          if (!ln) continue;
+          if (s.seen[ln] && !keepRepeats) continue;
           s.seen[ln] = 1;
           s.parts.push(ln);
           added++;
@@ -111,7 +114,7 @@ enum PageTextScript {
         \#(helpers)
           try {
             var s = wState(true);
-            wAbsorb(s);
+            wAbsorb(s, true);
             var iframes = wCollectIframes(s);
             var sel = "";
             try { sel = wClean(window.getSelection().toString()); } catch (e) { sel = ""; }

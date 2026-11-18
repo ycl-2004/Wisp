@@ -16,6 +16,12 @@ extension KeyboardShortcuts.Name {
     static let pushToTalk = Self("pushToTalk")
     /// 录制笔记面板开关。默认不分配，和 pushToTalk 一样等用户自己录。
     static let toggleNotes = Self("toggleNotes")
+
+    /// 上面每一个。恢复出厂时一起重置回默认（常用指令的快捷键由 QuickCommandStore 自己管）。
+    static let appDefined: [Self] = [
+        .responseQuick, .responseDeep, .toggleListening, .stageListening, .analyzeListening,
+        .stopAndAnalyzeListening, .toggleAssistant, .pushToTalk, .toggleNotes,
+    ]
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -164,6 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 PanelController.shared.toggle()
             }
         }
+        Self.applyShortcutTrigger()
 
         for (name, mode) in [(KeyboardShortcuts.Name.responseQuick, ResponseMode.quick),
                              (.responseDeep, .deep)] {
@@ -206,6 +213,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 只有标准组合能交给 `keyEquivalent`：它一个格子只放得下一个字符，
     /// 表达不了「连按两次 Control」，硬塞进去既会把 F13 显示成 F，
     /// 也会给菜单登记一个用户没设过的按键。所以另外三种模式改走 attributedTitle，
+    /// 标准快捷键（默认 ⌃⌥Space）只在「标准」触发方式下注册。Carbon 热键一注册就在全系统
+    /// 吞掉这组键，回调里再判断模式已经晚了：换成双击 Control 之后，⌃⌥Space 在任何应用里
+    /// 都按不出来，也不会唤起 Wisp。切换触发方式和恢复出厂之后都要调一次。
+    @MainActor
+    static func applyShortcutTrigger() {
+        if AppSettings.shared.shortcutTrigger == .standard {
+            KeyboardShortcuts.enable(.toggleAssistant)
+        } else {
+            KeyboardShortcuts.disable(.toggleAssistant)
+        }
+    }
+
     /// 纯粹当说明文字画上去，不参与按键匹配。
     @MainActor
     private static func annotateSummonItem(_ menu: NSMenu) {
