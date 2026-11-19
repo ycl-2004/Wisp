@@ -214,8 +214,8 @@ final class LocalCursorController {
 }
 
 /// This is the only cursor window Wisp creates. It is always private.
-final class CursorPresentationWindow: NSPanel, CursorSharingSurface {
-    var cursorSharingType: NSWindow.SharingType { .none }
+final class CursorPresentationWindow: NSPanel, FixedWindowSharing {
+    var fixedSharingType: NSWindow.SharingType { .none }
     let pointer = LocalCursorView()
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }

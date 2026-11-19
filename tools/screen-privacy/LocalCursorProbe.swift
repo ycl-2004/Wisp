@@ -106,8 +106,8 @@ private final class FixturePanel: NSPanel {
     var acceptsKey = true
     override var canBecomeKey: Bool { acceptsKey }
 }
-private final class ControlWindow: NSWindow, CursorSharingSurface {
-    var cursorSharingType: NSWindow.SharingType { .readOnly }
+private final class ControlWindow: NSWindow, FixedWindowSharing {
+    var fixedSharingType: NSWindow.SharingType { .readOnly }
 }
 
 @main struct LocalCursorProbe {

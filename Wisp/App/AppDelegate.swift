@@ -285,6 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
+            PresentationDisplay.shared.stop()
             LocalCursorController.shared.stop()
             ListeningModel.shared.terminate()
             ConversationStore.shared.flush()
@@ -293,6 +294,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor private func configureLocalCursor() {
         let settings = AppSettings.shared
+        if !settings.hideFromScreenCapture && PresentationDisplay.shared.isOpen {
+            PresentationDisplay.shared.stop()
+        }
         LocalCursorController.shared.setEnabled(settings.localCursorEnabled && settings.hideFromScreenCapture)
     }
 

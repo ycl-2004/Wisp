@@ -179,6 +179,12 @@ open "$HOME/Applications/Wisp.app"
   edge instead of always from the middle. It can also snap to the Mac's camera
   notch.
 
+**Sharing the entire screen in a meeting**
+
+In **Settings → Privacy**, turn on **Hide Wisp from Sharing/Recording**. If the switch is already on, click **Start Presentation Display**. Wait for the prompt to share, then choose **Entire Screen → Wisp Presentation** in your meeting. Work on your main display as usual. Stop sharing in the meeting before disconnecting the presentation display.
+
+The 1080p extended display shows regular application windows from your main display. Wisp filters out its own process before drawing frames there. The source menu bar, Dock, wallpaper and audio are omitted. New regular apps can take a couple of seconds to appear. This requires Screen Recording permission and a macOS version that supports the optional virtual display interface. Sharing your physical display uses the legacy window-hiding behavior below. [Local receiver test results](docs/evidence/presentation-display-20261118.json).
+
 **Screen-sharing visibility (best effort)**
 
 - The [macOS privacy research and expanded capture matrix](docs/screen-privacy-research-20260910.md)
@@ -192,7 +198,7 @@ open "$HOME/Applications/Wisp.app"
   to prevent capture. Results depend on macOS and the recorder's capture path;
   the switch being on is not proof that the receiving side cannot see Wisp.
 - Toggle **Try to hide during screen sharing** in the menu bar, or use
-  Settings → Permissions → Screen sharing. Turn it off to record Wisp demos.
+  Settings → Privacy → Screen sharing. Turn it off to record Wisp demos.
 - Local tests on macOS 26.6.1 hid synthetic windows using Wisp's production
   hiding code from ScreenCaptureKit display screenshots and video frames.
   Those same windows remained in ScreenCaptureKit's window list. This is not
@@ -202,7 +208,7 @@ open "$HOME/Applications/Wisp.app"
   setting does not conceal application identity, focus changes, clipboard
   events, or third-party activity records. Cameras and hardware capture are
   unaffected. Verify the actual receiving-side view before relying on it.
-- **Privacy cursor lock (experimental).** Settings → Permissions → Screen sharing uses a
+- **Privacy cursor lock (experimental).** Settings → Privacy → Screen sharing uses a
   single private moving arrow after hiding the system pointer. Wisp no longer creates a
   stationary shared arrow: it could show through translucent windows or remain visible
   when they moved, producing two cursors. While enabled, the option also

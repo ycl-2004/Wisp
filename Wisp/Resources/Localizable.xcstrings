@@ -2,6 +2,150 @@
   "sourceLanguage": "zh-Hans",
   "version": "1.0",
   "strings": {
+    "演示画面绘制失败。请结束共享并重新启动演示屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The presentation frame could not be drawn. End sharing and restart the presentation display."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "演示画面绘制失败。请结束共享并重新启动演示屏。"
+          }
+        }
+      }
+    },
+    "请在系统设置中允许 Wisp 录制屏幕，再启动演示屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Wisp to record the screen in System Settings, then start the presentation display."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在系统设置中允许 Wisp 录制屏幕，再启动演示屏。"
+          }
+        }
+      }
+    },
+    "请先关闭显示器镜像，再启动独立演示屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off display mirroring before starting the presentation display."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先关闭显示器镜像，再启动独立演示屏。"
+          }
+        }
+      }
+    },
+    "macOS 未能创建演示屏。请勿共享主屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS could not create the presentation display. Keep your main display private."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 未能创建演示屏。请勿共享主屏。"
+          }
+        }
+      }
+    },
+    "显示器布局已改变。请先结束会议共享，再重新启动演示屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The display layout changed. End sharing in your meeting, then restart the presentation display."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示器布局已改变。请先结束会议共享，再重新启动演示屏。"
+          }
+        }
+      }
+    },
+    "关闭演示屏": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnect Presentation Display"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭演示屏"
+          }
+        }
+      }
+    },
+    "在会议中选“整个屏幕”，然后选 Wisp Presentation。结束会议共享后再关闭演示屏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In your meeting, choose Entire Screen, then Wisp Presentation. Stop sharing in the meeting before disconnecting this display."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在会议中选“整个屏幕”，然后选 Wisp Presentation。结束会议共享后再关闭演示屏。"
+          }
+        }
+      }
+    },
+    "正在准备演示屏…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing presentation display…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在准备演示屏…"
+          }
+        }
+      }
+    },
+    "启动专用演示屏": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Presentation Display"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动专用演示屏"
+          }
+        }
+      }
+    },
     "支持图片输入，优先请求 Fast。模型标价为标准费率，加速按更高费率计费。": {
       "localizations": {
         "en": {
@@ -530,18 +674,18 @@
         }
       }
     },
-    "在兼容的共享和录屏中隐藏 Wisp，本机仍可正常使用。效果因系统和录屏工具而异，请检查接收端画面。录制 Wisp 演示时请关闭。": {
+    "要共享整个屏幕，请启动专用演示屏，并在会议中选择 Wisp Presentation。直接共享主屏时，窗口隐藏效果取决于录屏工具。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide Wisp in compatible sharing and recording tools while keeping it visible to you. Results vary by macOS version and recording tool; check the receiving screen. Turn off to record a Wisp demo."
+            "value": "To share your entire screen, start the presentation display and choose Wisp Presentation in the meeting. When sharing your main display directly, window hiding depends on the recording tool."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在兼容的共享和录屏中隐藏 Wisp，本机仍可正常使用。效果因系统和录屏工具而异，请检查接收端画面。录制 Wisp 演示时请关闭。"
+            "value": "要共享整个屏幕，请启动专用演示屏，并在会议中选择 Wisp Presentation。直接共享主屏时，窗口隐藏效果取决于录屏工具。"
           }
         }
       }

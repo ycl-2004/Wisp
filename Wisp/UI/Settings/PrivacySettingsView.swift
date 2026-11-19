@@ -3,9 +3,10 @@ import SwiftUI
 
 // MARK: - 隐私
 
-/// 别人的屏幕上看不看得见 Wisp。两个开关都只影响它自己的窗口，不碰系统设置。
+/// 会议共享输出与本地窗口、光标及菜单栏的隐私设置。
 struct PrivacySettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var presentation = PresentationDisplay.shared
     @State private var confirmHidingMenuBarIcon = false
 
     /// 关掉菜单栏图标之后，用户还剩什么办法把 Wisp 叫出来。
@@ -28,12 +29,28 @@ struct PrivacySettingsView: View {
                     set: {
                         // Restore the pointer before making its host capture-visible.
                         if !$0 { LocalCursorController.shared.setEnabled(false) }
-                        ScreenPrivacy.setEnabled($0)
+                        presentation.setHiding($0)
                     }
                 )) {
                     HStack(spacing: 5) {
                         Text("在共享和录屏中隐藏 Wisp")
-                        InfoButton(message: String(localized: "在兼容的共享和录屏中隐藏 Wisp，本机仍可正常使用。效果因系统和录屏工具而异，请检查接收端画面。录制 Wisp 演示时请关闭。"))
+                        InfoButton(message: String(localized: "要共享整个屏幕，请启动专用演示屏，并在会议中选择 Wisp Presentation。直接共享主屏时，窗口隐藏效果取决于录屏工具。"))
+                    }
+                }
+                if settings.hideFromScreenCapture {
+                    if presentation.isOpen {
+                        Button("关闭演示屏") { presentation.stop() }
+                        if presentation.message == nil {
+                            Text(presentation.isReady
+                                 ? String(localized: "在会议中选“整个屏幕”，然后选 Wisp Presentation。结束会议共享后再关闭演示屏。")
+                                 : String(localized: "正在准备演示屏…"))
+                                .font(.caption)
+                        }
+                    } else {
+                        Button("启动专用演示屏") { presentation.start() }
+                    }
+                    if let message = presentation.message {
+                        Text(message).font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Toggle(isOn: Binding(

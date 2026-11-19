@@ -36,8 +36,8 @@ final class NonAudioAcceptanceTests: XCTestCase {
     }
 
     func testRepeatedCursorSessionsReleaseWindowsAndDoNotAccumulateHideCounts() {
-        class ProtectedWindow: NSWindow, CursorSharingSurface {
-            var cursorSharingType: NSWindow.SharingType { .none }
+        class ProtectedWindow: NSWindow, FixedWindowSharing {
+            var fixedSharingType: NSWindow.SharingType { .none }
         }
         let window = ProtectedWindow(contentRect: NSRect(x: 200, y: 200, width: 300, height: 200),
                                      styleMask: .borderless, backing: .buffered, defer: false)

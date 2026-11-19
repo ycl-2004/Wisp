@@ -84,6 +84,7 @@
 		875A6FD28FABA67F0FC40BD0 /* Round4DebugDumpGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80761D536BEF4968C6C70BD /* Round4DebugDumpGateTests.swift */; };
 		87AC3E73ADEAC04BF8961EBF /* ModelSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB3B03DE39F1B2913316699 /* ModelSwitcher.swift */; };
 		8877FADE3BD986D18EEED677 /* PushToTalk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A03A92EC0D910904DBF267B /* PushToTalk.swift */; };
+		8DF386BF77B9489B5332E08E /* PresentationDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8272EFC0B2B5B39734976486 /* PresentationDisplay.swift */; };
 		90ABC0A1F303303A48C1DDB5 /* CStringPoolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B7E73295C712C82B10FEC7 /* CStringPoolTests.swift */; };
 		97980637D1D63FC2F048EB8D /* QuickCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D807D15E3CAC18265AAC4F19 /* QuickCommandTests.swift */; };
 		9A0206FB04F4EA6E3B289D5A /* OnboardingReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A81531A5623503CF5D12F35 /* OnboardingReadiness.swift */; };
@@ -93,6 +94,7 @@
 		AC4AD3B1BD8DDD7307DE059D /* ClaudeCodeCLIProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04C405D7EF4536131CB4C88 /* ClaudeCodeCLIProviderTests.swift */; };
 		AEDA26DF2118CD032CC7386C /* AdvancedShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D14BDF4FC64013A31E695E8 /* AdvancedShortcut.swift */; };
 		AF81C04ABB93182EBFE2C9C6 /* ONNXModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88957DADAC382AD2177D8D35 /* ONNXModelInfo.swift */; };
+		B28FF0E2F77124DFE2A5BE06 /* PresentationMonitor.m in Sources */ = {isa = PBXBuildFile; fileRef = 853089A8217F21E3C2953FC7 /* PresentationMonitor.m */; };
 		B31E746175621480603B27A5 /* CodexCLIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305AA98A5863C7FA8931B452 /* CodexCLIProvider.swift */; };
 		B39C52C5798DD6CDC70C0004 /* PromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF252A9CF890F2FF6AA03A30 /* PromptBuilder.swift */; };
 		B4DCAA8F20A36FCD65712601 /* Round4OllamaProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC8E334006B61CD3429A7234 /* Round4OllamaProbeTests.swift */; };
@@ -158,6 +160,7 @@
 		1CE704964A19CF436FAB6D0D /* Round4SettingsClampTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Round4SettingsClampTests.swift; sourceTree = "<group>"; };
 		21506537BB978F544E61B976 /* StoreFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreFixture.swift; sourceTree = "<group>"; };
 		21B7E73295C712C82B10FEC7 /* CStringPoolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CStringPoolTests.swift; sourceTree = "<group>"; };
+		26C19BD8D87920BBCB16F0C7 /* PresentationMonitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PresentationMonitor.h; sourceTree = "<group>"; };
 		27E6DDF768E0D4029034A64F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		284428D4DCF75BE919228227 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		289DAC5302AC210D15D11185 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
@@ -208,6 +211,8 @@
 		7C6386D864008ED3EFC7AF19 /* IslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandView.swift; sourceTree = "<group>"; };
 		7F749591135B3236A301EBD9 /* ContextHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextHeaderView.swift; sourceTree = "<group>"; };
 		7FE99F66B4BC50B28C45F248 /* PageTextScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTextScript.swift; sourceTree = "<group>"; };
+		8272EFC0B2B5B39734976486 /* PresentationDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationDisplay.swift; sourceTree = "<group>"; };
+		853089A8217F21E3C2953FC7 /* PresentationMonitor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PresentationMonitor.m; sourceTree = "<group>"; };
 		85BF5B7D14F92BF79D87F4CF /* CaptureScopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureScopeTests.swift; sourceTree = "<group>"; };
 		85FF8C396007A624B07DA1AB /* PanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelController.swift; sourceTree = "<group>"; };
 		86A093FBEFF9253F58928193 /* NonAudioAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonAudioAcceptanceTests.swift; sourceTree = "<group>"; };
@@ -378,6 +383,9 @@
 				8C63823DF958D25CC22A520E /* LocalCursorController.swift */,
 				5A81531A5623503CF5D12F35 /* OnboardingReadiness.swift */,
 				D6923A8484BA459627208827 /* Permissions.swift */,
+				8272EFC0B2B5B39734976486 /* PresentationDisplay.swift */,
+				26C19BD8D87920BBCB16F0C7 /* PresentationMonitor.h */,
+				853089A8217F21E3C2953FC7 /* PresentationMonitor.m */,
 				FAAD2D8800C4677B4B95BA21 /* ScreenGeometry.swift */,
 				A74FACBC183F91DE2F60AF79 /* ScreenPrivacy.swift */,
 			);
@@ -725,6 +733,8 @@
 				E598D18B21BDD20AD87DEBD9 /* PanelResize.swift in Sources */,
 				7B8DA179D26980E3D91EFAC3 /* PanelSettingsView.swift in Sources */,
 				EA83BDFC3F588A86A115AEBC /* Permissions.swift in Sources */,
+				8DF386BF77B9489B5332E08E /* PresentationDisplay.swift in Sources */,
+				B28FF0E2F77124DFE2A5BE06 /* PresentationMonitor.m in Sources */,
 				406663F96885B9E68D86C74F /* PrivacySettingsView.swift in Sources */,
 				B39C52C5798DD6CDC70C0004 /* PromptBuilder.swift in Sources */,
 				A0E1A4A14000320BBF0C347C /* ProviderKind.swift in Sources */,
@@ -929,6 +939,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.yichenlin.Wisp;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = Wisp/Support/PresentationMonitor.h;
 			};
 			name = Release;
 		};
@@ -946,6 +957,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.yichenlin.Wisp;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = Wisp/Support/PresentationMonitor.h;
 			};
 			name = Debug;
 		};

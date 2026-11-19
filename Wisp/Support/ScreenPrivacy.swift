@@ -1,10 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// The private cursor window fixes its own sharing type; probes also use this
-/// protocol to keep synthetic control windows independent of user preferences.
-protocol CursorSharingSurface: AnyObject {
-    var cursorSharingType: NSWindow.SharingType { get }
+/// The private pointer and the public presentation output each have a fixed sharing policy.
+protocol FixedWindowSharing: AnyObject {
+    var fixedSharingType: NSWindow.SharingType { get }
 }
 
 /// 向兼容的捕获路径请求隐藏 Wisp 的窗口，不是全局的防录屏保证。
@@ -59,8 +58,8 @@ enum ScreenPrivacy {
     static func apply(to window: NSWindow) {
         // Never expose the private moving arrow, even when window hiding is off.
         let type: NSWindow.SharingType
-        if let cursor = window as? CursorSharingSurface {
-            type = cursor.cursorSharingType
+        if let surface = window as? FixedWindowSharing {
+            type = surface.fixedSharingType
         } else {
             type = desiredSharingType
         }

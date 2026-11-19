@@ -205,7 +205,11 @@ If you do not want a specific page read, do not summon Wisp on it.
 
 ## Keeping Wisp out of your screen shares
 
-Settings → Permissions → Screen sharing requests hiding Wisp's windows using
+For an entire-display meeting share, start the presentation display in Settings → Privacy, then select **Wisp Presentation** as the meeting's screen source. Wisp captures the regular applications on the main display using a ScreenCaptureKit application include-list that omits Wisp. It draws those frames onto a separate extended display. The source menu bar and Dock are omitted. Frames stay in memory on the Mac, and this stream captures no audio. Starting the display does not start a meeting or transmit frames over the network. End the meeting share before disconnecting the display.
+
+The virtual monitor uses an undocumented CoreGraphics interface checked at runtime. If creation fails, Wisp reports the failure. If the capture stream stops with the extended monitor still available, its output is cleared. A conferencing app controls how it handles a disconnected monitor.
+
+For ordinary physical-display sharing, Settings → Privacy requests hiding Wisp's windows using
 the legacy `NSWindow.sharingType = .none` flag. It is on by default and leaves
 Wisp usable locally, but is not a security boundary or a guarantee against
 capture. Apple explicitly advises against relying on this value to prevent

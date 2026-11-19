@@ -71,6 +71,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yichenlin.Wisp
+        SWIFT_OBJC_BRIDGING_HEADER: Wisp/Support/PresentationMonitor.h
         CODE_SIGN_ENTITLEMENTS: Wisp.entitlements
         INFOPLIST_KEY_NSPrincipalClass: NSApplication
         COMBINE_HIDPI_IMAGES: YES

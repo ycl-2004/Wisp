@@ -1,0 +1,52 @@
+{
+  "runs": [
+    {
+      "afterChange": {
+        "cyan": 0,
+        "green": 16112,
+        "magenta": 0
+      },
+      "baseline": {
+        "output": {
+          "cyan": 16110,
+          "green": 0,
+          "magenta": 0
+        },
+        "source": {
+          "cyan": 13500,
+          "green": 0,
+          "magenta": 8370
+        }
+      },
+      "macOS": "Version 27.2.1 (Build 26B131)",
+      "maximumPrivateMarkerPixels": 0,
+      "overviewTransitionFrames": 145,
+      "receivedFrames": 179
+    },
+    {
+      "afterChange": {
+        "cyan": 0,
+        "green": 16112,
+        "magenta": 0
+      },
+      "baseline": {
+        "output": {
+          "cyan": 16110,
+          "green": 0,
+          "magenta": 0
+        },
+        "source": {
+          "cyan": 13463,
+          "green": 0,
+          "magenta": 8370
+        }
+      },
+      "macOS": "Version 27.2.1 (Build 26B131)",
+      "maximumPrivateMarkerPixels": 0,
+      "overviewTransitionFrames": 144,
+      "receivedFrames": 175
+    }
+  ],
+  "setup": "Three local processes. The presenter uses the production presentation controller. The independent receiver captures the entire extended display with no window exclusions. Both runs verified display disconnection.",
+  "scope": "Sampled native macOS display stream, including a Mission Control transition. Third-party conference receivers were not exercised."
+}

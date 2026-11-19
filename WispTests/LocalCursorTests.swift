@@ -6,8 +6,8 @@ import XCTest
 final class LocalCursorTests: XCTestCase {
     // The app's lifecycle observer runs in the test host too. Keep synthetic
     // windows protected independently of the user's persisted screen-sharing switch.
-    private final class ProtectedWindow: NSWindow, CursorSharingSurface {
-        var cursorSharingType: NSWindow.SharingType { .none }
+    private final class ProtectedWindow: NSWindow, FixedWindowSharing {
+        var fixedSharingType: NSWindow.SharingType { .none }
     }
 
     private func window() -> NSWindow {
@@ -268,9 +268,9 @@ final class LocalCursorTests: XCTestCase {
     }
 
     func testKeyPanelWaitsForAppActivationBeforeReplacingTheSystemPointer() {
-        class KeyPanel: NSPanel, CursorSharingSurface {
+        class KeyPanel: NSPanel, FixedWindowSharing {
             override var canBecomeKey: Bool { true }
-            var cursorSharingType: NSWindow.SharingType { .none }
+            var fixedSharingType: NSWindow.SharingType { .none }
         }
         let panel = KeyPanel(contentRect: NSRect(x: 160, y: 160, width: 360, height: 200),
                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
