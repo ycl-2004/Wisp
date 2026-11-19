@@ -34,7 +34,8 @@ struct QuickCommandSettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 5) {
                 Text("常用指令").font(.system(size: 13, weight: .semibold))
-                InfoButton(message: String(localized: "指令连同当前屏幕上下文一起发送，就像你亲手输入的问题。输入框里已经写了东西时，那段文字会作为材料跟在指令后面，比如先贴一段话再点「翻译」。快捷键在任何应用里都能用：先唤起面板读取当前窗口，再执行。"))
+                InfoButton(message: String(localized: "指令连同当前屏幕上下文一起发送，就像你亲手输入的问题。输入框里已经写了东西时，那段文字会作为材料跟在指令后面，比如先贴一段话再点「翻译」。快捷键在任何应用里都能用：先唤起面板读取当前窗口，再执行。")
+                    + "\n\n" + String(localized: "「带上对方说的话」取字幕里对方最近几秒的话一起发，用来回答会议里刚被问到的问题。这类问答放在一个不保存的对话里，关掉字幕就清空。"))
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -91,6 +92,18 @@ struct QuickCommandSettingsView: View {
                 }
             }
             KeyboardShortcuts.Recorder("快捷键", name: command.wrappedValue.shortcutName)
+            Picker("带上对方说的话", selection: Binding(
+                get: { command.wrappedValue.attachedSeconds },
+                set: { command.wrappedValue.transcriptSeconds = $0 })) {
+                Text("不带").tag(0)
+                ForEach([5, 10, 15, 20, 30], id: \.self) { Text("最近 \($0) 秒").tag($0) }
+            }
+            .help("取字幕里对方最近说的话，跟在问题后面。请先点面板上的字幕按钮。问答不保存。")
+            Picker("截图", selection: command.includesScreenshot) {
+                Text("跟随面板开关").tag(Bool?.none)
+                Text("带截图").tag(Optional(true))
+                Text("不带截图").tag(Optional(false))
+            }
             Section {
                 TextEditor(text: command.prompt)
                     .font(DS.body)

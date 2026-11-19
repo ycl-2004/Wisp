@@ -2,6 +2,6 @@
    Base values in Info.plist are Simplified Chinese (the development language);
    these override them for English-speaking users so system permission dialogs
    don't fall back to Chinese. */
-"NSMicrophoneUsageDescription" = "Wisp uses the microphone after you start recording, for on-device live captions and optional audio saving.";
-"NSSpeechRecognitionUsageDescription" = "Wisp uses on-device speech recognition to transcribe the selected microphone or app audio into text.";
+"NSMicrophoneUsageDescription" = "Wisp uses the microphone only while you hold the ask shortcut, to turn what you say into text. No recording is saved.";
+"NSSpeechRecognitionUsageDescription" = "Wisp uses Apple's on-device speech recognition to turn what this Mac plays (live captions) and what you say while holding the ask shortcut into text.";
 "NSAppleEventsUsageDescription" = "Wisp needs to control your browser to read the current page's URL and full text, as context for your question.";

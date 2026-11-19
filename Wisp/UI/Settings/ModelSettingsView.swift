@@ -551,7 +551,7 @@ private struct ProviderCard: View {
                                   lineWidth: selected ? 1.2 : 0.5)
             )
         }
-        .buttonStyle(PrivacyPlainButtonStyle())
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .accessibilityAddTraits(selected ? .isSelected : [])

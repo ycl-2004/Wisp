@@ -10,10 +10,11 @@ import SwiftUI
 extension ResponseModeTests {
     @MainActor
     func testCollapsedPanelHeightTracksMultilineComposerWithoutExtraDefaultSpace() {
-        XCTAssertEqual(PanelController.collapsedHeight, 110)
-        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight), 110)
-        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight - 10), 110)
-        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 80), 170)
+        // One header row plus the composer; a multiline draft grows it point for point, to a cap.
+        XCTAssertEqual(PanelController.collapsedHeight, 82)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight), 82)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight - 10), 82)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight + 60), 142)
         XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: 400), 240)
     }
 
@@ -89,12 +90,12 @@ extension ResponseModeTests {
     func testNarrowComposerFitsWithVoiceAndModeControls() throws {
         let model = AssistantModel.shared
         let collapsed = model.isCollapsed
-        let enabled = ListeningModel.shared.isEnabled
+        let enabled = LiveCaptions.shared.isEnabled
         model.setCollapsedSilently(true)
-        ListeningModel.shared.isEnabled = true
+        LiveCaptions.shared.isEnabled = true
         defer {
             model.setCollapsedSilently(collapsed)
-            ListeningModel.shared.isEnabled = enabled
+            LiveCaptions.shared.isEnabled = enabled
         }
         let view = NSHostingView(rootView: ChatView().environmentObject(model).environmentObject(model.store)
             .frame(width: 380, height: PanelController.collapsedHeight))
@@ -217,7 +218,7 @@ extension ResponseModeTests {
     @MainActor
     func testReportCurrentSettings() throws {
         let models = ActiveModels(settings: .shared, state: .shared)
-        let listening = ListeningModel.shared
+        let listening = LiveCaptions.shared
         let lines = [
             "connection: \(models.baseline.kind.rawValue) · \(models.connectionTitle)",
             "default model: \(models.baseline.model)",
@@ -225,7 +226,7 @@ extension ResponseModeTests {
             "deep choice: '\(models.choice(for: .deep))' → sends \(models.config(for: .deep).model)",
             "deep label: \(models.defaultChoiceTitle(for: .deep))",
             "response mode: \(AppSettings.shared.responseMode.rawValue)",
-            "voice enabled: \(listening.isEnabled), engine: \(listening.engine.rawValue), language: \(listening.localLanguage), script: \(listening.chineseScript.rawValue)",
+            "voice enabled: \(listening.isEnabled), engine: \(listening.engine.rawValue), language: \(listening.locale), captions ask through API: \(listening.asksThroughAPI)",
             "commands: \(QuickCommandStore.shared.commands.map { "\($0.title)[\($0.mode?.rawValue ?? "current")]" }.joined(separator: ", "))",
         ]
         try lines.joined(separator: "\n").write(to: URL(fileURLWithPath: "/private/tmp/wisp-current-settings.txt"), atomically: true, encoding: .utf8)

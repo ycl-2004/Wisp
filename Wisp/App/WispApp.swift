@@ -45,7 +45,7 @@ struct WispApp: App {
 }
 
 private struct MenuContent: View {
-    @ObservedObject private var listening = ListeningModel.shared
+    @ObservedObject private var captions = LiveCaptions.shared
     @ObservedObject private var store = ConversationStore.shared
     @ObservedObject private var updateNotice = UpdateNotice.shared
     @ObservedObject private var settings = AppSettings.shared
@@ -55,12 +55,10 @@ private struct MenuContent: View {
             PanelController.shared.toggle()
         }
 
-        Button(String(localized: "录制笔记")) {
-            NotesPanelController.shared.toggle()
-        }
-
-        if listening.isActive {
-            Button("停止录音") { listening.stop() }
+        if captions.isEnabled {
+            Button(captions.isActive ? String(localized: "关闭字幕") : String(localized: "打开字幕")) {
+                captions.toggleFromUser()
+            }
         }
 
         // 录演示视频时要临时露出来，藏在设置里第四层太远了。
@@ -78,7 +76,7 @@ private struct MenuContent: View {
 
         Divider()
 
-        Text("\(store.conversations.count)/\(store.maxConversations) 个对话")
+        Text("\(store.savedCount)/\(store.maxConversations) 个对话")
 
         SettingsLink {
             Text("设置…")

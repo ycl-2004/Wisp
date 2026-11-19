@@ -41,7 +41,7 @@ private struct CaptureOptionCard: View {
             .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(PrivacyPlainButtonStyle())
+        .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(selected ? Color.accentColor.opacity(0.10)
@@ -130,16 +130,6 @@ struct CaptureSettingsView: View {
                     }
                 }
 
-                if settings.captureMode == .scrollCollect && !ScrollDriver.isTrusted {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                        Text("需要辅助功能权限才能滑动采集。")
-                            .font(.system(size: 10))
-                        Button("去授权") { Permissions.openAccessibilitySettings() }
-                            .controlSize(.small)
-                    }
-                }
             } header: {
                 SettingsSectionHeader("采集模式")
             }

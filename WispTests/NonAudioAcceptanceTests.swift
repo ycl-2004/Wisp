@@ -5,9 +5,7 @@ import XCTest
 
 @MainActor
 final class NonAudioAcceptanceTests: XCTestCase {
-    func testComposerTypingSelectionSubmitAndEscapeKeepArrowArtwork() throws {
-        WispCursorPolicy.setEnabled(true)
-        defer { WispCursorPolicy.setEnabled(false) }
+    func testComposerTypingSelectionSubmitAndEscape() throws {
         let text = PlaceholderTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 90))
         text.isRichText = false
         let window = NSWindow(contentRect: text.frame, styleMask: .borderless, backing: .buffered, defer: false)
@@ -21,44 +19,11 @@ final class NonAudioAcceptanceTests: XCTestCase {
         text.insertText("Synthetic input", replacementRange: NSRange(location: 0, length: 0))
         text.setSelectedRange(NSRange(location: 0, length: 9))
         XCTAssertEqual(text.selectedRange().length, 9)
-        NSCursor.iBeam.set()
-        text.resetCursorRects()
-        let event = try XCTUnwrap(NSEvent.enterExitEvent(with: .cursorUpdate, location: .zero, modifierFlags: [],
-                                                    timestamp: 0, windowNumber: window.windowNumber,
-                                                    context: nil, eventNumber: 0, trackingNumber: 0, userData: nil))
-        text.cursorUpdate(with: event)
-        XCTAssertTrue(NSCursor.current === NSCursor.arrow)
         text.doCommand(by: #selector(NSResponder.insertNewline(_:)))
         XCTAssertEqual(submits, 1)
         XCTAssertEqual(text.string, "Synthetic input")
         text.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
         XCTAssertEqual(escapes, 1)
-    }
-
-    func testRepeatedCursorSessionsReleaseWindowsAndDoNotAccumulateHideCounts() {
-        class ProtectedWindow: NSWindow, FixedWindowSharing {
-            var fixedSharingType: NSWindow.SharingType { .none }
-        }
-        let window = ProtectedWindow(contentRect: NSRect(x: 200, y: 200, width: 300, height: 200),
-                                     styleMask: .borderless, backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        window.sharingType = .none
-        window.orderFront(nil)
-        var hides = 0, shows = 0
-        let controller = LocalCursorController(hideCursor: { hides += 1 }, showCursor: { shows += 1 })
-        defer { controller.stop(); window.close() }
-        let point = window.convertPoint(toScreen: NSPoint(x: 60, y: 60))
-        for _ in 0..<50 {
-            controller.setEnabled(true)
-            controller.update(window: window, screenPoint: point, applicationActive: true)
-            XCTAssertTrue(controller.localWindow.isVisible)
-            controller.setEnabled(false)
-            XCTAssertFalse(controller.localWindow.isVisible)
-            XCTAssertNil(controller.localWindow.parent)
-        }
-        XCTAssertEqual(hides, shows)
-        controller.refresh()
-        XCTAssertFalse(controller.isReplacingCursor)
     }
 
     func testNonAudioSettingsTabsRenderAtTheirActualWindowSize() throws {

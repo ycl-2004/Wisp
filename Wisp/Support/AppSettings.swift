@@ -6,9 +6,6 @@ enum CaptureMode: String, CaseIterable, Identifiable {
     case screenshotOnly
     /// 额外注入 JS 读整页正文。普通网页足够，虚拟滚动页面只能拿到一屏。
     case pageText
-    /// 在上一档基础上，用真实滚轮事件把虚拟滚动页面滚一遍再采。
-    /// 需要辅助功能权限，采集时会短暂借用鼠标指针。
-    case scrollCollect
 
     var id: String { rawValue }
 
@@ -16,7 +13,6 @@ enum CaptureMode: String, CaseIterable, Identifiable {
         switch self {
         case .screenshotOnly: return String(localized: "纯截图")
         case .pageText: return String(localized: "读取页面正文")
-        case .scrollCollect: return String(localized: "滚动采集")
         }
     }
 
@@ -24,7 +20,6 @@ enum CaptureMode: String, CaseIterable, Identifiable {
         switch self {
         case .screenshotOnly: return "camera.viewfinder"
         case .pageText: return "doc.text"
-        case .scrollCollect: return "arrow.down.doc"
         }
     }
 
@@ -34,8 +29,6 @@ enum CaptureMode: String, CaseIterable, Identifiable {
             return String(localized: "只发截图和网址。不读页面，最快。")
         case .pageText:
             return String(localized: "读取页面正文。动态页面可能只包含当前可见内容。")
-        case .scrollCollect:
-            return String(localized: "滚动动态页面后回到原位。需要辅助功能权限。")
         }
     }
 
@@ -109,13 +102,10 @@ final class AppSettings: ObservableObject {
         static let advancedShortcut = "advancedShortcut"
         static let lastActiveConversationID = "lastActiveConversationID"
         static let panelFrame = "panelFrame"
-        static let notesText = "notesText"
-        static let notesPanelFrame = "notesPanelFrame"
         static let debugDumpEnabled = "debugDumpEnabled"
         static let showIsland = "showIsland"
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let hideFromScreenCapture = "hideFromScreenCapture"
-        static let localCursorEnabled = "localCursorEnabled"
         static let islandPosition = "islandPosition"
         static let idleDismissSeconds = "idleDismissSeconds"
         static let panelBackgroundOpacity = "panelBackgroundOpacity"
@@ -133,9 +123,12 @@ final class AppSettings: ObservableObject {
         // （以前它们不在清单里，「删除全部数据」之后还留着，#5 的漏网）。
         static let listeningPreferences = "listeningPreferences"
         static let quickCommands = "quickCommands"
-        static let localSpeechScanRequested = "localSpeechScanRequested"
+        static let captionCommandsSeeded = "captionCommandsSeeded"
         /// 系统键：界面语言钉选（AppLanguage）写在本 App 自己的域里。
         static let appleLanguages = "AppleLanguages"
+
+        /// 已删除功能留下的键（录制笔记、光标锁、本地语音模型）。不再读写，只在恢复出厂时一并清掉。
+        static let retired = ["notesText", "notesPanelFrame", "localCursorEnabled", "localSpeechScanRequested"]
 
         /// 全部键的清单，wipeLocalData 靠它一次清干净（恢复出厂，#5）。
         /// 新增键必须同步加进这里——漏一个，那项设置就会在「删除全部
@@ -148,14 +141,14 @@ final class AppSettings: ObservableObject {
             captureMode, captureScope, screenHiddenBundleIDs,
             maxConversations, maxUserTurns, sendScreenshot,
             shortcutTrigger, advancedShortcut, lastActiveConversationID,
-            panelFrame, notesText, notesPanelFrame, debugDumpEnabled,
+            panelFrame, debugDumpEnabled,
             showIsland, showsMenuBarIcon, hideFromScreenCapture,
-            localCursorEnabled, islandPosition, idleDismissSeconds,
+            islandPosition, idleDismissSeconds,
             panelBackgroundOpacity, panelOpaqueWhenActive,
             checkForUpdates, lastUpdateCheck, islandOrigin,
             islandAnchor, appLanguage, listeningEnabled,
             responseMode, responseModels, settingsTab,
-            listeningPreferences, quickCommands, localSpeechScanRequested,
+            listeningPreferences, quickCommands, captionCommandsSeeded,
             appleLanguages,
         ]
     }
@@ -191,7 +184,6 @@ final class AppSettings: ObservableObject {
             K.showIsland: true,
             K.showsMenuBarIcon: true,
             K.hideFromScreenCapture: true,
-            K.localCursorEnabled: false,
             K.islandPosition: "bottom",
             K.idleDismissSeconds: 10.0,
             K.panelBackgroundOpacity: 1.0,
@@ -325,8 +317,7 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.pageTextLimit); objectWillChange.send() }
     }
 
-    /// 一次采集能动用到什么程度。默认 `.pageText`：读正文但不碰用户的鼠标。
-    /// `.scrollCollect` 会注入真实滚轮事件，属于要用户明确同意的行为，不默认开。
+    /// 一次采集能动用到什么程度。默认 `.pageText`；以前选过的「滚动采集」也回到它。
     var captureMode: CaptureMode {
         get { CaptureMode(rawValue: d.string(forKey: K.captureMode) ?? "") ?? .pageText }
         set { d.set(newValue.rawValue, forKey: K.captureMode); objectWillChange.send() }
@@ -457,7 +448,7 @@ final class AppSettings: ObservableObject {
     /// 由各自的类型读写、但登记在 `K.all` 里随恢复出厂一起清掉的键。
     static let listeningPreferencesKey = K.listeningPreferences
     static let quickCommandsKey = K.quickCommands
-    static let localSpeechScanRequestedKey = K.localSpeechScanRequested
+    static let captionCommandsSeededKey = K.captionCommandsSeeded
     static let appleLanguagesKey = K.appleLanguages
 
     /// 菜单栏图标由系统绘制，`sharingType` 对它无效，所以录屏里一定看得见。
@@ -473,19 +464,6 @@ final class AppSettings: ObservableObject {
         get { d.bool(forKey: K.hideFromScreenCapture) }
         set {
             d.set(newValue, forKey: K.hideFromScreenCapture)
-            // A checked cursor lock must never silently remain inactive.
-            if !newValue { d.set(false, forKey: K.localCursorEnabled) }
-            objectWillChange.send()
-        }
-    }
-
-    /// Opt-in experiment; effective only while screen privacy is enabled.
-    var localCursorEnabled: Bool {
-        get { d.bool(forKey: K.localCursorEnabled) }
-        set {
-            // Enabling the lock also enables its required window protection.
-            if newValue { d.set(true, forKey: K.hideFromScreenCapture) }
-            d.set(newValue, forKey: K.localCursorEnabled)
             objectWillChange.send()
         }
     }
@@ -588,17 +566,6 @@ final class AppSettings: ObservableObject {
         set { d.set(newValue, forKey: K.panelFrame) }
     }
 
-    /// 录制笔记面板的正文（纯文本）与位置，见 `NotesPanelController`。
-    var notesText: String {
-        get { d.string(forKey: K.notesText) ?? "" }
-        set { d.set(newValue, forKey: K.notesText) }
-    }
-
-    var notesPanelFrame: String? {
-        get { d.string(forKey: K.notesPanelFrame) }
-        set { d.set(newValue, forKey: K.notesPanelFrame) }
-    }
-
     func isExcluded(bundleID: String?) -> Bool {
         guard let bundleID else { return false }
         return excludedBundleIDs.contains(bundleID)
@@ -634,7 +601,7 @@ final class AppSettings: ObservableObject {
             error.code == .fileNoSuchFile && error.filePath == directory.path {
             // A retry after the directory has already been removed can still reset settings.
         }
-        for key in K.all {
+        for key in K.all + K.retired {
             d.removeObject(forKey: key)
         }
         objectWillChange.send()

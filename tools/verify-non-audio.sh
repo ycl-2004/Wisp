@@ -1,5 +1,5 @@
 #!/bin/bash
-# Repeatable non-audio verification. Native mode temporarily controls the mouse.
+# Repeatable non-audio verification. Native mode puts synthetic windows on screen.
 # No installed app replacement, real model request, or Claude CLI invocation.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -10,7 +10,7 @@ echo "Evidence: $audit_dir"
 
 if [[ "$mode" == unit ]]; then
     xcodebuild test -project Wisp.xcodeproj -scheme Wisp -destination 'platform=macOS' \
-        -skip-testing:WispTests/LocalSpeechTests -skip-testing:WispTests/ListeningTests \
+        -skip-testing:WispTests/ListeningTests \
         CODE_SIGNING_ALLOWED=NO -resultBundlePath "$audit_dir/unit.xcresult" > "$audit_dir/unit.log" 2>&1
     # These general window tests currently live in ListeningTests; select only them.
     window_tests=(
@@ -18,12 +18,11 @@ if [[ "$mode" == unit ]]; then
         testOpeningHistoryExpandsCollapsedPanel
         testLongHeaderFitsNarrowPanelInBothLanguagesAndAppearances
         testPanelHostingDoesNotImposeContentDrivenResizeLimits
-        testHeaderTitleAreaDragsTheWindowWhileButtonsKeepTheirClicks
-        testResizeGrabsOnlyTheEdgesAndWidensAtTheCorners
-        testPanelResizeCursorFollowsPrivacySwitch
+        testExpandingOpensUpwardFromTheInputBox
+        testResizeGrabsTheSideAndBottomEdgesButNotTheTopEdge
+        testHoveringAResizeEdgeLeavesThePointerAlone
         testResizeKeepsTheOppositeEdgeFixedAndObeysWindowLimits
         testResizeOverlayInterceptsEdgesAndLetsContentKeepItsClicks
-        testResizeOverlayDoesNotStealTitleEdgeDrags
     )
     selection=()
     for name in "${window_tests[@]}"; do selection+=("-only-testing:WispTests/ListeningTests/$name"); done
@@ -38,19 +37,13 @@ if [[ "$mode" == unit ]]; then
     git diff --check
     echo 'PASS: selected non-audio tests and structural checks. See logs for counts.'
 elif [[ "$mode" == native ]]; then
-    echo 'Synthetic windows and mouse gestures will run; leave the desktop idle until completion.'
-    swiftc -O -parse-as-library -module-cache-path "$audit_dir/cache" \
-        Wisp/Support/ScreenPrivacy.swift Wisp/Support/LocalCursorController.swift \
-        Wisp/UI/DesignKit.swift Wisp/UI/PanelResize.swift tools/screen-privacy/LocalCursorProbe.swift \
-        -o "$audit_dir/cursor-probe"
-    "$audit_dir/cursor-probe" run "$audit_dir/cursor" > "$audit_dir/cursor.log" 2>&1
-    python3 tools/screen-privacy/validate-cursor.py "$audit_dir/cursor/result.json" --self-test > "$audit_dir/cursor-summary.json"
+    echo 'Synthetic windows will appear; leave the desktop idle until completion.'
     swiftc -parse-as-library -module-cache-path "$audit_dir/cache" \
         Wisp/Support/ScreenPrivacy.swift tools/screen-privacy/CaptureMatrixProbe.swift -o "$audit_dir/matrix-probe"
     "$audit_dir/matrix-probe" visible "$audit_dir/matrix-visible.json" > "$audit_dir/matrix-visible.log" 2>&1
     "$audit_dir/matrix-probe" hidden "$audit_dir/matrix-hidden.json" > "$audit_dir/matrix-hidden.log" 2>&1
     python3 tools/screen-privacy/validate-matrix.py "$audit_dir/matrix-visible.json" "$audit_dir/matrix-hidden.json" > "$audit_dir/matrix-summary.json"
-    echo 'PASS: sampled native cursor/video and window matrix. Static screenshots and third-party receivers have separate limits.'
+    echo 'PASS: sampled native window matrix. Static screenshots and third-party receivers have separate limits.'
 else
     xcodebuild build -project Wisp.xcodeproj -scheme Wisp -configuration Release \
         -arch arm64 -arch x86_64 ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- \

@@ -22,10 +22,7 @@ struct ConversationListView: View {
         let filtered = filteredConversations
 
         VStack(alignment: .leading, spacing: 0) {
-            // 一条对话都没有的时候摆个搜索框只是占地方。
-            if !store.conversations.isEmpty {
-                searchBar
-            }
+            toolbar
 
             if let message = model.conversationLimitMessage {
                 VStack(alignment: .leading, spacing: 6) {
@@ -106,6 +103,31 @@ struct ConversationListView: View {
         }
     }
 
+    /// 搜索、计数和新建。新建对话和「本轮 / 上限」计数原来挤在面板头部，收到这里。
+    /// 一条对话都没有的时候摆个搜索框只是占地方，只留新建。
+    private var toolbar: some View {
+        HStack(spacing: 8) {
+            if !store.conversations.isEmpty { searchBar }
+            Spacer(minLength: 0)
+            Text(counters)
+                .font(DS.meta.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .fixedSize()
+                .help("当前对话轮数 / 每个对话上限 · 对话数 / 上限")
+            Button { model.newConversation() } label: { Image(systemName: "square.and.pencil") }
+                .buttonStyle(IconButtonStyle())
+                .help(store.canCreateNew ? "新建对话" : "已达上限，可移除最早的对话后新建")
+        }
+        .padding(.horizontal, DS.gutter)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+
+    private var counters: String {
+        let turns = store.active?.userTurnCount ?? 0
+        return "\(turns)/\(store.maxUserTurns) · \(store.savedCount)/\(store.maxConversations)"
+    }
+
     private var searchBar: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -124,7 +146,7 @@ struct ConversationListView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(PrivacyPlainButtonStyle())
+                .buttonStyle(.plain)
                 .accessibilityLabel(Text("清除"))
                 .help("清除")
             }
@@ -139,9 +161,6 @@ struct ConversationListView: View {
             RoundedRectangle(cornerRadius: DS.chipCorner, style: .continuous)
                 .strokeBorder(DS.hairline, lineWidth: 0.5)
         )
-        .padding(.horizontal, DS.gutter)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
     }
 
     private struct Row: View {

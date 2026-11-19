@@ -113,8 +113,6 @@ struct PanelSettingsView: View {
                         }
                     }
                 }
-
-                KeyboardShortcuts.Recorder("录制笔记：", name: .toggleNotes)
             } header: {
                 SettingsSectionHeader("快捷键", info: String(localized: "标准组合保持兼容；增强模式支持 Shift、Globe/Fn、单独修饰键和双击/三击。"))
             }
@@ -162,7 +160,7 @@ struct PanelSettingsView: View {
                 if settings.islandPosition == "bottom" {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Spacer()
-                        InfoButton(message: String(localized: "底部位置可拖动，Wisp 会记住位置；面板仍从底部中央打开。"))
+                        InfoButton(message: String(localized: "拖动桌面小药丸可调整它的位置。助手面板有自己的位置，重新打开时会尝试回到上次所在屏幕。"))
                         Button("重置位置") { IslandController.shared.resetPosition() }
                             .disabled(!settings.hasCustomIslandAnchor || !settings.showIsland)
                     }

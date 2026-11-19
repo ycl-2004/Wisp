@@ -3,14 +3,11 @@ options:
   bundleIdPrefix: com.yichenlin
   developmentLanguage: zh-Hans
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
 packages:
-  SherpaOnnx:
-    url: https://github.com/k2-fsa/sherpa-onnx.git
-    exactVersion: 1.13.7
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     # Pinned exactly (#22). 3.1.0 is the first release whose Recorder works
@@ -51,8 +48,6 @@ targets:
         buildPhase: resources
     dependencies:
       - package: KeyboardShortcuts
-      - package: SherpaOnnx
-        product: sherpa-onnx
     info:
       path: Wisp/App/Info.plist
       properties:
@@ -63,10 +58,10 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
-        LSMinimumSystemVersion: "14.0"
+        LSMinimumSystemVersion: "26.0"
         NSHumanReadableCopyright: ""
-        NSMicrophoneUsageDescription: "Wisp 在你开始录音后采集麦克风，用于本机实时字幕和可选音频保存。"
-        NSSpeechRecognitionUsageDescription: "Wisp 使用设备端语音识别，将选定的麦克风或应用音频转写为文字。"
+        NSMicrophoneUsageDescription: "只在你按住快捷键提问时，Wisp 用麦克风听你说的话并转成文字，不保存录音。"
+        NSSpeechRecognitionUsageDescription: "Wisp 用 Apple 的设备端识别把电脑放出来的声音（实时字幕）和你按住提问时说的话转成文字。"
         NSAppleEventsUsageDescription: "Wisp 需要控制浏览器，以读取当前页面的网址与完整正文，作为提问的上下文。"
     settings:
       base:

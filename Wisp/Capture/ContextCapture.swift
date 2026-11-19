@@ -9,8 +9,6 @@ enum ContextCapture {
         let bundleID: String
         let family: BrowserTextExtractor.Family
         let appName: String
-        let pid: pid_t
-        let mode: CaptureMode
         let basic: BrowserTextExtractor.Result
     }
 
@@ -162,19 +160,17 @@ enum ContextCapture {
             return (packet, nil)
         }
 
-        return (packet, PendingText(bundleID: bundleID, family: family, appName: appName,
-                                    pid: app.processIdentifier, mode: mode, basic: basic))
+        return (packet, PendingText(bundleID: bundleID, family: family, appName: appName, basic: basic))
     }
 
-    /// 第二阶段：注入脚本读整页正文，必要时滚动采集。面板已经显示之后再调用。
+    /// 第二阶段：注入脚本读整页正文。面板已经显示之后再调用。
     static func captureText(_ pending: PendingText, into packet: inout ContextPacket) async {
         let settings = AppSettings.shared
         let result = await runOffMain {
             // 可变副本留在这个闭包里，不跨并发边界。
             var current = pending.basic
             BrowserTextExtractor.pageContent(bundleID: pending.bundleID, family: pending.family,
-                                             appName: pending.appName, mode: pending.mode,
-                                             pid: pending.pid, into: &current)
+                                             appName: pending.appName, into: &current)
             return current
         }
 
@@ -185,8 +181,6 @@ enum ContextCapture {
         // 第一阶段已经把 basic 的说明收进去了，这里只补第二阶段新增的那些。
         packet.notes.append(contentsOf: result.notes.filter { !packet.notes.contains($0) })
 
-        packet.pageTextIsPartial = result.pageTextIsPartial
-        packet.usedScrollCollection = result.usedScrollCollection
         if let text = result.pageText {
             packet.pageTextTotalChars = text.count
             packet.pageText = truncate(text, limit: settings.pageTextLimit)
@@ -296,8 +290,6 @@ enum ContextCapture {
             "pageTitle": packet.pageTitle ?? "",
             "pageTextChars": packet.pageText?.count ?? 0,
             "pageTextTotalChars": packet.pageTextTotalChars ?? 0,
-            "pageTextIsPartial": packet.pageTextIsPartial,
-            "usedScrollCollection": packet.usedScrollCollection,
             "selectedText": packet.selectedText ?? "",
             "iframeURLs": packet.iframeURLs,
             "notes": packet.notes.map(\.text),

@@ -9,9 +9,7 @@ struct DataSettingsView: View {
     @EnvironmentObject private var model: AssistantModel
     @State private var confirmWipe = false
     @Binding var wipeResult: String?
-    @State private var confirmListeningWipe = false
-    @State private var cleanupResult: String?
-    @ObservedObject private var listening = ListeningModel.shared
+    @ObservedObject private var captions = LiveCaptions.shared
 
     var body: some View {
         Form {
@@ -43,6 +41,7 @@ struct DataSettingsView: View {
                 SettingsSectionHeader("存储位置", info: String(localized: "对话和页面文字保存在本机。"))
             }
 
+            #if DEBUG
             Section {
                 Toggle("保存诊断文件", isOn: Binding(
                     get: { settings.debugDumpEnabled },
@@ -51,56 +50,26 @@ struct DataSettingsView: View {
             } header: {
                 SettingsSectionHeader("调试", info: String(localized: "额外写入 last-context.json 和 last-screenshot.jpg，仅用于排查。"))
             }
-
-            Section {
-                HStack {
-                    Text("录音与转写")
-                    Spacer()
-                    Button("打开文件夹") { listening.showFiles() }
-                    Button("清理…", role: .destructive) { confirmListeningWipe = true }
-                        .disabled(listening.isActive)
-                }
-                if listening.isActive {
-                    Text("请先停止录音，再清理记录。")
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
-                }
-                if let cleanupResult {
-                    Text(cleanupResult).font(.system(size: 11)).foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
-            } header: {
-                SettingsSectionHeader("录音记录", info: String(localized: "最多 2 GiB / 100 次。手动清理全部录音与转写，不影响对话和 API Key；不会定时自动删除。"))
-            }
+            #endif
 
             Section {
                 Button("删除全部数据与设置", role: .destructive) { confirmWipe = true }
             } header: {
-                SettingsSectionHeader("清除", info: String(localized: "删除对话、录音与转写记录、调试文件和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。"))
+                SettingsSectionHeader("清除", info: String(localized: "删除对话、调试文件、旧版本留下的录音记录和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。"))
             }
         }
         .formStyle(.grouped)
-        .alert("清理录音与转写？", isPresented: $confirmListeningWipe) {
-            Button("清理", role: .destructive) {
-                do {
-                    try listening.clearRecords()
-                    cleanupResult = String(localized: "录音与转写已清理。")
-                } catch { cleanupResult = error.localizedDescription }
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("删除所有本地录音与转写文件，无法撤销。对话和 API Key 保留。")
-        }
         .alert("删除全部数据？", isPresented: $confirmWipe) {
             Button("全部删除", role: .destructive, action: wipe)
             Button("取消", role: .cancel) {}
         } message: {
-            Text("所有对话、录音与转写记录和 API Key 都会被删除，全部设置恢复为默认值，无法撤销。")
+            Text("所有对话、旧版本留下的录音记录和 API Key 都会被删除，全部设置恢复为默认值，无法撤销。")
         }
     }
 
     private func wipe() {
         model.stopStreaming()
-        listening.discardForDataReset()
+        captions.stop()
         do {
             try settings.wipeLocalData(in: AppSettings.supportDirectory)
         } catch {
@@ -110,7 +79,7 @@ struct DataSettingsView: View {
 
         model.store.resetAfterDataWipe()
         let keysRemoved = KeychainStore.deleteAll()
-        listening.reloadPreferences()
+        captions.reloadPreferences()
         QuickCommandStore.shared.restoreDefaults()
         KeyboardShortcuts.reset(KeyboardShortcuts.Name.appDefined)
         AppDelegate.applyShortcutTrigger()

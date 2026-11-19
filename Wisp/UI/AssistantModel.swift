@@ -5,6 +5,8 @@ import SwiftUI
 final class AssistantModel: ObservableObject {
     static let shared = AssistantModel()
 
+    enum QuestionSource { case manual, captionCommand, automaticCaption, pushToTalk }
+
     @Published var packet: ContextPacket?
     @Published var isCapturing = false
     @Published var input = "" {
@@ -23,8 +25,10 @@ final class AssistantModel: ObservableObject {
     @Published private(set) var lastResponseTiming: ResponseTiming?
     @Published private(set) var lastResponseSkippedPage = false
     private var preparationTask: Task<Void, Never>?
+    private var preparingSource: QuestionSource?
     private var responseGeneration = UUID()
     @Published var errorText: String?
+    var panelError: String? { errorText ?? PushToTalk.shared.error }
     @Published var showsConversationList = false
     @Published var showsNotes = false
     /// 首次设置向导是否正显示（#8）。显示条件由实时状态推导，见
@@ -34,8 +38,6 @@ final class AssistantModel: ObservableObject {
     @Published private(set) var onboardingNeeded = false
     private var onboardingOfferedThisLaunch = false
     private var onboardingDismissedThisLaunch = false
-    /// 展开区显示的是这次录到的转写原文，而不是 AI 回答。只是视图切换，不影响录音。
-    @Published var showsTranscript = false
     @Published private(set) var isCollapsed = true
     private var suppressCollapseAnimation = false
 
@@ -148,14 +150,12 @@ final class AssistantModel: ObservableObject {
         if pending == nil { dumpIfNeeded() }
     }
 
-    /// 第二阶段：读整页正文，必要时滚动采集。
+    /// 第二阶段：读整页正文。
     ///
-    /// 刻意留到用户**按下发送**时才跑，而不是面板一出现就跑：滑动采集会真的
-    /// 翻动用户的页面，在他还没想好要问什么的时候就动起来，像是电脑自作主张。
-    /// 放在发送时，翻页就成了「为了回答你这个问题去把页面看完」，顺理成章。
+    /// 留到用户**按下发送**时才跑，而不是面板一出现就跑：没提问就不去读页面。
     ///
     /// 同一份上下文只读一次：`pendingText` 用掉就置空，接着追问同一个页面
-    /// 不会再翻一遍。换了标签页会标成过期，下次发送时重新采。
+    /// 不会再读一遍。换了标签页会标成过期，下次发送时重新采。
     func captureText() async {
         guard let pending = pendingText, var current = packet else { return }
         pendingText = nil
@@ -263,8 +263,6 @@ final class AssistantModel: ObservableObject {
         if pageChanged {
             current.pageText = nil
             current.pageTextTotalChars = nil
-            current.pageTextIsPartial = false
-            current.usedScrollCollection = false
             current.selectedText = nil
             current.iframeURLs = []
             // 上一页的说明作废，但「要用户去开权限」那类留着——那跟哪个页面无关，
@@ -378,7 +376,7 @@ final class AssistantModel: ObservableObject {
 
     var conversationLimitMessage: String? {
         guard !store.canCreateNew else { return nil }
-        let count = store.conversations.count
+        let count = store.savedCount
         if count > store.maxConversations {
             return String(localized: "已经有 \(count) 个对话，超过了上限 \(store.maxConversations) 个。可以自己删几个，或者让它顶掉最久没用的那几个。")
         }
@@ -393,10 +391,7 @@ final class AssistantModel: ObservableObject {
     func toggleConversationList() {
         let showing = !showsConversationList
         showsConversationList = showing
-        if showing {
-            showsTranscript = false
-            if isCollapsed { setCollapsed(false) }
-        }
+        if showing, isCollapsed { setCollapsed(false) }
     }
 
     func newConversation() {
@@ -436,18 +431,23 @@ final class AssistantModel: ObservableObject {
     }
 
     /// `mode` 只管这一次：常用指令可以带着自己的模式发，不改输入框旁边那个开关。
-    func send(question raw: String, mode: ResponseMode) {
+    /// `screenshot` 同理，nil 跟随相机开关；`.current` 用面板当前的连接。
+    @discardableResult
+    func send(question raw: String, mode: ResponseMode, screenshot: Bool? = nil,
+              connection: QuestionConnection = .current, source: QuestionSource = .manual) -> Bool {
         let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, canStartQuestion else { return }
+        guard !question.isEmpty, canStartQuestion else { return false }
         // 一个模型都没连上时，先打开首次设置向导，而不是让这次提问
         // 撞上一句没有出路的配置错误（#8）。
-        if onboardingNeeded { showsOnboarding = true; return }
-        guard let config = requestConfig(for: mode) else { return }
+        if onboardingNeeded && connection == .current { showsOnboarding = true; return false }
+        guard let config = requestConfig(for: mode, connection: connection) else { return false }
         let conversationID = store.active?.id
-        let sendScreenshot = settings.sendScreenshot
+        let sendScreenshot = screenshot ?? settings.sendScreenshot
         let generation = beginResponse(config)
+        preparingSource = source
         preparationTask = Task {
             defer { endPreparation(generation) }
+            guard !Task.isCancelled else { return }
             if mode == .quick {
                 if sendScreenshot { await captureShot(screenshotOnly: true, attachScreenshot: true) }
             } else if packet == nil || contextIsStale || capturedScreenshotOnly {
@@ -460,17 +460,68 @@ final class AssistantModel: ObservableObject {
             guard store.active?.id == conversationID else { return cancelPreparation() }
             lastResponseSkippedPage = skippedPage
             performSend(question: question, config: config, sendScreenshot: sendScreenshot,
-                        skippedPage: skippedPage, generation: generation)
+                        skippedPage: skippedPage, generation: generation, source: source)
         }
+        return true
     }
 
     /// 常用指令：指令文字就是问题，输入框里写了的东西作为材料跟在后面。
     func run(_ command: QuickCommand) {
+        if command.attachedSeconds > 0 { return ask(aboutCaptions: command) }
         guard canStartQuestion else {
             errorText = turnLimitMessage ?? String(localized: "请等待回答结束，或新建对话后重试。")
             return
         }
-        send(question: command.question(withDraft: input), mode: command.mode ?? settings.responseMode)
+        send(question: command.question(withDraft: input), mode: command.mode ?? settings.responseMode,
+             screenshot: command.includesScreenshot)
+    }
+
+    /// 带上对方最近几秒说的话来问。问答放在一个只在内存里的对话里：里面有别人的原话，
+    /// 不写盘；关掉字幕时连同字幕一起丢掉。
+    private func ask(aboutCaptions command: QuickCommand) {
+        let captions = LiveCaptions.shared
+        guard captions.isEnabled else {
+            errorText = String(localized: "请先在设置 → 音频中启用语音，再打开字幕。")
+            return
+        }
+        guard captions.isRunning else {
+            errorText = captions.isActive ? String(localized: "正在准备字幕…")
+                : String(localized: "请先点面板上的字幕按钮，再运行这条指令。")
+            return
+        }
+        guard !isStreaming, !isPreparingResponse, !isCapturing else {
+            errorText = String(localized: "请等待回答结束后重试。")
+            return
+        }
+        let draft = input
+        Task {
+            guard let words = await captions.recentText(seconds: TimeInterval(command.attachedSeconds)) else { return }
+            guard !words.isEmpty else {
+                errorText = String(localized: "还没听到对方说话。等字幕出现后再试。")
+                return
+            }
+            sendCaptionQuestion(command, words: words, draft: draft, source: .captionCommand)
+        }
+    }
+
+    func runAutomaticCaptionCommand(_ command: QuickCommand, words: String) {
+        guard !words.isEmpty else { return }
+        sendCaptionQuestion(command, words: words, draft: "", source: .automaticCaption)
+    }
+
+    private func sendCaptionQuestion(_ command: QuickCommand, words: String, draft: String, source: QuestionSource) {
+        guard !isStreaming, !isPreparingResponse, !isCapturing else {
+            if source == .captionCommand { errorText = String(localized: "请等待回答结束后重试。") }
+            return
+        }
+        // 问满了一个就换一个新的，反正都不保存。
+        if let active = store.active, store.isEphemeral(active.id), store.isAtTurnLimit(active) {
+            store.discardEphemeral()
+        }
+        store.activateEphemeral(title: String(localized: "会议提问（不保存）"))
+        send(question: command.question(withCaptions: words, draft: draft), mode: command.mode ?? .quick,
+             screenshot: command.includesScreenshot,
+             connection: LiveCaptions.shared.asksThroughAPI ? .api : .current, source: source)
     }
 
     /// 最后一条回答能不能用深入重答：快速模式答的、已经答完、此刻没有别的请求在跑。
@@ -528,11 +579,16 @@ final class AssistantModel: ObservableObject {
         return packet.url == context.url
     }
 
-    /// 这一次要发出去的配置。模型由 `ActiveModels` 决定，界面上显示的就是这一个。
-    private func requestConfig(for mode: ResponseMode) -> ProviderConfig? {
+    /// 这一次要发出去的配置。面板的连接由 `ActiveModels` 决定，界面上显示的就是这一个；
+    /// 字幕提问可以固定走 API 连接（CLI 每问一次都要起一个进程）。
+    private func requestConfig(for mode: ResponseMode, connection: QuestionConnection = .current) -> ProviderConfig? {
         do {
-            return try ProviderConfig.authorized(ActiveModels(settings: settings, state: .shared).config(for: mode),
-                                                 settings: settings)
+            let config: ProviderConfig
+            switch connection {
+            case .current: config = ActiveModels(settings: settings, state: .shared).config(for: mode)
+            case .api: config = ProviderConfig.api(settings: settings, mode: mode)
+            }
+            return try ProviderConfig.authorized(config, settings: settings)
         } catch {
             errorText = error.localizedDescription
             return nil
@@ -556,6 +612,7 @@ final class AssistantModel: ObservableObject {
         guard responseGeneration == generation else { return }
         isPreparingResponse = false
         preparationTask = nil
+        preparingSource = nil
     }
 
     private func cancelPreparation() {
@@ -564,45 +621,38 @@ final class AssistantModel: ObservableObject {
         lastResponseTiming?.outcome = "cancelled"
     }
 
-    func toggleTranscriptView() {
-        showsTranscript.toggle()
-        showsConversationList = false
-        if showsTranscript { setCollapsed(false) }
-    }
+    /// 按住说话的那段话最多这么长，连同输入框里已有的文字。
+    static let speechDraftLimit = 12_000
 
-    /// 把转写放进输入框。用户自己写了字就用他的问题，一个字没写才用 `fallbackQuestion`
-    /// ——一键分析总得带着问题过去，否则模型只收到一段没有指令的会议记录。
+    /// 把按住说话听到的话接在输入框已有文字后面。
     @discardableResult
-    func stageSpeechDraft(_ text: String, fallbackQuestion: String? = nil) -> Bool {
-        stageSpeechDraft(text, existing: speechDraftPrefix(fallbackQuestion))
-    }
-
-    func stageSpeechDraft(_ transcript: ListeningTranscript, excluding ids: Set<UUID>,
-                          fallbackQuestion: String?) -> Set<UUID>? {
-        let existing = speechDraftPrefix(fallbackQuestion)
-        let draft = transcript.unstagedDraft(
-            excluding: ids, characterLimit: ListeningTranscript.remainingDraftCapacity(after: existing))
-        return stageSpeechDraft(draft.text, existing: existing) ? draft.consumed : nil
-    }
-
-    private func speechDraftPrefix(_ fallbackQuestion: String?) -> String {
-        input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (fallbackQuestion ?? "") : input
-    }
-
-    private func stageSpeechDraft(_ text: String, existing: String) -> Bool {
-        guard !text.isEmpty, !isStreaming, !isPreparingResponse,
-              let draft = ListeningTranscript.appendingToDraft(text, existing: existing) else { return false }
+    func stageSpeechDraft(_ text: String) -> Bool {
+        guard let draft = speechDraft(appending: text) else { return false }
         input = draft
         isSpeechDraft = true
         speechDraftRevision += 1
-        showsTranscript = false
         showsConversationList = false
         setCollapsed(false)
         return true
     }
 
+    func submitSpeech(_ text: String) -> Bool {
+        guard let draft = speechDraft(appending: text) else { return false }
+        if send(question: draft, mode: settings.responseMode, source: .pushToTalk) {
+            showsConversationList = false
+            return true
+        }
+        return stageSpeechDraft(text)
+    }
+
+    private func speechDraft(appending text: String) -> String? {
+        guard !text.isEmpty, !isStreaming, !isPreparingResponse else { return nil }
+        let draft = input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? text : input + "\n\n" + text
+        return draft.count <= Self.speechDraftLimit ? draft : nil
+    }
+
     private func performSend(question: String, config: ProviderConfig, sendScreenshot: Bool,
-                             skippedPage: Bool, generation: UUID) {
+                             skippedPage: Bool, generation: UUID, source: QuestionSource) {
         // A previous asynchronous screen read may finish after another send started.
         guard !isStreaming else { return }
         guard let conversation = store.ensureActive() else {
@@ -616,7 +666,7 @@ final class AssistantModel: ObservableObject {
 
         let conversationID = conversation.id
         errorText = nil
-        input = ""
+        if source != .automaticCaption { input = "" }
 
         let (snapshot, screenshot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
         store.append(Message(role: .user, text: question, context: snapshot, sentScreenshot: screenshot != nil),
@@ -711,9 +761,16 @@ final class AssistantModel: ObservableObject {
         if let previous { store.append(previous, to: conversationID) }
     }
 
+    func cancelPendingVoiceQuestion() {
+        guard let preparingSource, preparingSource != .manual, !isStreaming else { return }
+        stopStreaming()
+    }
+
     func stopStreaming() {
         if isPreparingResponse, !isStreaming {
             preparationTask?.cancel()
+            preparationTask = nil
+            preparingSource = nil
             responseGeneration = UUID()
             isPreparingResponse = false
             lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime

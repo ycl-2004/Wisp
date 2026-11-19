@@ -23,18 +23,15 @@ The module is named `Wisp`, so test files compile verbatim
 and everything under `Tests/` are copies made by the sync and are git-ignored;
 re-run the sync after any app or test change.
 
-## The closure (23 app files, verbatim)
+## The closure (22 app files, verbatim)
 
 All of `Wisp/LLM` (13), `Wisp/Capture/{BrowserTextExtractor,
 ChromeProfileInspector, ContextPacket, PageTextScript}`,
 `Wisp/Store/{Conversation, ConversationStore}`,
-`Wisp/Listening/{ListeningTranscript, ONNXModelInfo}`,
+`Wisp/Listening/CaptionTypes`,
 `Wisp/Support/{AppSettings, OnboardingReadiness}`.
 
 Excluded, with reasons:
-- `LocalSpeechCatalog` / `LocalSpeechModel` / `LocalSpeechFamilies` /
-  `LocalSpeechRecognition` — the model/family types wrap sherpa-onnx C
-  config builders (the CStringPool fix, #25, therefore stays CI-pending).
 - `KeychainStore` — Security framework (shimmed, below).
 - Everything AppKit/SwiftUI/ScreenCaptureKit — by definition.
 
@@ -57,9 +54,7 @@ here, each with its fidelity limit:
 | `KeychainStore` (in-memory) | Security framework | `authorized()` behaves as with an empty Keychain |
 | `UpdateChecker.currentVersion` / `userAgent` | Real one is in an AppKit file | Accessors mirrored byte-for-byte (bundle lookup + "0" fallback); ported tests pin the *callers'* wiring against it |
 | `URLSession.bytes(for:)` | Absent from Linux Foundation | Same shape, backed by a whole-response data task — bytes are not incremental. The provider's loop logic runs verbatim (incl. the URLProtocol-driven priority-retry test) |
-| `ScrollDriver` (inert, untrusted) | CGEvent/AppKit | Extractor takes its no-scroll path; actuation untestable here |
 | `ShortcutTriggerMode` / `AdvancedShortcut` | Real ones are in an AppKit/Carbon file | Raw values + Codable fields mirrored exactly (AppSettings treats them opaquely) |
-| `LocalSpeechCatalog.legacySenseVoiceID` | Real class is sherpa-bound | One mirrored constant; sync asserts the upstream value, drift fails the sync |
 | `ScreenCapturer.tinyTestJPEG` (extension) | CoreGraphics/ImageIO | Returns minimal JPEG framing bytes; tests only require non-nil |
 
 One documented line-drop in the *copied* file only: the sync deletes
@@ -76,9 +71,9 @@ the `WispTests` files listed in its `TEST_FILES` array into `Tests/WispTests/`
 verbatim. A test is written and edited in `WispTests` only.
 
 To keep that possible, every `WispTests` file is either entirely portable or
-entirely macOS-only. A file with AppKit, SwiftUI, AVFoundation, JavaScriptCore or
-sherpa-onnx subjects is not listed; when a file mixes both, split it (as
-`ResponseModeTests` / `ResponseModeUITests`, `ListeningTranscriptTests` /
+entirely macOS-only. A file with AppKit, SwiftUI, AVFoundation, Speech or JavaScriptCore
+subjects is not listed; when a file mixes both, split it (as
+`ResponseModeTests` / `ResponseModeUITests`, `CaptionBufferTests` /
 `ListeningTests`, `ConversationAcceptanceTests` / `NonAudioAcceptanceTests`) rather
 than adding `#if` branches. Tests whose subjects are `@MainActor` keep nonisolated
 entry points and hop in through `onMainActor` (`WispTests/MainActorBridge.swift`),

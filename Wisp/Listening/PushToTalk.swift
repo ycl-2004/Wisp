@@ -1,21 +1,21 @@
 import AVFoundation
-import Speech
 
 /// Hold a shortcut, ask out loud, release: the words go out with the current screen context in the
 /// current response mode.
 ///
-/// Microphone only, whatever the recording source setting says: this is the user's own question.
-/// Nothing is written to the listening records, since every question would otherwise take one of
-/// the archive's 100 session slots. It never runs beside a recording, which owns the microphone.
+/// The microphone recording is discarded. Once sent, the recognized text follows the
+/// active conversation's history rules. Live captions can listen to system audio alongside it.
 @MainActor
 final class PushToTalk: ObservableObject {
     static let shared = PushToTalk()
     enum State { case idle, preparing, listening, finishing }
 
-    @Published private(set) var state: State = .idle
+    @Published private(set) var state: State = .idle {
+        // Its live row shows under the panel header only while it listens.
+        didSet { if (oldValue == .idle) != (state == .idle) { PanelController.shared.rowsChanged() } }
+    }
     @Published private(set) var caption = ""
     @Published private(set) var error: String?
-    @Published private(set) var startedAt: Date?
 
     /// Shorter than this is a slip of the finger, not a question.
     static let minimumHold: TimeInterval = 0.3
@@ -24,7 +24,8 @@ final class PushToTalk: ObservableObject {
     static let maximumHold: TimeInterval = 60
 
     private var capture: ListeningCapture?
-    private var transcript: ListeningTranscript?
+    private var words = CaptionBuffer(retention: .infinity)
+    private var startedAt: Date?
     private var startTask: Task<Void, Never>?
     private var limitTimer: Timer?
     private var generation = UUID()
@@ -36,46 +37,33 @@ final class PushToTalk: ObservableObject {
     func clearError() { error = nil }
 
     func begin() {
-        let listening = ListeningModel.shared
-        guard listening.isEnabled, state == .idle else { return }
-        guard !listening.isActive else {
-            error = String(localized: "正在录音，先停下录音再按住说话。")
-            return
-        }
+        let captions = LiveCaptions.shared
+        guard captions.isEnabled, state == .idle else { return }
         let generation = UUID()
         self.generation = generation
         error = nil
         caption = ""
+        words = CaptionBuffer(retention: .infinity)
         startedAt = Date()
         state = .preparing
-        transcript = ListeningTranscript(id: UUID(), startedAt: Date(), locale: listening.locale,
-                                         applicationName: nil, savesAudio: false)
         // Showing the panel captures the context the question is about, and shows it is listening.
         if !PanelController.shared.isVisible { PanelController.shared.show() }
         PanelController.shared.refreshIdleTimer()
-        let engine = listening.engine, locale = listening.locale
-        let language = listening.localLanguage, script = listening.chineseScript
+        let engine = captions.engine, locale = captions.locale
         startTask = Task {
             do {
-                try await Self.requirePermissions(for: engine)
-                let recognition: LocalSpeechRecognition?
-                if case .local(let id) = engine {
-                    let model = try await Task.detached { try LocalSpeechCatalog.readyModel(id: id) }.value
-                    // Loads while the microphone already listens; decoding queues behind the load.
-                    recognition = LocalSpeechRecognition.prepare(model, language: language, script: script)
-                } else {
-                    recognition = nil
-                }
-                guard self.generation == generation else { return }
-                let capture = try ListeningCapture(mode: .microphone, locale: locale, recognition: recognition, directory: nil,
-                    onSegment: { [weak self] segment in
-                        Task { @MainActor in self?.receive(segment, generation: generation) }
+                try Task.checkCancellation()
+                try await Self.requireMicrophone()
+                try Task.checkCancellation()
+                let capture = try await ListeningSession.make(engine: engine, locale: locale,
+                    onUpdate: { [weak self] update in
+                        Task { @MainActor in self?.receive(update, generation: generation) }
                     }, onFailure: { [weak self] message in
                         Task { @MainActor in self?.fail(message, generation: generation) }
                     })
+                guard self.generation == generation else { return capture.terminate() }
                 self.capture = capture
-                try await capture.start(mode: .microphone, application: nil)
-                guard self.generation == generation else { return }
+                try capture.startMicrophone()
                 state = .listening
                 limitTimer = Timer.scheduledTimer(withTimeInterval: Self.maximumHold, repeats: false) { [weak self] _ in
                     Task { @MainActor in self?.finish(sending: false, generation: generation) }
@@ -105,11 +93,13 @@ final class PushToTalk: ObservableObject {
         startTask?.cancel()
         capture?.terminate()
         reset()
+        error = nil
     }
 
-    private func receive(_ segment: ListeningSegment, generation: UUID) {
-        guard self.generation == generation, transcript?.upsert(segment) == true else { return }
-        caption = transcript?.spokenText() ?? ""
+    private func receive(_ update: CaptionUpdate, generation: UUID) {
+        guard self.generation == generation else { return }
+        words.apply(update)
+        caption = words.text
     }
 
     private func fail(_ message: String, generation: UUID) {
@@ -118,7 +108,7 @@ final class PushToTalk: ObservableObject {
         error = message
     }
 
-    /// Drains the trailing batch before reading the words, or the last word would be cut off.
+    /// Waits for the trailing words before reading them, or the last word would be cut off.
     private func finish(sending: Bool, generation: UUID) {
         guard self.generation == generation, state == .listening, let capture else { return }
         limitTimer?.invalidate()
@@ -126,20 +116,19 @@ final class PushToTalk: ObservableObject {
         Task {
             let issue = await capture.stop()
             guard self.generation == generation else { return }
-            let text = transcript?.spokenText() ?? ""
+            let text = words.text
             reset()
             guard !text.isEmpty else {
                 error = issue ?? String(localized: "没听清，请按住快捷键再说一次。")
                 return
             }
             let assistant = AssistantModel.shared
-            guard assistant.stageSpeechDraft(text) else {
+            let accepted = sending ? assistant.submitSpeech(text) : assistant.stageSpeechDraft(text)
+            guard accepted else {
                 error = String(localized: "请等待回答结束，或缩短输入框文字后重试。")
                 return
             }
-            if sending {
-                assistant.send()
-            } else {
+            if !sending {
                 error = String(localized: "按住说话最长 60 秒，这段话已放进输入框。")
             }
         }
@@ -150,34 +139,22 @@ final class PushToTalk: ObservableObject {
         limitTimer = nil
         startTask = nil
         capture = nil
-        transcript = nil
         caption = ""
+        words = CaptionBuffer(retention: .infinity)
         startedAt = nil
         state = .idle
         PanelController.shared.refreshIdleTimer()
     }
 
     /// Asking for access while the key is held cannot record this press; the next one works.
-    private static func requirePermissions(for engine: ListeningEngine) async throws {
+    private static func requireMicrophone() async throws {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .authorized: break
+        case .authorized: return
         case .notDetermined:
             guard await AVCaptureDevice.requestAccess(for: .audio) else { throw ListeningFailure.microphoneDenied }
             throw ListeningFailure(message: String(localized: "已允许麦克风，再按住说一次。"))
         default:
             throw ListeningFailure.microphoneDenied
-        }
-        guard engine.requiresSpeechAuthorization else { return }
-        switch SFSpeechRecognizer.authorizationStatus() {
-        case .authorized: break
-        case .notDetermined:
-            let status = await withCheckedContinuation { continuation in
-                SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
-            }
-            guard status == .authorized else { throw ListeningFailure.speechRecognitionDenied }
-            throw ListeningFailure(message: String(localized: "已允许语音识别，再按住说一次。"))
-        default:
-            throw ListeningFailure.speechRecognitionDenied
         }
     }
 }

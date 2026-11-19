@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/ycl-2004/Wisp/releases/latest"><img src="https://img.shields.io/github/v/release/ycl-2004/Wisp?label=release&color=111111" alt="最新发布"></a>
   <a href="https://github.com/ycl-2004/Wisp/releases"><img src="https://img.shields.io/github/downloads/ycl-2004/Wisp/total?label=downloads&color=111111" alt="下载总数"></a>
-  <img src="https://img.shields.io/badge/macOS-14.0%2B-111111?logo=apple&logoColor=white" alt="需要 macOS 14.0 或更高">
+  <img src="https://img.shields.io/badge/macOS-26.0%2B-111111?logo=apple&logoColor=white" alt="需要 macOS 26.0 或更高">
   <img src="https://img.shields.io/badge/Mac-Universal%202-111111?logo=apple&logoColor=white" alt="Apple Silicon 与 Intel 通用">
   <img src="https://img.shields.io/badge/Swift-SwiftUI%20%C2%B7%20AppKit-F05138?logo=swift&logoColor=white" alt="SwiftUI 与 AppKit 构建">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111" alt="MIT 许可证"></a>
@@ -53,29 +53,32 @@ Wisp 常驻菜单栏。按下 `⌃⌥Space`，它会先记住此刻最前面的�
 
 「设置 → 指令」里存着常用指令（例如「总结这一页」「翻译选中内容」），每条可以指定自己的回答模式和快捷键，在输入框旁的 ✦ 菜单、空白对话里或任何应用里用快捷键都能触发。输入框里写了的文字会作为材料跟在指令后面。
 
-## 实时听懂
+## 实时字幕
 
-语音输入和 AI 对话共用一个面板：一行实时字幕，左边是录音状态和已录时长，右边是
-「停止并分析」，其余动作收在 ⋯ 菜单里。音源、应用、语言和保存选项集中在
-「设置 → 音频」，那里也有一个总开关：关掉之后面板上不再有语音这一行，快捷键也不会
-再开始录音。⌃⌥R 开始／停止，停止后把最近转写放进输入框；⌃⌥D 可在录音时放入
-草稿，编辑后按 Enter 发送。会议刚结束想直接要结论，⌃⌥↩ 一个键停止录音、等末尾文字
-收完再发出去；⌃⌥A 则是不停止录音直接分析。旁边还有一个按钮，在「AI 回答」和
-「这次的转写原文」之间切换。除这些动作外不会自动发送，也不发完成通知。
-「设置 → 数据 → 录音记录」可独立清理；2 GiB / 100 次容量限制保留。隐藏面板仍会停止录音。
+开会时打开字幕（面板标题栏上的字幕按钮，默认快捷键 `⌃⌥R`，或菜单栏），对方说的话会以两行字幕出现在
+面板标题下方，边说边更新。字幕听这台电脑放出来的所有声音（会议、视频、音乐），不听你的麦克风，
+不需要选应用。
 
-「设置 → 音频 → 识别引擎」除了 Apple Speech，还会列出 `~/Documents/huggingface/models/`
-里找到的本地 sherpa-onnx 模型（目前识别 SenseVoice 和 Qwen3-ASR 两种架构）。再放进一个
-模型文件夹，点「重新扫描」就能选，不需要重装 Wisp。本地模型的中文默认统一成简体（Qwen3-ASR 有时会写繁体），
-可在「设置 → 音频 → 中文字形」里改。详情见[识别引擎说明](docs/live-listening.md#recognition-engines)。
+对方问你问题时，按一个键：
 
-「按住说话提问」（设置 → 音频 → 快捷键，默认未分配）：按住快捷键说出问题，松开后连同当前屏幕上下文，
-用当前回答模式直接发送。只用麦克风，不写进录音记录；录音进行中不可用。按一下不到 0.3 秒不会发送；
-超过 60 秒则只放进输入框、不自动发送。
+- **快问**（`⌃⌥A`）：带上对方最近 10 秒说的话，不带截图。
+- **看屏幕问**（`⌃⌥D`）：带上最近 30 秒的话和一张截图，适合「这块代码是怎么做的」。
 
-设备需要支持所选语言的本地识别；不支持时会提示，不会自动上传音频。
-采集按应用选择，不能直接区分某个参会人或浏览器标签页，也不保证录音不可检测。
-录制前请取得必要同意。详见[操作、保存上限和验证范围](docs/live-listening.md)。
+回答先给一两句能直接说出口的话，再给最多 3 条要点。这两条都是普通指令（设置 → 指令）：每条都能设带
+0–30 秒的字幕、带不带截图、用哪个快捷键。「设置 → 音频」里的 **对方一问就自动回答（实验）**：对方说完
+一句以问号结尾的话、停顿 1 秒，就自动执行「快问」。输入框里的草稿会保留。
+
+字幕只在内存里留最近 30 秒。字幕提问的问答放在一个不写盘的对话里，关字幕就清空。
+关掉面板会一起关掉字幕。
+
+**识别**（设置 → 音频）：Apple 设备端识别（默认，免费，音频不出电脑），或 Soniox 云端实时识别（用你自己的
+API Key，约每小时 0.12 美元，对方的声音会发送到 Soniox；中文里夹英文术语时通常更准）。用 Apple 识别、
+通过 QuickTime 播放合成的中文夹英文语音实测：一句话说完后 0.35–1.2 秒字幕稳定。字幕提问默认走「设置 →
+模型」里的 API 连接，即使面板用的是 Agent CLI。详见[说明与实测](docs/live-listening.md)。
+
+**按住说话提问**（设置 → 音频，默认未分配）：按住快捷键说出问题，松开后连同当前屏幕上下文发送。麦克风录音不会保存。发到普通对话的转写文字会进入聊天记录。
+
+开会前请取得必要同意。字幕不区分说话人，也不保证采集不可被察觉。
 
 
 如果菜单栏图标不见了，可从访达或 Spotlight 再打开 Wisp，面板上的齿轮始终可进入设置。
@@ -100,7 +103,7 @@ open "$HOME/Applications/Wisp.app"
 
 ### 系统要求
 
-- macOS 14.0 或更高。
+- macOS 26.0 或更高。
 - Apple Silicon 或 Intel Mac。发布包是 Universal 2。
 - 采集当前窗口或整个屏幕需要**屏幕录制**权限。
 - 读取浏览器整页正文需要**自动化**权限，以及浏览器里的 `Allow JavaScript from Apple Events` 开关。
@@ -126,7 +129,7 @@ open "$HOME/Applications/Wisp.app"
 - 从支持的浏览器读取当前网址、页面标题、选中文字和整页正文。
 - 会报告跨域 iframe 的地址和读不到的正文，免得模型以为整页都读到了。
 - JavaScript 开关没开、或当前应用不受支持时，明确退回到「只有网址和截图」。
-- 虚拟滚动页面采集结束后会清理临时的 `window.__wispCollector`；Wisp 只读取
+- 页面只读一遍，不滚动它，也不在页面里留下任何东西；Wisp 只读取
   Chromium 偏好来判断 Apple Events 开关，不会把 Wisp 数据写进浏览器配置、历史或缓存。
 
 **浮动面板与小药丸**
@@ -161,19 +164,8 @@ open "$HOME/Applications/Wisp.app"
   详见[测试范围、结果与复现步骤](docs/screen-privacy-validation.md)。
 - 菜单栏图标、系统弹窗不保证隐藏。这一设置不隐藏应用身份、焦点变化、剪贴板事件
   或第三方的行为记录，也不影响摄像机拍屏和硬件采集。使用前请检查实际接收端画面。
-- **隐私光标锁定（实验）。** 在「设置 → 隐私 → 屏幕共享」中打开后，先隐藏系统指针，再显示
-  一个跟随鼠标的本地私有箭头。已移除共享静止箭头，避免它从透明或移动的窗口下露出，形成
-  双鼠标。同时统一文本、控件和缩放边缘的箭头样式，并关闭自定义按钮及普通按钮
-  的按压特效。关闭后恢复原生光标请求和按钮反馈。受保护的面板、设置标题栏、非焦点浮窗以及
-  本程序菜单、气泡使用相同策略，原生拖动持续到松手。后台悬停保留系统指针，点击时先启用
-  Wisp 再锁定，并保存原外部采集目标；本机保留文字选区、输入光标与菜单选中提示，
-  点击、输入、选区、滚动保持原生行为。这些提示随所属窗口一起向兼容录屏请求隐藏。
-  默认关闭；打开时同时打开窗口隐藏，关闭窗口隐藏也关闭锁定，单独关闭锁定则保留窗口隐藏。
-  **录屏工具仍可能独立绘制点击圆圈或传输鼠标坐标。** 点击提示需在录制工具中关闭，Wisp 无法
-  修改其他 App 的录制流。兼容录屏在操作 Wisp 时省略鼠标，不再人为补画静止箭头。
-  详见[单光标修复验证](docs/single-cursor-20260912.md)。
 - **缩放提示。** 面板内侧新增一圈圆角淡蓝色细线，以及四条边中间的小标记，提示自定义
-  缩放的可拖拽位置。它只负责提示，不会拦截点击；打开隐私光标锁定时，缩放光标保持箭头。
+  缩放的可拖拽位置。它只负责提示，不会拦截点击。顶边用来拖动面板；左右两边、底边和下面两个角用来缩放。
 
 **快捷键**
 
@@ -201,7 +193,7 @@ open "$HOME/Applications/Wisp.app"
 - 对话以可读 JSON 保存，并且是容错解码的：某条记录坏掉、或者将来的版本加了字段，代价是丢那一条，而不是整份历史。
 - 拒绝覆盖由更新版本 Wisp 写出的对话文件；文件读不出来时会明确告诉你，而不是悄悄从空白开始。
 - 到达对话上限时，会点名问你要不要顶掉最久没更新的那个，而不是直接不让新建。
-- 「设置 → 数据 → 删除全部数据与设置」会删除全部对话、录音与转写和已保存的 API Key，并把所有设置（包括快捷键和常用指令）恢复为默认值。
+- 「设置 → 数据 → 删除全部数据与设置」会删除全部对话、旧版本留下的录音记录和已保存的 API Key，并把所有设置（包括快捷键和常用指令）恢复为默认值。
 
 ## 用法
 
@@ -252,7 +244,7 @@ Wisp 会在三个时机刷新上下文：面板显示时、面板开着而最前
 **本地保存**
 
 - 对话文字与页面文字快照：`~/Library/Application Support/Wisp/conversations.json`。
-- 实时听懂：文字、时间和可选音频保存在 `~/Library/Application Support/Wisp/Listening/`，无自动历史淘汰。
+- 实时字幕：只在内存里保留最近 30 秒，不写盘；字幕提问的问答不进对话记录。
 - API Key：存在 macOS 钥匙串，不在 Wisp 的应用支持目录里。
 - 截图：不会写进对话 JSON。云端和 Ollama 只保留在内存；本地 CLI 可能写入权限为 `0700`
   的当次临时目录，命令结束后删除。若应用崩溃或被强制终止，则交由 macOS 后续清理临时目录。
@@ -384,7 +376,7 @@ defaults delete com.yichenlin.Wisp
 
 依赖：
 
-- macOS 14.0 或更高。
+- macOS 26.0 或更高。
 - Xcode 26 或更高（KeyboardShortcuts 3.1.0 需要 Swift tools 6.2）；CI 使用 Xcode 26.6。
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.45.4 或更高，用于从 `project.yml` 重新生成 Xcode 工程。
 - Swift Package Manager，按当前锁定状态解析 `KeyboardShortcuts` 3.1.0。
@@ -521,11 +513,9 @@ swift test
 
 ## 致谢
 
-Wisp 打包了三个第三方组件：
+Wisp 打包了一个第三方组件：
 
 - Sindre Sorhus 的 [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) 3.1.0，MIT 许可证，用于全局快捷键。
-- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.7，Apache License 2.0，用于本地语音识别模型。
-- [ONNX Runtime](https://github.com/microsoft/onnxruntime)，MIT 许可证，sherpa-onnx 靠它运行模型，应用体积主要来自它。
 
 完整的许可声明随应用一起分发 —— **设置 → 通用 → 开源许可** —— 并作为
 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) 提交在仓库里。其余部分用 SwiftUI 和 AppKit 编写。

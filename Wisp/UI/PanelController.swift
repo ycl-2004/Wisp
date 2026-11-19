@@ -12,12 +12,15 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     static let width: CGFloat = 620
     static let expandedHeight: CGFloat = 560
-    static let collapsedHeight: CGFloat = 110
+    /// One header row plus the composer.
+    static let collapsedHeight: CGFloat = 82
     /// AppKit's resizable style installs its own frame cursors around the window.
     /// Resizing is handled by `PanelResizeOverlay`, so keep the system style non-resizable.
     static let panelStyleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
-    private static let minimumCollapsedHeight: CGFloat = 110
-    private static let legacyCollapsedHeight: CGFloat = 180
+    private static let minimumCollapsedHeight: CGFloat = 82
+    /// Defaults of earlier layouts (a separate mode row, then a second header row): a stored height
+    /// equal to one of them is the old default, not a choice, and becomes the current one.
+    private static let legacyCollapsedHeights: [CGFloat] = [180, 140, 110]
     private static let maximumCollapsedHeight: CGFloat = 240
     private static let minimumExpandedHeight: CGFloat = 280
     private static let maximumExpandedHeight: CGFloat = 1000
@@ -63,16 +66,16 @@ final class PanelController: NSObject, NSWindowDelegate {
             refreshIdleTimer()
             // 面板开着期间让头部跟着当前窗口走（只更新应用名和链接）。
             model.startFollowingFrontWindow()
-            // 正文和滑动采集**不**在这里跑：留到用户按下发送时。
-            // 面板一出现就翻动页面，用户问题都还没想好，观感是电脑自作主张。
+            // 正文**不**在这里读：留到用户按下发送时。
             then?()
         }
     }
 
     func hide() {
         presentationGeneration = UUID()
-        ListeningModel.shared.stop()
         PushToTalk.shared.cancel()
+        // Captions live in this panel; they never keep listening once it is gone.
+        LiveCaptions.shared.stop()
         guard let panel else { return }
         cancelIdleTimer()
         saveFrame(panel)
@@ -141,7 +144,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     /// 这几种情况都说明人还在用它：设置关了、面板有焦点（在打字或点它）、
-    /// 鼠标停在上面、回答正在生成、正在录音或按住说话、正在采集。任何一条成立都不能收。
+    /// 鼠标停在上面、回答正在生成、字幕开着或按住说话、正在采集。任何一条成立都不能收。
     ///
     /// 还有一条：用户正待在**要读的那个应用**里。在 Chrome 里翻标签页找资料
     /// 恰恰说明他在准备提问，这时候把面板收掉最讨嫌。只有他跑去第三个
@@ -151,8 +154,8 @@ final class PanelController: NSObject, NSWindowDelegate {
             && !panel.isKeyWindow
             && !isPointerInside
             && !AssistantModel.shared.isStreaming
-            && !ListeningModel.shared.isActive
             && !PushToTalk.shared.isActive
+            && !LiveCaptions.shared.showsStrip
             && !AssistantModel.shared.isCapturing
             && !isWorkingInCapturedApp
     }
@@ -169,10 +172,10 @@ final class PanelController: NSObject, NSWindowDelegate {
         return front == captured
     }
 
-    /// 收起／展开：只改高度，宽度和左上角位置不动。
+    /// 收起／展开：只改高度，宽度和底边位置不动。
     func setCollapsed(_ collapsed: Bool, animated: Bool = true) {
         guard panel != nil else { return }
-        let target = collapsed ? storedCollapsedHeight : storedExpandedHeight
+        let target = collapsed ? currentCollapsedHeight : storedExpandedHeight
         setPanelHeight(target, animated: animated)
     }
 
@@ -180,18 +183,42 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// The stored value is updated even while expanded so the next show starts at the
     /// one-line height after the draft is cleared.
     func updateCollapsedHeight(forInputHeight inputHeight: CGFloat, animated: Bool = true) {
-        let target = Self.collapsedHeight(forInputHeight: inputHeight)
-        storedCollapsedHeight = target
-        guard AssistantModel.shared.isCollapsed else { return }
-        setPanelHeight(target, animated: animated)
+        storedCollapsedHeight = Self.collapsedHeight(forInputHeight: inputHeight)
+        applyCollapsedHeight(animated: animated)
+    }
+
+    /// Make room in the collapsed panel when a caption, microphone or error row appears.
+    func rowsChanged() {
+        applyCollapsedHeight(animated: true)
+        refreshIdleTimer()
+    }
+
+    /// Transient rows are added to the base height and are never part of the saved size.
+    static var extraRowsHeight: CGFloat {
+        (LiveCaptions.shared.showsStrip ? CaptionBar.height : 0) + (PushToTalk.shared.isActive ? PushToTalkRow.height : 0)
+            + (AssistantModel.shared.panelError == nil ? 0 : ChatView.errorRowHeight)
+    }
+
+    private var currentCollapsedHeight: CGFloat { storedCollapsedHeight + Self.extraRowsHeight }
+
+    private func applyCollapsedHeight(animated: Bool) {
+        guard isVisible, AssistantModel.shared.isCollapsed else { return }
+        setPanelHeight(currentCollapsedHeight, animated: animated)
     }
 
     /// The collapsed height follows the measured composer height one point for one,
-    /// while keeping a predictable one-line minimum and a bounded multiline maximum.
+    /// while keeping a predictable one-line minimum and a bounded multiline maximum,
+    /// plus the rows that show under the header while in use.
     static func collapsedHeight(forInputHeight inputHeight: CGFloat) -> CGFloat {
         let delta = max(0, inputHeight - ChatInput.defaultHeight)
         return min(max(Self.collapsedHeight + delta, Self.minimumCollapsedHeight),
                    Self.maximumCollapsedHeight)
+    }
+
+    /// The same frame at another height, with its bottom edge where it was: the input box stays
+    /// put and the panel opens upward.
+    static func frame(_ frame: NSRect, resizedTo height: CGFloat) -> NSRect {
+        NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: height)
     }
 
     private func setPanelHeight(_ target: CGFloat, animated: Bool) {
@@ -199,7 +226,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         var frame = panel.frame
         guard abs(frame.height - target) > 0.5 else { return }
         // 底边不动，向上展开。输入框位置保持稳定，内容从上方长出来。
-        frame.size.height = target
+        frame = Self.frame(frame, resizedTo: target)
         if let screen = panel.screen ?? ScreenGeometry.activeScreen {
             frame = ScreenGeometry.clamp(frame, on: screen)
         }
@@ -227,6 +254,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     private var storedCollapsedHeight: CGFloat = PanelController.collapsedHeight
     private var storedExpandedHeight: CGFloat = PanelController.expandedHeight
     private var storedWidth: CGFloat = PanelController.width
+    /// The panel's bottom-left corner, the point that stays put across collapsing and expanding.
     private var storedOrigin: NSPoint?
     private var isApplyingProgrammaticFrame = false
     private var frameAnimationGeneration = 0
@@ -250,7 +278,6 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.isMovableByWindowBackground = true
         panel.animationBehavior = .utilityWindow
         panel.minSize = NSSize(width: 380, height: Self.minimumCollapsedHeight)
         panel.maxSize = NSSize(width: 2400, height: Self.maximumExpandedHeight)
@@ -290,35 +317,28 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func position(_ panel: NSPanel) {
         guard let screen = ScreenGeometry.activeScreen else { return }
-        let collapsed = AssistantModel.shared.isCollapsed
-        let height = collapsed ? storedCollapsedHeight : storedExpandedHeight
+        let height = AssistantModel.shared.isCollapsed ? currentCollapsedHeight : storedExpandedHeight
         let size = NSSize(width: storedWidth, height: height)
-
-        // 底边锚定：宽和左下角沿用上次的位置，高度按当前是收起还是展开。
-        let origin: NSPoint
-        if let storedOrigin {
-            origin = storedOrigin
-        } else {
-            let frame = ScreenGeometry.defaultPanelFrame(width: size.width, height: size.height, on: screen)
-            origin = frame.origin
-        }
-        let frame = ScreenGeometry.clamp(NSRect(origin: origin, size: size), on: screen)
+        let frame = ScreenGeometry.panelFrame(size: size, savedOrigin: storedOrigin,
+                                              displays: NSScreen.screens.map { ($0.frame, $0.visibleFrame) },
+                                              fallback: screen.visibleFrame)
         panel.setFrame(frame, display: false)
     }
 
     private func saveFrame(_ panel: NSPanel) {
         guard !isApplyingProgrammaticFrame else { return }
-        let frame = panel.frame
-        pendingFrameString = NSStringFromRect(frame)
+        var frame = panel.frame
         storedWidth = frame.width
         storedOrigin = frame.origin
         if AssistantModel.shared.isCollapsed {
-            storedCollapsedHeight = min(max(frame.height, Self.minimumCollapsedHeight),
+            storedCollapsedHeight = min(max(frame.height - Self.extraRowsHeight, Self.minimumCollapsedHeight),
                                         Self.maximumCollapsedHeight)
+            frame.size.height = storedCollapsedHeight
         } else {
             storedExpandedHeight = min(max(frame.height, Self.minimumExpandedHeight),
                                        Self.maximumExpandedHeight)
         }
+        pendingFrameString = NSStringFromRect(frame)
 
         // Moving and custom resizing can emit a callback for every mouse event.
         // Keep the live frame in memory and persist only after the gesture pauses.
@@ -340,14 +360,11 @@ final class PanelController: NSObject, NSWindowDelegate {
     func restoreStoredFrame() {
         guard let saved = AppSettings.shared.panelFrame else { return }
         let rect = NSRectFromString(saved)
-        guard rect.width > 200, rect.height > 100 else { return }
+        guard rect.width > 200, rect.height >= Self.minimumCollapsedHeight - 1 else { return }
         storedWidth = rect.width
         storedOrigin = rect.origin
         if rect.height <= Self.maximumCollapsedHeight {
-            // 180pt was the old default while the standalone mode row was present.
-            // Treat that exact legacy default as a migration value so existing users
-            // do not keep a large blank strip after the row is removed.
-            storedCollapsedHeight = (abs(rect.height - Self.legacyCollapsedHeight) < 1 || abs(rect.height - 140) < 1)
+            storedCollapsedHeight = Self.legacyCollapsedHeights.contains { abs(rect.height - $0) < 1 }
                 ? Self.collapsedHeight
                 : min(max(rect.height, Self.minimumCollapsedHeight), Self.maximumCollapsedHeight)
         } else if rect.height >= Self.minimumExpandedHeight {
@@ -389,7 +406,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 }
 
 /// borderless 的窗口默认不能成为 key window，输入框就打不了字，这里放开。
-/// 主面板和录制笔记面板共用；Esc 交给各自的 `onCancel`。
+/// Esc 交给 `onCancel`。
 final class KeyablePanel: NSPanel {
     var onCancel: (() -> Void)?
 

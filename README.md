@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/ycl-2004/Wisp/releases/latest"><img src="https://img.shields.io/github/v/release/ycl-2004/Wisp?label=release&color=111111" alt="Latest release"></a>
   <a href="https://github.com/ycl-2004/Wisp/releases"><img src="https://img.shields.io/github/downloads/ycl-2004/Wisp/total?label=downloads&color=111111" alt="Total downloads"></a>
-  <img src="https://img.shields.io/badge/macOS-14.0%2B-111111?logo=apple&logoColor=white" alt="macOS 14.0 or later">
+  <img src="https://img.shields.io/badge/macOS-26.0%2B-111111?logo=apple&logoColor=white" alt="macOS 26.0 or later">
   <img src="https://img.shields.io/badge/Mac-Universal%202-111111?logo=apple&logoColor=white" alt="Universal app for Apple Silicon and Intel">
   <img src="https://img.shields.io/badge/Swift-SwiftUI%20%C2%B7%20AppKit-F05138?logo=swift&logoColor=white" alt="Built with SwiftUI and AppKit">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111" alt="MIT License"></a>
@@ -56,40 +56,40 @@ Simplified Chinese and follows your system language.
 > if you choose Entire screen) go to the endpoint you configured. Exclusions are per application, not per site — see
 > [PRIVACY.md](PRIVACY.md).
 
-## Live listening
+## Live captions
 
-Voice input shares the main chat panel: a single live caption line with the elapsed
-time, the microphone/stop button, Stop & analyze, and the rest under a ⋯ menu.
-Configure source/application/language in Settings → Audio. Control–Option–R
-starts/stops recording; stopping stages recent speech. Control–Option–D stages it
-while capture continues. Edit, then Enter sends through the selected AI with normal
-screen context. For a meeting that just ended, Stop & analyze (Control–Option–Return)
-stops, waits for the trailing text, and sends it in one key; Control–Option–A does the
-same without stopping. One more button swaps the answer area between the AI answer and
-this session's raw transcript. Nothing is submitted without one of those explicit
-actions, and no completion notification is emitted. Settings → Data can clear listening
-records separately. The archive retains its 2 GiB / 100-session admission budget.
-Hiding the panel stops recording. Settings → Audio also carries a master switch:
-turn voice input off and the row leaves the panel, the shortcuts stop starting a
-recording, and a session still running is stopped.
+Turn on captions (the captions button in the panel header, `⌃⌥R` by default, or the menu
+bar) during a meeting and the other side's words appear as two lines under the panel
+header, updating as they speak. Captions listen to everything this Mac plays (the meeting,
+a video, music), never your microphone. There is no app to choose.
 
-**Settings → Audio → Recognition engine** lists Apple Speech plus every local
-sherpa-onnx model found under `~/Documents/huggingface/models/` (SenseVoice and
-Qwen3-ASR architectures today). Copy another model folder there and click
-**Rescan**; no reinstall is needed. Local output is written in Simplified Chinese by
-default (Qwen3-ASR sometimes answers in Traditional); Settings → Audio → Chinese script
-changes it. See [engine setup and limits](docs/live-listening.md#recognition-engines).
+When someone asks you something, press a key:
 
-**Hold to ask** (Settings → Audio → Shortcuts, unassigned by default): hold the shortcut,
-say your question, release. It is sent with the current screen context in the current
-response mode. Microphone only, never saved to listening records, and unavailable while a
-recording runs. A tap shorter than 0.3 s sends nothing; after 60 s the words wait in the
-input box instead of being sent.
+- **Quick Ask** (`⌃⌥A`): their last 10 seconds of words, no screenshot.
+- **Ask About Screen** (`⌃⌥D`): their last 30 seconds plus a screenshot, for "how does this
+  part of the code work?".
 
-Device/language support is required for on-device transcription. Audio selection
-is application-level, not per participant or browser tab. This feature does not
-promise undetectability. See [setup, storage limits, and verification scope](docs/live-listening.md).
+The answer starts with one or two sentences you can say out loud, then at most three points.
+Both are ordinary commands (Settings → Commands): each can attach 0–30 seconds of captions,
+with or without a screenshot, on any key. **Answer automatically (experimental)** in
+Settings → Audio runs Quick Ask by itself when the other side ends a sentence with a
+question mark and pauses for a second. Wisp leaves your draft in the input box.
 
+Captions keep the last 30 seconds in memory. Caption
+questions and answers live in a conversation that is never written to disk and is cleared
+when captions stop. Closing the panel stops captions.
+
+**Recognition** (Settings → Audio): Apple's on-device recognizer (default; free, the audio
+stays on the Mac) or Soniox's real-time service (your own API key, about US$0.12 per hour,
+and the other side's voice is sent to Soniox; usually better with English terms in Chinese
+speech). Measured with Apple's recognizer on synthetic Mandarin with English terms played
+through QuickTime: a sentence's caption settles 0.35–1.2 s after it ends. Caption questions
+go to the API connection from Settings → Model by default, even when the panel uses an Agent
+CLI. [Details and measurements](docs/live-listening.md).
+
+**Hold to ask** (Settings → Audio, unassigned by default): hold the shortcut, say your
+question, release. Wisp sends the recognized text with the current screen context and
+discards the audio. In a regular conversation, the text is saved in chat history.
 
 If the menu-bar icon is missing, reopen Wisp from Finder or Spotlight to reveal the
 panel; its gear always opens Settings. Settings → Privacy controls intentional
@@ -119,7 +119,7 @@ open "$HOME/Applications/Wisp.app"
 
 ### System requirements
 
-- macOS 14.0 or later.
+- macOS 26.0 or later.
 - An Apple Silicon or Intel Mac. The published app is a Universal 2 binary.
 - **Screen Recording** permission for current-window or entire-screen screenshots.
 - **Automation** permission and the browser's `Allow JavaScript from Apple
@@ -160,9 +160,9 @@ open "$HOME/Applications/Wisp.app"
   not assume that a page was fully read.
 - Fall back explicitly to URL and screenshot context when JavaScript is
   disabled or the current app is not supported.
-- Virtual-page extraction clears its temporary `window.__wispCollector` state
-  after the read; Wisp reads Chromium preferences to check the Apple-Events
-  setting but does not write Wisp data into the browser profile.
+- The page is read once, without scrolling it, and nothing is left behind in it;
+  Wisp reads Chromium preferences to check the Apple-Events setting but does not
+  write Wisp data into the browser profile.
 
 **Floating panel and island**
 
@@ -208,26 +208,9 @@ The 1080p extended display shows regular application windows from your main disp
   setting does not conceal application identity, focus changes, clipboard
   events, or third-party activity records. Cameras and hardware capture are
   unaffected. Verify the actual receiving-side view before relying on it.
-- **Privacy cursor lock (experimental).** Settings → Privacy → Screen sharing uses a
-  single private moving arrow after hiding the system pointer. Wisp no longer creates a
-  stationary shared arrow: it could show through translucent windows or remain visible
-  when they moved, producing two cursors. While enabled, the option also
-  uses arrow artwork over text/resize controls and removes custom and plain-button press
-  effects. Turning it off restores native cursor requests and button feedback. Protected
-  panels, settings title bars, non-key floating panels and in-process menus/popovers use
-  the same policy; native drags keep their owner until release. Background hover keeps the
-  system pointer. Clicking activates Wisp before replacing it, preserving the external
-  capture target. Local text selection, insertion carets and menu selection remain usable
-  and visible; their containing windows request exclusion from compatible recordings.
-  The lock defaults off. Enabling it turns on window hiding; turning off window hiding
-  disables the lock, while disabling only the lock keeps windows hidden.
-  **Recording tools can still add click circles or transmit pointer metadata independently.**
-  Disable click highlighting in the recording tool; Wisp cannot switch it off in other apps.
-  Compatible recordings omit the pointer during Wisp interaction; they no longer receive
-  an artificial parked arrow. See [single-cursor verification](docs/single-cursor-20260912.md).
 - **Resize guide.** A thin pale-blue rounded line and small edge markers inside the panel show
   where the custom resize gesture can start. They are visual hints only; the panel remains
-  clickable; resize cursors become arrows while privacy cursor lock is enabled.
+  clickable. The top edge moves the panel; the sides, bottom and bottom corners resize it.
 
 **Shortcuts**
 
@@ -428,8 +411,8 @@ specific localization.
   address and a `Wisp/<version>` user agent, downloads nothing, and installs
   nothing. Turning it off makes no request at all.
 - Wisp has no account system, sync service, analytics SDK, crash-reporting SDK,
-  or automatic background recording. Explicit Live listening sessions continuously
-  capture selected audio until stopped; see [details](docs/live-listening.md).
+  or automatic background recording. Live captions listen to what this Mac plays only while
+  they are on, and nothing they hear is saved; see [details](docs/live-listening.md).
 
 **Exclusions are per app, not per site.** The exclusion list takes bundle
 identifiers, so there is currently no way to exempt one URL or domain while
@@ -569,7 +552,7 @@ from the macOS Keychain.
 
 Requirements:
 
-- macOS 14.0 or later.
+- macOS 26.0 or later.
 - Xcode 26 or later (KeyboardShortcuts 3.1.0 needs Swift tools 6.2); Xcode 26.6
   is the CI environment.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.45.4 or later, used to
@@ -688,7 +671,7 @@ swift test
   item, and update checking.
 - `Wisp/Resources/` — the string catalog.
 - `WispTests/` — the only test sources: providers and stream parsing, stores,
-  listening, capture scripts, and UI rendering.
+  captions, capture scripts, and UI rendering.
 - `tools/linux-harness/` — a SwiftPM package that compiles the Foundation-only part
   of the app and runs the matching subset of `WispTests` (copied in by
   `sync-sources.sh`, never edited there), on Linux or on a Mac without starting the app.
@@ -762,14 +745,10 @@ resolution, and public documentation are tracked.
 
 ## Credits
 
-Wisp bundles three third-party components:
+Wisp bundles one third-party component:
 
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) 3.1.0 by
   Sindre Sorhus, under the MIT License, for global shortcuts.
-- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.7, under the Apache
-  License 2.0, for local speech recognition models.
-- [ONNX Runtime](https://github.com/microsoft/onnxruntime), under the MIT License,
-  which sherpa-onnx runs models on. It is most of the app's size.
 
 Their full notices ship inside the app — Settings → General → **Open-source
 licenses** — and are checked in as [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).

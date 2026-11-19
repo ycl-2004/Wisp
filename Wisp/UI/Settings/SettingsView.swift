@@ -75,7 +75,7 @@ struct InfoButton: View {
                 .font(.system(size: 11, weight: .medium))
                 .frame(width: 18, height: 18)
         }
-        .buttonStyle(PrivacyPlainButtonStyle())
+        .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .help(Text(message))
         .accessibilityLabel(Text("信息"))
@@ -167,7 +167,7 @@ struct CompactStepper: View {
                 .frame(width: 23, height: 20)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(PrivacyPlainButtonStyle())
+        .buttonStyle(.plain)
         .foregroundStyle(enabled ? Color.secondary : Color.primary.opacity(0.24))
         .disabled(!enabled)
         .accessibilityLabel(Text(label))

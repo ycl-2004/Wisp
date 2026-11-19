@@ -155,22 +155,6 @@ public extension URLSession {
     }
 }
 
-// MARK: - ScrollDriver (real one uses CGEvent / AppKit)
-//
-// BrowserTextExtractor's scroll-collection loop drives this. The stub is
-// inert and untrusted, so the extractor takes its no-scroll path — the
-// parsing/family/error logic under test stays real; only the actuation
-// (which needs a live Mac GUI) is absent.
-
-enum ScrollDriver {
-    static var isTrusted: Bool { false }
-    static func frontWindowRect(pid: pid_t) -> CGRect? { nil }
-    static func contentPoint(in rect: CGRect) -> CGPoint { rect.origin }
-    static func withCursorParked<T>(at point: CGPoint, _ body: () -> T) -> T { body() }
-    static func scroll(pixels: Int32, at point: CGPoint) {}
-    static func restore(toScrollTop originalTop: Double, at point: CGPoint) {}
-}
-
 // MARK: - Shortcut types (real ones live in AdvancedShortcut.swift, AppKit/Carbon)
 //
 // AppSettings persists these two opaquely (raw value / JSON blob). The
@@ -190,16 +174,5 @@ struct AdvancedShortcut: Codable, Equatable {
     let keyCode: UInt16
     let kind: KeyKind
     let modifiers: UInt
-}
-
-// MARK: - LocalSpeechCatalog constant (real class wraps sherpa-onnx)
-//
-// ListeningTranscript's ListeningEngine migration reads exactly one
-// constant from the catalog. The value is mirrored here; sync-sources.sh
-// asserts the real file still carries this exact string, so drift fails
-// the sync loudly instead of silently testing a stale copy.
-
-enum LocalSpeechCatalog {
-    static let legacySenseVoiceID = "k2-fsa/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
 }
 

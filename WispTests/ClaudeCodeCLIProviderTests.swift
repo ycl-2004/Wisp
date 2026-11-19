@@ -433,8 +433,9 @@ final class CLITemporaryDirectoryTests: XCTestCase {
 }
 
 final class BrowserPrivacyTests: XCTestCase {
-    func testPageCollectorCleanupScriptRemovesTemporaryPageState() {
-        XCTAssertTrue(PageTextScript.cleanupJS.contains("window.__wispCollector = null"))
+    /// The page script reads and returns; it keeps nothing in the page for a later call to clean up.
+    func testPageScriptLeavesNoStateInThePage() {
+        XCTAssertFalse(PageTextScript.readJS.contains("window.__wisp"))
     }
 }
 

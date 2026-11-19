@@ -6,14 +6,42 @@
 
 - First-run onboarding: a sheet that connects a model, grants screen capture and teaches
   the summon shortcut. Readiness is judged on the connection actually selected.
-- Recording notes panel: a floating notes field for talking points during a recording,
-  with its own optional shortcut.
-- Saved listening audio uses AAC for common device formats (44.1/48 kHz, mono or
-  stereo), about 8 KB/s per channel instead of 192 KB/s of float PCM; other formats are
-  still saved as PCM.
+- **Live captions**, replacing live listening. The captions button in the panel header
+  (shown while voice is enabled) or `⌃⌥R` captions everything this Mac plays (the other
+  side of a meeting, a video, music) as two lines under the panel header. Captions never
+  use the microphone, keep only the last 30 seconds in memory and write nothing to disk;
+  hiding the panel stops them. See [docs/live-listening.md](docs/live-listening.md).
+- **Commands can attach the other side's words.** Any command can carry 0–30 seconds of
+  captions, with or without a screenshot. Two are built in: Quick Ask (`⌃⌥A`, 10 seconds,
+  no screenshot) and Ask About Screen (`⌃⌥D`, 30 seconds plus a screenshot). The answers
+  go into a conversation that is never saved and is discarded when captions stop. By
+  default these questions use the API connection even when the panel uses an agent CLI.
+- **Soniox cloud recognition** as an option beside Apple on-device recognition, on your
+  own API key (Keychain). What the Mac plays is sent to Soniox only while captions run
+  and only if you choose it. Apple recognizes one language at a time; Soniox takes the
+  chosen language plus English.
+- **Answer automatically (experimental, off by default):** when the other side ends a
+  sentence with a question mark and pauses for a second, Quick Ask runs by itself.
 
 ### Changed
 
+- **Wisp now requires macOS 26.** Captions use Apple's streaming `SpeechAnalyzer`.
+- **Any spot on the panel that is not a control drags it**: gaps, margins, the title, the
+  caption words, also on the first press from another app. The window now follows the mouse by Wisp's
+  own arithmetic and cannot be dragged off screen: on a trackpad the system's window-drag
+  entry points (`performDrag`, `WindowDragGesture`) did not move this panel at all, so the
+  header's title, the only declared drag area, never worked.
+- The pointer no longer changes shape over the panel's resize edges; the blue guide inside
+  the border shows where it resizes. The top edge moves the panel instead of resizing it.
+- The panel header is one row, and the collapsed panel is shorter. New conversation and
+  the conversation and turn counts moved into the history list, the time the context was
+  read moved into the title's tooltip, and capture details show only when something needs
+  your attention.
+- Settings → Audio is three groups: captions, the two voice shortcuts, and the permissions
+  still missing.
+- Page text is read once, without scrolling the page, and the script leaves nothing behind
+  in the page.
+- Diagnostic files appear in Settings → Data only in development builds.
 - The interface ships in English and Simplified Chinese only. The machine-converted
   Traditional Chinese localization, never reviewed, is removed; the Chinese README is
   now Simplified Chinese (`README.zh-CN.md`).
@@ -24,12 +52,21 @@
 - Conversations are stored as compact JSON instead of pretty-printed.
 - The Settings window can be resized.
 
+### Removed
+
+- **Recording sessions**: transcripts and audio saved to disk, Stop & analyze, Add to
+  draft, the transcript view, microphone and two-source capture for listening, and
+  Settings → Data → Listening records. Live captions replace them and save nothing.
+  "Delete all data and settings" still removes records an earlier version left behind.
+- **Local speech models** (SenseVoice, Qwen3-ASR). sherpa-onnx and ONNX Runtime are no
+  longer bundled.
+- **Privacy cursor lock (experimental)**, with its probe and tests.
+- **Scroll collection** for virtual-scrolling pages. A saved choice falls back to reading
+  the page text.
+
 ### Fixed
 
-- A long meeting sent with Stop & analyze no longer loses its beginning silently. When
-  the transcript exceeds the space left in the 12,000-character draft after the
-  question, the transcript starts with the time span it left out. A provisional line
-  stays pending so its final wording can go out next time.
+- The collapse arrow points the way the panel moves: up to open, down to close.
 - An error a gateway sends inside an HTTP 200 stream is shown as an error, not saved as
   the answer (and no longer sent back to the model as its previous reply). A stream that
   ends without `[DONE]` or a `finish_reason` is marked as unfinished. A model that reaches
@@ -39,15 +76,12 @@
 - After lowering the conversation limit below the number of conversations, “delete the
   oldest and create” removes as many as needed and creates the conversation; it used to
   delete one conversation per click and create nothing.
-- With **Save audio** on, reaching the audio cap stops only audio saving; transcription
-  and the session continue. It used to stop the whole session about 22 minutes in.
 - “Delete all data and settings” now also resets response modes and their models,
-  voice preferences (including Save audio), custom commands, the local-model scan flag,
-  the interface-language pin and app shortcuts. If files or API keys could not be
-  deleted, the Settings window reports the failure.
+  voice preferences, custom commands, keys left by removed features, the
+  interface-language pin and app shortcuts. If files or API keys could not be deleted,
+  the Settings window reports the failure.
 - Page text keeps repeated lines. Code (`}`, `return`), tables and chat messages lost
-  every repeated line, because the first read deduplicated lines on every page; only
-  later scroll-collection passes deduplicate now.
+  every repeated line, because the read deduplicated lines.
 - Choosing an enhanced trigger (Shift, Globe, double/triple tap) unregisters the
   standard `⌃⌥Space` hotkey, which otherwise stayed captured system-wide and did
   nothing. The hide-menu-bar dialog names the shortcut that actually works.
@@ -58,12 +92,14 @@
   overwriting them, and fixed the release checksum commands. Records are in
   `docs/records/`.
 - Permission prompts follow the interface language (English strings added).
+- A pending panel capture can no longer reopen a dismissed panel or run its stale action.
 
 ### Documentation
 
 - PRIVACY.md and the README say plainly that Codex's read-only sandbox does not limit
   reads, unlike Claude Code's restricted mode.
-- README credits list sherpa-onnx and ONNX Runtime, which the app bundles.
+- `docs/live-listening.md` is rewritten for live captions, with what was measured and
+  what was not. PRIVACY.md and both READMEs describe captions, Soniox and the removals.
 
 ### Tests
 
@@ -73,39 +109,8 @@
   macOS CI too. Tests that would fall back to a real installed CLI skip instead of
   spending a real request. Factory reset tests use temporary storage, and the stream
   and transcript checks also run under the English interface.
-
-- Privacy cursor lock is no longer disabled when window hiding is off. Enabling the lock
-  enables its required window hiding; turning off window hiding also turns off the lock.
-  Disabling only the lock restores the system pointer and keeps windows hidden.
-- Privacy cursor lock now creates only one private moving arrow. Removed the shared
-  parked-arrow window, which could show through translucent hosts or remain behind when
-  they moved. Hide the system pointer before showing its replacement, and remove the
-  replacement before restoring it. Attach the arrow to its host so dismissal hides it
-  immediately. Menu tracking cannot consume the private cursor's hide count and expose
-  another system arrow. Local text selections, insertion carets and menu state remain
-  visible and usable. Compatible recordings now omit the pointer
-  while interacting with Wisp; see [single-cursor verification](docs/single-cursor-20260912.md).
-- The privacy cursor switch now also controls arrow normalization, resize cursor artwork,
-  and custom/plain-button press feedback. Added coverage for non-key floating panels,
-  settings title bars, protected in-process menus/popovers and native drag ownership.
-  Background hover keeps the system pointer; an explicit click activates Wisp and saves
-  the external capture target before cursor replacement.
-  Recorder-generated click circles remain a recording-tool setting; independent
-  ScreenCaptureKit testing with click highlighting enabled confirms this boundary.
-  See [the original click-effect evidence](docs/cursor-lock-repair-20260912.md).
-- A pending panel capture can no longer reopen a dismissed panel or run its stale action.
-
-### Validation
-
-- Added isolated conversation/composer/lifecycle acceptance tests and
-  `bash tools/verify-non-audio.sh unit|native|release`. The current non-audio suite passes
-  80 main tests plus 10 window tests. Installer rollback/cleanup passes eight synthetic cases.
-- Earlier sampled ScreenCaptureKit video retained a stationary arrow, but those checks
-  missed duplicate local cursors. Current single-cursor checks supersede that behavior;
-  native input is preserved. Third-party receivers,
-  multi-display/Space transitions and long-duration performance remain separate gates.
-  No audio tests, real inference, installation or publication are included in this audit.
-  See the [full plan, evidence and remaining checks](docs/non-audio-acceptance-20260911.md).
+- `bash tools/verify-non-audio.sh unit|native|release` no longer refers to the removed
+  cursor probe and tests.
 
 ## 0.4.0 — 2026-09-11
 

@@ -36,13 +36,14 @@ FILES=(
   Store/Conversation.swift
   Store/ConversationStore.swift
   # Listening (Foundation-only subset)
-  Listening/ListeningTranscript.swift
-  Listening/ONNXModelInfo.swift
+  Listening/CaptionTypes.swift
   # Support
   Support/AppSettings.swift
   Support/OnboardingReadiness.swift
 )
 
+# Start clean: a copy of a file renamed or removed upstream would otherwise linger and still compile.
+find "$DEST" -name '*.swift' ! -name HarnessShims.swift -delete
 for f in "${FILES[@]}"; do
   cp "$APP/$f" "$DEST/$(basename "$f")"
 done
@@ -50,7 +51,7 @@ echo "synced ${#FILES[@]} files"
 
 # Test files whose every subject is in the closure above. They are copied
 # verbatim — WispTests is the only place a test is written or edited. A test
-# file that needs AppKit/SwiftUI/sherpa-onnx stays macOS-only by not being
+# file that needs AppKit/SwiftUI stays macOS-only by not being
 # listed; split such a file rather than adding #if branches to it.
 TEST_FILES=(
   FuzzSupport.swift
@@ -65,9 +66,8 @@ TEST_FILES=(
   ConversationStoreMatrixTests.swift
   DrainBufferBoundaryTests.swift
   DrainBufferTests.swift
-  ListeningTranscriptTests.swift
+  CaptionBufferTests.swift
   OnboardingReadinessTests.swift
-  ONNXFuzzTests.swift
   ProviderSharedTests.swift
   ResponseModeTests.swift
   Round4AppleScriptSinkTests.swift
@@ -109,8 +109,4 @@ grep -q "waitsForConnectivity" "$APP/LLM/OpenAICompatibleProvider.swift" \
 # ContextCapture.truncate family: mechanically extracted verbatim.
 python3 extract-context-capture.py
 
-# Drift guard for the one mirrored constant in HarnessShims.swift.
-grep -q "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17" \
-  "$APP/Listening/LocalSpeechCatalog.swift" \
-  || { echo "sync: legacySenseVoiceID changed upstream — update HarnessShims.swift"; exit 1; }
 echo "sync complete"

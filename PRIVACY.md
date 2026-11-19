@@ -11,10 +11,10 @@ captures the target window. With Capture range set to Entire screen, or if no
 window matches, it captures the whole display instead, minus Wisp's own
 windows, excluded apps, and apps you hid from entire-screen captures.
 It has no account system, no analytics SDK, no crash-reporting
-SDK, and no automatic background recording. An explicitly started Live listening
-session continuously captures the selected microphone/application audio until stopped.
-It continues while you review a draft or chat, but manually hiding the panel,
-locking/sleeping, or quitting stops it.
+SDK, and no automatic background recording. Live captions, once you turn them on,
+continuously listen to everything this Mac plays (a meeting, a video, music) until
+you turn them off. They show in the assistant panel; hiding the panel, locking/sleeping,
+or quitting turns them off. Nothing they hear is written to disk.
 
 It is not, however, a fully offline app. **When you use a cloud provider, the
 available page text (depending on capture mode and extraction limits), and a
@@ -27,7 +27,6 @@ understand before pointing it at a page you would not paste into a chat box.
 | What | Where |
 | --- | --- |
 | Conversation text and page-text snapshots | `~/Library/Application Support/Wisp/conversations.json` |
-| Live listening sessions: text, metadata, optional audio (AAC, or PCM for unusual device formats) | `~/Library/Application Support/Wisp/Listening/<session-id>/` |
 | API key | macOS Keychain, service `com.yichenlin.Wisp` |
 | Settings, window positions, island position | `UserDefaults` for `com.yichenlin.Wisp` |
 | Temporary CLI screenshots | A per-request `Wisp-*` directory in the macOS temporary directory, permissions `0700`; removed when the command ends |
@@ -52,51 +51,60 @@ the conversation file, the debug files, and the Keychain entry.
 
 Conversation and turn counts are limited in Settings → Data (defaults: ten
 conversations, thirty user turns each). These are not strict byte limits: message
-lengths and model outputs vary. Continuous transcription does not add chat messages.
+lengths and model outputs vary. Captions add no chat messages, and caption questions go to a
+conversation that is not saved (see below).
 
-## Live listening
+## Live captions
 
-Live listening is off until you start a session. Audio transcription is requested
-on-device only; if the selected language is not supported locally, Wisp stops and
-shows an error instead of using cloud recognition. Apple Speech uses macOS-managed
-language resources. Optional local models (SenseVoice, Qwen3-ASR) are found in the
-shared folder `~/Documents/huggingface/models/` and loaded locally through sherpa-onnx.
-To recognize them Wisp lists that folder and reads model file headers only; it does
-not download, copy, delete or upload model files. Local models do not request Apple
-Speech authorization; capture-source permissions still apply.
-Text is automatically checkpointed locally. Raw audio is saved only when selected
-before starting. Wisp does not save video in this mode.
+Captions are off until you turn them on. They listen to everything this Mac plays, from
+every application except Wisp itself, through macOS screen and system-audio capture; they
+never use the microphone. Settings → Audio chooses who recognizes the speech:
+
+- **Apple on-device** (the default): recognized on this Mac; the audio never leaves it.
+  macOS may download the language model the first time. If the language is not supported
+  on this Mac, captions stop with an error; Wisp never falls back to a cloud service.
+- **Soniox cloud**, only if you choose it and enter your own Soniox API key: while captions
+  run, everything this Mac plays (the other side's voice, and any other sound) is streamed to Soniox
+  (`stt-rt.soniox.com`) as 16 kHz PCM, and Soniox returns the words. What Soniox keeps, and
+  for how long, is governed by Soniox's own policy and your Soniox account, not by Wisp.
+  The key is stored in the macOS Keychain, separate from the chat provider's.
+
+The recognized words stay in memory, and only the last 30 seconds of them: that is the
+longest window a question can attach. No audio, transcript or session file is written,
+and turning captions off discards the words.
+
+A command set to attach the other side's words (Settings → Commands, for example the
+default Quick Ask and Ask About Screen) sends your question, those words, and a screenshot
+if the command asks for one, to the model connection. By default that is the API
+connection configured in Settings → Model even when the panel uses an Agent CLI
+(Settings → Audio can switch this off). These questions and answers live in a
+conversation that is never written to `conversations.json` and is discarded when
+captions are turned off. Nothing is sent from recognition on its own, except with
+**Answer automatically (experimental)**, off by default: when the other side ends a
+sentence with a question mark and pauses, Wisp runs the first caption command by itself,
+at most once every 8 seconds. Automatic answers leave the input draft untouched.
 
 Hold to ask records the microphone only while its shortcut is held, keeps the words in
-memory, and sends them as a question with the current screen context to the selected model,
-exactly like typed text. It writes nothing to listening records and saves no audio.
+memory, and sends them as a question with the current screen context to the selected model.
+Wisp discards the recording. Sent text enters chat history in a regular conversation.
+Hold to ask uses the recognizer chosen in
+Settings → Audio: with Soniox selected, your voice is streamed to Soniox while the shortcut
+is held; with Apple on-device it stays on this Mac.
 
-Enter/Send submits an editable transcript draft. The explicit Analyze now and
-Stop & analyze actions also submit directly, without a second confirmation; the latter
-waits for trailing recognition first. All three use the normal chat pipeline, including
-current screen/page context, screenshot preference and history. Ordinary Stop and
-Add to draft stage local text only. Copy transcript explicitly writes the full current
-transcript to the system clipboard; clipboard managers and OS syncing may observe it.
-No completion notification, sound, automatic copy, or automatic send from recognition
-callbacks is generated. Audio is not sent to the configured provider.
+Earlier versions of Wisp kept listening sessions under
+`~/Library/Application Support/Wisp/Listening/`. This version neither reads nor writes
+that folder; delete it in Finder if it exists, or use Settings → Data → Delete all data.
+See [usage and measurements](docs/live-listening.md).
 
-Session folders are protected by `0700` permissions, not encryption. History has
-no automatic expiry. A session has a two-hour/text limit; saved audio is capped at 256 MiB per
-source, after which only audio saving stops. New sessions require reserved room within a 2 GiB logical-file / 100-session
-archive budget; old sessions are never automatically deleted. Resetting
-all data deletes these records too, after stopping and invalidating capture.
-The separate Data → Listening records → Clear action removes just listening files,
-requires stopped capture and confirmation, and keeps chat records and API keys.
-Source, language and audio-retention preferences persist in UserDefaults. Settings
-permission checks do not start capture; explicit Request buttons may show system prompts.
-See [usage, storage, limits, and validation scope](docs/live-listening.md).
-
-Microphone versus application labels indicate audio source, not personal identity.
-Obtain necessary consent before recording a meeting. Wisp cannot guarantee that
-capture is undetectable, or that OS prompts/indicators are hidden from shared screens.
+Captions do not identify speakers or applications: whatever this Mac plays is captioned,
+including your own voice if an app plays it back. Obtain necessary consent before captioning a
+meeting. Wisp cannot guarantee that capture is undetectable, or that OS prompts/indicators
+are hidden from shared screens.
 
 ## What leaves your Mac
 
+- **Soniox, only if you choose it for captions.** The selected app's audio while captions
+  run (see Live captions above).
 - **Cloud provider.** Your question, the captured page text, the current
   screenshot, and the recent conversation history go to the Base URL you
   configured. What that service logs, how long it keeps it, and who can read it
@@ -167,21 +175,19 @@ sync service, no account.
 - In a supported browser: the current tab's URL, title, selected text, and full
   page body, via Apple Events and an injected extraction script.
 
-For virtual-scrolling pages, the extraction script may temporarily keep a
-`window.__wispCollector` object in the active page while it gathers text. Wisp
-clears that object when extraction finishes or when the page does not need a
-scroll pass. Wisp reads Chromium profile preferences only to check the
+The extraction script reads the page once and returns; it does not scroll the page or leave
+any object behind in it, so a virtual-scrolling document (Feishu, Notion) may yield only what
+is rendered. Wisp reads Chromium profile preferences only to check the
 Apple-Events setting; it does not write Wisp data into the browser profile,
 history, or cache.
 
 Invocation captures an image before showing the panel. Page extraction waits
 until Send, except explicit Refresh also reads text. Switching apps updates
 the header and marks context stale; returning to the panel can capture again.
-Continuous audio capture happens only during an explicitly started Live listening
-session. Screen context capture does not simulate a
+Continuous audio capture happens only while live captions are on. Screen context capture does not simulate a
 system screenshot keyboard shortcut or issue a CDP screenshot command.
 It does not imply absence of OS records, browser focus events, or observable
-page-script/scroll activity. Standard Debug and Release builds exclude the
+page-script activity. Standard Debug and Release builds exclude the
 diagnostic capture and distributed remote-show entry points; development use
 requires the additional `WISP_DIAGNOSTICS` compilation flag.
 
@@ -227,15 +233,16 @@ for the tested configurations and remaining gaps.
 
 - **Screen Recording** — to capture the frontmost window, or the display it is
   on when Capture range is Entire screen. Without it Wisp still
-  works, but sends no screenshot. Live listening also needs screen/system audio
-  authorization to capture a selected application.
-- **Microphone** — only for listening modes that include your microphone.
-- **Speech Recognition** — for Apple Speech transcription only; local models do not need it. No cloud audio fallback.
+  works, but sends no screenshot. Live captions use the same screen and system audio
+  authorization to listen to the selected application.
+- **Microphone** — only for Hold to ask.
+- **Speech Recognition** — Wisp does not request it: captions and Hold to ask use the
+  on-device recognizer (`SpeechAnalyzer`), or Soniox if you chose it. No automatic cloud fallback.
 - **Automation / Apple Events** — to read the URL, title, and page text from a
   supported browser. Granted per browser, the first time Wisp reads from it.
   Full page text additionally needs "Allow JavaScript from Apple Events"
   enabled in that browser, per profile.
-- **Accessibility** — for real scroll collection, and when the enhanced shortcut mode is selected, to
+- **Accessibility** — only when the enhanced shortcut mode is selected, to
   observe Shift, Globe/Fn, modifier-only, or double-/triple-tap key events while
   another app is active. The standard Carbon shortcut does not need this access.
 - **Network client** — to reach your configured endpoint, a remote Ollama, and

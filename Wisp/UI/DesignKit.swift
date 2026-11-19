@@ -79,12 +79,11 @@ struct VisualEffect: NSViewRepresentable {
 /// 小图标按钮：平时无痕，悬停才浮出底色。
 struct IconButtonStyle: ButtonStyle {
     var size: CGFloat = 12
-    @ObservedObject private var settings = AppSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
-        let pressed = configuration.isPressed && !settings.localCursorEnabled
+        let pressed = configuration.isPressed
         return configuration.label
             .font(.system(size: size, weight: .medium))
             .foregroundStyle(pressed ? Color.primary : (hovering ? Color.primary : Color.secondary))
@@ -97,40 +96,21 @@ struct IconButtonStyle: ButtonStyle {
             .scaleEffect(pressed && !reduceMotion ? 0.94 : 1.0)
             .onHover { hovering = $0 }
             .animation(.easeOut(duration: 0.12), value: hovering)
-            .animation(reduceMotion || settings.localCursorEnabled ? nil : .easeOut(duration: 0.08), value: pressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: pressed)
     }
 }
 
 /// 保留系统 Button 的键盘、辅助功能和触发语义，只补一层克制的按压反馈。
 struct PressFeedbackButtonStyle: ButtonStyle {
     var pressedScale: CGFloat = 0.97
-    @ObservedObject private var settings = AppSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        let pressed = configuration.isPressed && !settings.localCursorEnabled
+        let pressed = configuration.isPressed
         return configuration.label
             .scaleEffect(pressed && !reduceMotion ? pressedScale : 1)
             .opacity(pressed ? 0.82 : 1)
-            .animation(reduceMotion || settings.localCursorEnabled ? nil : .easeOut(duration: 0.08), value: pressed)
-    }
-}
-
-/// Plain buttons keep their native action and keyboard semantics. In privacy
-/// mode the label is stable even on platforms where PlainButtonStyle dims it.
-struct PrivacyPlainButtonStyle: PrimitiveButtonStyle {
-    @ObservedObject private var settings = AppSettings.shared
-
-    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        if settings.localCursorEnabled {
-            Button(configuration).buttonStyle(QuietButtonStyle())
-        } else {
-            PlainButtonStyle().makeBody(configuration: configuration)
-        }
-    }
-
-    private struct QuietButtonStyle: ButtonStyle {
-        func makeBody(configuration: Configuration) -> some View { configuration.label }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: pressed)
     }
 }
 

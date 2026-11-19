@@ -10,7 +10,8 @@ final class QuickCommandTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "wisp-commands-" + UUID().uuidString))
         let store = QuickCommandStore(defaults: defaults)
         XCTAssertEqual(store.commands.map(\.title), QuickCommand.defaults.map(\.title))
-        XCTAssertEqual(store.commands.map(\.mode), [.deep, .quick, .deep, nil])
+        XCTAssertEqual(store.commands.map(\.mode), [.quick, .quick, .deep, .quick, .deep, nil])
+        XCTAssertEqual(store.commands.map(\.attachedSeconds), [10, 30, 0, 0, 0, 0])
         XCTAssertTrue(store.commands.allSatisfy(\.isRunnable))
 
         let added = store.add()
@@ -79,5 +80,60 @@ final class QuickCommandTests: XCTestCase {
         let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
         view.cacheDisplay(in: view.bounds, to: bitmap)
         try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: "/private/tmp/wisp-commands-settings.png"))
+    }
+
+    // MARK: - Caption commands
+
+    func testCaptionQuestionQuotesTheWordsAfterTheQuestionAndAnyDraft() {
+        let command = QuickCommand.captionDefaults[0]
+        XCTAssertEqual(command.attachedSeconds, 10)
+        XCTAssertEqual(command.includesScreenshot, false)
+        XCTAssertEqual(command.mode, .quick)
+        let question = command.question(withCaptions: "RAG 是什么？", draft: "用中文回答")
+        XCTAssertTrue(question.hasPrefix(command.prompt + "\n\n用中文回答\n\n"))
+        XCTAssertTrue(question.hasSuffix("「RAG 是什么？」"))
+        let screen = QuickCommand.captionDefaults[1]
+        XCTAssertEqual(screen.attachedSeconds, 30)
+        XCTAssertEqual(screen.includesScreenshot, true)
+    }
+
+    func testAttachedSecondsStayWithinTheBuffer() {
+        var command = QuickCommand(title: "x", prompt: "y")
+        XCTAssertEqual(command.attachedSeconds, 0)
+        command.transcriptSeconds = 300
+        XCTAssertEqual(command.attachedSeconds, Int(CaptionBuffer.retention))
+        command.transcriptSeconds = -5
+        XCTAssertEqual(command.attachedSeconds, 0)
+    }
+
+    /// Commands saved before captions existed decode unchanged and get the two caption commands
+    /// once, in front; a list that already has caption commands is left alone.
+    @MainActor
+    func testCaptionCommandsAreSeededOnceIntoOlderLists() throws {
+        let suite = "wisp-caption-seed-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let old = [QuickCommand(title: "总结这一页", prompt: "总结", mode: .deep)]
+        defaults.set(try JSONEncoder().encode(old), forKey: QuickCommandStore.key)
+
+        let store = QuickCommandStore(defaults: defaults)
+        XCTAssertEqual(store.commands.map(\.title), QuickCommand.captionDefaults.map(\.title) + ["总结这一页"])
+        let saved = try JSONDecoder().decode([QuickCommand].self,
+                                             from: try XCTUnwrap(defaults.data(forKey: QuickCommandStore.key)))
+        XCTAssertEqual(saved.count, 3)
+
+        // Deleting them is respected on the next launch.
+        store.commands.removeFirst(2)
+        XCTAssertEqual(QuickCommandStore(defaults: defaults).commands.map(\.title), ["总结这一页"])
+    }
+
+    @MainActor
+    func testFirstLaunchGetsTheCaptionCommandsOnlyOnce() throws {
+        let suite = "wisp-caption-first-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = QuickCommandStore(defaults: defaults)
+        XCTAssertEqual(store.commands.filter { $0.attachedSeconds > 0 }.count, 2)
+        XCTAssertEqual(store.commands.count, QuickCommand.defaults.count)
     }
 }

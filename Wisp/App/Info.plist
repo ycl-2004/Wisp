@@ -26,7 +26,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>14.0</string>
+	<string>26.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
@@ -34,8 +34,8 @@
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Wisp 在你开始录音后采集麦克风，用于本机实时字幕和可选音频保存。</string>
+	<string>只在你按住快捷键提问时，Wisp 用麦克风听你说的话并转成文字，不保存录音。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Wisp 使用设备端语音识别，将选定的麦克风或应用音频转写为文字。</string>
+	<string>Wisp 用 Apple 的设备端识别把电脑放出来的声音（实时字幕）和你按住提问时说的话转成文字。</string>
 </dict>
 </plist>

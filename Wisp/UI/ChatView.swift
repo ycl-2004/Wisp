@@ -2,10 +2,14 @@ import AppKit
 import SwiftUI
 
 struct ChatView: View {
+    static let errorRowHeight: CGFloat = 36
+
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var commands = QuickCommandStore.shared
+    @ObservedObject private var captions = LiveCaptions.shared
+    @ObservedObject private var pushToTalk = PushToTalk.shared
     @AppStorage(AppSettings.settingsTabKey) private var settingsTab: SettingsView.Tab = .model
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -44,6 +48,7 @@ struct ChatView: View {
             RoundedRectangle(cornerRadius: DS.windowCorner, style: .continuous)
                 .strokeBorder(DS.specularRim, lineWidth: 0.75)
         )
+        .dragsPanel()
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: backgroundOpacity)
         .onHover { inside in
             PanelController.shared.setPointerInside(inside)
@@ -60,6 +65,7 @@ struct ChatView: View {
         .onChange(of: inputHeight) { _, height in
             PanelController.shared.updateCollapsedHeight(forInputHeight: height)
         }
+        .onChange(of: model.panelError != nil) { PanelController.shared.rowsChanged() }
         .onChange(of: model.showsConversationList) { _, showsHistory in
             if showsHistory, model.isCollapsed { model.setCollapsed(false) }
         }
@@ -73,12 +79,17 @@ struct ChatView: View {
         VStack(spacing: 0) {
             ContextHeaderView()
 
+            if captions.showsStrip {
+                CaptionStrip().transition(.opacity)
+            }
+            if pushToTalk.isActive {
+                PushToTalkBar().transition(.opacity)
+            }
+
             if !model.isCollapsed {
                 Group {
                     if model.showsConversationList {
                         ConversationListView()
-                    } else if model.showsTranscript {
-                        TranscriptView()
                     } else {
                         messageList
                     }
@@ -86,6 +97,7 @@ struct ChatView: View {
                 .transition(.opacity)
             }
 
+            if let error = model.panelError { errorRow(error) }
             composer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -148,13 +160,6 @@ struct ChatView: View {
                         .font(DS.meta)
                     }
 
-                    if let error = model.errorText {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                            .font(DS.meta)
-                            .foregroundStyle(.red)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                     Color.clear.frame(height: 2).id("bottom")
                 }
                 .padding(.horizontal, DS.gutter)
@@ -177,6 +182,28 @@ struct ChatView: View {
     }
 
     // MARK: - 输入
+
+    private func errorRow(_ error: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            Text(error)
+                .font(DS.meta)
+                .lineLimit(2)
+                .textSelection(.enabled)
+                .help(Text(error))
+            Spacer(minLength: 0)
+            Button("知道了") {
+                model.errorText = nil
+                pushToTalk.clearError()
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, DS.gutter)
+        .frame(height: Self.errorRowHeight)
+        .background(DS.subtleBackground)
+    }
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -265,7 +292,7 @@ struct ChatView: View {
                     .frame(width: 27, height: 27)
                     .background(Circle().fill(Color.secondary))
             }
-            .buttonStyle(PrivacyPlainButtonStyle())
+            .buttonStyle(.plain)
             .keyboardShortcut(".", modifiers: .command)
             .help("停止（⌘.）")
         } else {
@@ -277,7 +304,7 @@ struct ChatView: View {
                         Circle().fill(model.canSend ? Color.accentColor : Color.primary.opacity(0.10))
                     )
             }
-            .buttonStyle(PrivacyPlainButtonStyle())
+            .buttonStyle(.plain)
             .disabled(!model.canSend)
             .keyboardShortcut(.return, modifiers: .command)
             .help("发送（⌘↩）· \(providerLabel)")
@@ -292,6 +319,8 @@ struct ChatView: View {
 struct ChatEmptyStateView: View {
     @EnvironmentObject var model: AssistantModel
     @ObservedObject private var commands = QuickCommandStore.shared
+    @ObservedObject private var captions = LiveCaptions.shared
+    @ObservedObject private var pushToTalk = PushToTalk.shared
 
     private var appName: String {
         model.packet?.appName ?? String(localized: "当前应用")
@@ -531,7 +560,7 @@ private struct MessageRow: View {
                             .fill(copied ? Color.accentColor.opacity(0.12) : Color.clear)
                     )
                 }
-                .buttonStyle(PrivacyPlainButtonStyle())
+                .buttonStyle(.plain)
                 .foregroundStyle(copied ? Color.accentColor : Color.secondary.opacity(0.7))
                 .contentShape(Rectangle())
                 .accessibilityLabel(Text("复制回答"))

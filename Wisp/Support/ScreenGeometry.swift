@@ -60,18 +60,24 @@ enum ScreenGeometry {
         }
     }
 
-    /// 主面板的默认位置：底部居中，给灵动岛让出下面那一截，向上展开。
-    static func defaultPanelFrame(width: CGFloat, height: CGFloat, on screen: NSScreen) -> NSRect {
-        let visible = screen.visibleFrame
-        let x = visible.midX - width / 2
-        let y = visible.minY + 16
-        return NSRect(x: x.rounded(), y: y.rounded(), width: width, height: height)
+    /// Restore the bottom-left anchor on its own display. An unplugged display falls back to
+    /// the default position on the active display.
+    static func panelFrame(size: NSSize, savedOrigin: NSPoint?,
+                           displays: [(frame: NSRect, visibleFrame: NSRect)], fallback: NSRect) -> NSRect {
+        if let savedOrigin, let display = displays.first(where: { $0.frame.contains(savedOrigin) }) {
+            return clamp(NSRect(origin: savedOrigin, size: size), within: display.visibleFrame)
+        }
+        let origin = NSPoint(x: (fallback.midX - size.width / 2).rounded(), y: (fallback.minY + 16).rounded())
+        return clamp(NSRect(origin: origin, size: size), within: fallback)
     }
 
     /// 把窗口夹回屏幕可见区域内，别让向上展开时顶出屏幕。
     static func clamp(_ frame: NSRect, on screen: NSScreen) -> NSRect {
+        clamp(frame, within: screen.visibleFrame)
+    }
+
+    private static func clamp(_ frame: NSRect, within visible: NSRect) -> NSRect {
         var result = frame
-        let visible = screen.visibleFrame
         result.size.height = min(result.height, visible.height - 8)
         result.size.width = min(result.width, visible.width - 8)
         if result.maxY > visible.maxY { result.origin.y = visible.maxY - result.height }

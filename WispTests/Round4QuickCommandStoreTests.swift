@@ -57,7 +57,8 @@ final class Round4QuickCommandStoreTests: XCTestCase {
             defaults.set(try JSONEncoder().encode(custom), forKey: QuickCommandStore.key)
             let store = QuickCommandStore(defaults: defaults)
             XCTAssertFalse(store.loadFailed)
-            XCTAssertEqual(store.commands.map(\.title), ["Mine"])
+            // The saved command is kept; the caption commands are added in front once.
+            XCTAssertEqual(store.commands.map(\.title), QuickCommand.captionDefaults.map(\.title) + ["Mine"])
         }
     }
 }

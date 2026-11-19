@@ -94,6 +94,10 @@ enum ProviderError: LocalizedError {
     }
 }
 
+/// Which connection answers a question: the one the panel shows, or the API connection set up in
+/// Settings → Model even while the panel uses a CLI or Ollama.
+enum QuestionConnection { case current, api }
+
 struct ProviderConfig: Sendable {
     var kind: ProviderKind = .openAICompatible
     var baseURL: String = ""
@@ -151,6 +155,12 @@ struct ProviderConfig: Sendable {
         var config = config
         config.apiKey = key
         return config
+    }
+
+    /// The API connection with this mode's model choice for it (blank follows its default model).
+    static func api(settings: AppSettings = .shared, mode: ResponseMode) -> ProviderConfig {
+        let baseline = ProviderConfig(kind: .openAICompatible, baseURL: settings.baseURL, model: settings.model)
+        return baseline.selecting(mode, model: settings.responseModel(for: mode, connection: baseline.responseConnectionKey))
     }
 
     static func selection(settings: AppSettings = .shared) -> ProviderConfig {

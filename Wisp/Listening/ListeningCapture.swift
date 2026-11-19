@@ -2,35 +2,27 @@ import AppKit
 import AVFoundation
 import ScreenCaptureKit
 
-/// Owns recognition and file IO on one queue, never on the realtime microphone thread.
+/// Hands audio to a recognizer on one serial queue, never on the realtime audio thread.
 final class ListeningAudioSink: @unchecked Sendable {
-    let queue = DispatchQueue(label: "com.yichenlin.Wisp.listening", qos: .userInitiated)
+    let queue: DispatchQueue
+    private let feed: SpeechFeed
     private let capacity = DispatchSemaphore(value: 32)
     private let overflowLock = NSLock()
     private var overflowReported = false
-    private var tracks: [ListeningSource: ListeningSpeechTrack] = [:]
-    private let scheduler: ListeningSpeechScheduler
     nonisolated private let onFailure: @Sendable (String) -> Void
-    private let origin = ProcessInfo.processInfo.systemUptime
     private var acceptsAudio = true
 
-    init(mode: ListeningMode, locale: String, recognition: LocalSpeechRecognition? = nil, directory: URL?,
-         onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void,
-         onNotice: @escaping @Sendable (String) -> Void = { _ in }) throws {
+    init(feed: SpeechFeed, queue: DispatchQueue, onFailure: @escaping @Sendable (String) -> Void) {
+        self.feed = feed
+        self.queue = queue
         self.onFailure = onFailure
-        if let recognition {
-            scheduler = ListeningSpeechScheduler(queue: queue, recognize: recognition.recognize,
-                                                 onSegment: onSegment, onFailure: onFailure)
-        } else {
-            scheduler = try ListeningSpeechScheduler(locale: locale, queue: queue, onSegment: onSegment, onFailure: onFailure)
-        }
-        for source in mode.sources {
-            tracks[source] = ListeningSpeechTrack(source: source, scheduler: scheduler,
-                                                  directory: directory, onFailure: onFailure, onNotice: onNotice)
-        }
     }
 
-    func enqueue(_ buffer: AVAudioPCMBuffer, source: ListeningSource) {
+    static func makeQueue() -> DispatchQueue {
+        DispatchQueue(label: "com.yichenlin.Wisp.listening", qos: .userInitiated)
+    }
+
+    func enqueue(_ buffer: AVAudioPCMBuffer) {
         guard capacity.wait(timeout: .now()) == .success else {
             overflowLock.lock()
             let shouldReport = !overflowReported
@@ -40,36 +32,33 @@ final class ListeningAudioSink: @unchecked Sendable {
             queue.async { [weak self] in
                 guard let self, self.acceptsAudio else { return }
                 self.acceptsAudio = false
-                self.onFailure(String(localized: "音频处理跟不上输入，已停止以避免丢失内容。请关闭其他高负载应用后重试。"))
+                self.onFailure(String(localized: "音频处理跟不上输入，字幕已停止。请关闭其他高负载应用后重试。"))
             }
             return
         }
-        let offset = max(0, ProcessInfo.processInfo.systemUptime - origin - Double(buffer.frameLength) / buffer.format.sampleRate)
         queue.async { [weak self] in
             guard let self else { return }
             defer { self.capacity.signal() }
             guard self.acceptsAudio else { return }
-            self.tracks[source]?.append(buffer, offset: offset)
+            self.feed.append(buffer)
         }
     }
 
     func finish() {
         queue.sync {
             acceptsAudio = false
-            tracks.values.forEach { $0.finish() }
+            feed.endAudio()
         }
     }
 
     func cancel() {
         queue.sync {
             acceptsAudio = false
-            tracks.values.forEach { $0.cancel() }
-            scheduler.cancel()
-            tracks.removeAll()
+            feed.cancel()
         }
     }
 
-    var isDrained: Bool { queue.sync { scheduler.isDrained } }
+    var isDrained: Bool { queue.sync { feed.isDrained } }
 
     static func copy(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
         guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
@@ -84,6 +73,7 @@ final class ListeningAudioSink: @unchecked Sendable {
     }
 }
 
+/// Captures one source: everything the Mac plays, through ScreenCaptureKit, or the microphone.
 @MainActor
 final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     private let sink: ListeningAudioSink
@@ -93,74 +83,69 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     private var engineObserver: NSObjectProtocol?
     private var accepting = true
 
-    /// `onNotice`：不中断录音的提示（比如音频保存到了上限）。
-    init(mode: ListeningMode, locale: String, recognition: LocalSpeechRecognition? = nil, directory: URL?,
-         onSegment: @escaping (ListeningSegment) -> Void, onFailure: @escaping @Sendable (String) -> Void,
-         onNotice: @escaping @Sendable (String) -> Void = { _ in }) throws {
+    init(sink: ListeningAudioSink, onFailure: @escaping @Sendable (String) -> Void) {
+        self.sink = sink
         self.onFailure = onFailure
-        sink = try ListeningAudioSink(mode: mode, locale: locale, recognition: recognition, directory: directory,
-                                      onSegment: onSegment, onFailure: onFailure, onNotice: onNotice)
         super.init()
     }
 
-    func start(mode: ListeningMode, application: SCRunningApplication?) async throws {
-        if mode.sources.contains(.application) {
-            guard let application else { throw ListeningFailure(message: String(localized: "请选择要转写的应用。")) }
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-            try Task.checkCancellation()
-            guard let display = content.displays.first,
-                  content.applications.contains(where: { $0.processID == application.processID }) else {
-                throw ListeningFailure(message: String(localized: "所选应用已退出或无法采集，请刷新应用列表。"))
-            }
-            // Audio filtering is application-level, not browser-tab/window-level.
-            // https://developer.apple.com/videos/play/wwdc2022/10156/
-            let filter = SCContentFilter(display: display, including: [application], exceptingWindows: [])
-            let configuration = SCStreamConfiguration()
-            configuration.capturesAudio = true
-            configuration.excludesCurrentProcessAudio = true
-            configuration.sampleRate = 48_000
-            configuration.channelCount = 1
-            configuration.width = 2
-            configuration.height = 2
-            configuration.minimumFrameInterval = CMTime(seconds: 1, preferredTimescale: 1)
-            let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
-            try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sink.queue)
-            self.stream = stream
-            do {
-                try await stream.startCapture()
-                try Task.checkCancellation()
-                guard accepting else { throw CancellationError() }
-            } catch {
-                try? await stream.stopCapture()
-                self.stream = nil
-                throw error
-            }
+    /// Everything this Mac plays, from every app, except Wisp's own sound.
+    func startSystemAudio() async throws {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        try Task.checkCancellation()
+        guard let display = content.displays.first else {
+            throw ListeningFailure(message: String(localized: "没有找到可以采集声音的显示器。"))
         }
-        if mode.sources.contains(.microphone) {
-            let engine = AVAudioEngine()
-            let input = engine.inputNode
-            let format = input.outputFormat(forBus: 0)
-            guard format.sampleRate > 0, format.channelCount > 0 else {
-                throw ListeningFailure(message: String(localized: "没有可用的麦克风，请检查系统声音输入设置。"))
+        // A display filter that excludes no application carries the audio of all of them; which
+        // display it names does not matter for sound.
+        // https://developer.apple.com/videos/play/wwdc2022/10156/
+        let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+        let configuration = SCStreamConfiguration()
+        configuration.capturesAudio = true
+        configuration.excludesCurrentProcessAudio = true
+        configuration.sampleRate = 48_000
+        configuration.channelCount = 1
+        configuration.width = 2
+        configuration.height = 2
+        configuration.minimumFrameInterval = CMTime(seconds: 1, preferredTimescale: 1)
+        let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
+        try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sink.queue)
+        self.stream = stream
+        do {
+            try await stream.startCapture()
+            try Task.checkCancellation()
+            guard accepting else { throw CancellationError() }
+        } catch {
+            try? await stream.stopCapture()
+            self.stream = nil
+            throw error
+        }
+    }
+
+    func startMicrophone() throws {
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw ListeningFailure(message: String(localized: "没有可用的麦克风，请检查系统声音输入设置。"))
+        }
+        let sink = self.sink
+        let failure = self.onFailure
+        input.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
+            guard let copy = ListeningAudioSink.copy(buffer) else {
+                failure(String(localized: "无法复制麦克风音频，已停止。"))
+                return
             }
-            let sink = self.sink
-            let failure = self.onFailure
-            input.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
-                guard let copy = ListeningAudioSink.copy(buffer) else {
-                    failure(String(localized: "无法复制麦克风音频，录音已停止。"))
-                    return
-                }
-                sink.enqueue(copy, source: .microphone)
-            }
-            self.engine = engine
-            engine.prepare()
-            try engine.start()
-            engineObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange,
-                object: engine, queue: .main) { [weak self] _ in
-                Task { @MainActor in
-                    guard let self, self.accepting else { return }
-                    self.onFailure(String(localized: "音频输入设备已变化，录音已停止。请确认麦克风后重新开始。"))
-                }
+            sink.enqueue(copy)
+        }
+        self.engine = engine
+        engine.prepare()
+        try engine.start()
+        engineObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange,
+            object: engine, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.accepting else { return }
+                self.onFailure(String(localized: "音频输入设备已变化，已停止。请确认麦克风后重试。"))
             }
         }
     }
@@ -177,10 +162,10 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         let status = CMSampleBufferCopyPCMDataIntoAudioBufferList(sampleBuffer, at: 0,
                                                                   frameCount: Int32(frames), into: buffer.mutableAudioBufferList)
         guard status == noErr else {
-            onFailure(String(localized: "无法读取应用音频，录音已停止。"))
+            onFailure(String(localized: "无法读取应用音频，字幕已停止。"))
             return
         }
-        sink.enqueue(buffer, source: .application)
+        sink.enqueue(buffer)
     }
 
     nonisolated func stream(_ stream: SCStream, didStopWithError error: Error) {
@@ -198,7 +183,8 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         engine = nil
     }
 
-    func stop() async -> String? {
+    /// Stops capture and waits for the trailing words, with a deadline so Stop cannot hang.
+    func stop(deadline seconds: TimeInterval = 10) async -> String? {
         stopMicrophone()
         var issue: String?
         if let stream {
@@ -207,14 +193,13 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         }
         stream = nil
         sink.finish()
-        // Drain the bounded queue, with a deadline so Stop cannot hang indefinitely.
-        let deadline = ProcessInfo.processInfo.systemUptime + 10
+        let deadline = ProcessInfo.processInfo.systemUptime + seconds
         while !sink.isDrained && ProcessInfo.processInfo.systemUptime < deadline {
-            try? await Task.sleep(for: .milliseconds(100))
+            try? await Task.sleep(for: .milliseconds(50))
             if Task.isCancelled { break }
         }
         if !sink.isDrained, issue == nil {
-            issue = String(localized: "末尾音频未能全部完成转写；已保留现有文字，临时文字可能不完整。")
+            issue = String(localized: "末尾的话没能识别完。")
         }
         sink.cancel()
         return issue
@@ -223,8 +208,26 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     func terminate() {
         stopMicrophone()
         sink.cancel()
-        // Also used by data reset while the process stays alive.
         if let stream { Task { try? await stream.stopCapture() } }
         stream = nil
+    }
+}
+
+/// Builds the recognizer a session's engine names, and the capture that feeds it.
+@MainActor
+enum ListeningSession {
+    static func make(engine: ListeningEngine, locale: String,
+                     onUpdate: @escaping @Sendable (CaptionUpdate) -> Void,
+                     onFailure: @escaping @Sendable (String) -> Void) async throws -> ListeningCapture {
+        let feed: SpeechFeed
+        switch engine {
+        case .appleSpeech:
+            feed = try await StreamingSpeech.start(locale: locale, onUpdate: onUpdate, onFailure: onFailure)
+        case .soniox:
+            feed = try await SonioxSpeech.start(apiKey: KeychainStore.loadSpeechKey(), locale: locale,
+                                                onUpdate: onUpdate, onFailure: onFailure)
+        }
+        let sink = ListeningAudioSink(feed: feed, queue: ListeningAudioSink.makeQueue(), onFailure: onFailure)
+        return ListeningCapture(sink: sink, onFailure: onFailure)
     }
 }

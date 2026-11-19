@@ -53,6 +53,8 @@ final class ConversationStore: ObservableObject {
     /// 置位，persistNow 的最终更新、占位消息被移除、或对话被删时清掉。
     /// 只存在于内存里；进程重启后本来也没有流在跑。
     private var streamingConversationID: UUID?
+    /// 只在内存里的对话：字幕提问里有对方的原话，不写盘，也不占对话上限。
+    private var ephemeralIDs: Set<UUID> = []
 
     private let fileURL: URL
     private let settings: AppSettings
@@ -177,7 +179,7 @@ final class ConversationStore: ObservableObject {
         // 文件比本版本新时只读不写，宁可这次改动不落盘，也不能覆盖用户的数据。
         guard !persistenceBlocked else { return }
 
-        let file = ConversationFile(conversations: conversations)
+        let file = ConversationFile(conversations: conversations.filter { !ephemeralIDs.contains($0.id) })
         guard let data = try? encoder.encode(file) else { return noteSaveFailure() }
         let tmp = fileURL.appendingPathExtension("tmp")
         // Do not fall back to writing private content if directory protection fails.
@@ -238,7 +240,10 @@ final class ConversationStore: ObservableObject {
     var maxConversations: Int { settings.maxConversations }
     var maxUserTurns: Int { settings.maxUserTurns }
 
-    var canCreateNew: Bool { conversations.count < maxConversations }
+    var canCreateNew: Bool { savedCount < maxConversations }
+
+    /// Conversations that count against the limit: every one except the in-memory ones.
+    var savedCount: Int { conversations.count - ephemeralIDs.count }
 
     var active: Conversation? {
         guard let activeID else { return nil }
@@ -257,9 +262,9 @@ final class ConversationStore: ObservableObject {
     /// 除它之外不够删的话返回空：这条路不提供。
     var evictionCandidates: [Conversation] {
         guard !canCreateNew else { return [] }
-        let needed = conversations.count - maxConversations + 1
+        let needed = savedCount - maxConversations + 1
         let eligible = conversations
-            .filter { $0.id != streamingConversationID }
+            .filter { $0.id != streamingConversationID && !ephemeralIDs.contains($0.id) }
             .sorted { $0.updatedAt < $1.updatedAt }
         guard eligible.count >= needed else { return [] }
         return Array(eligible.prefix(needed))
@@ -293,7 +298,36 @@ final class ConversationStore: ObservableObject {
     func select(_ id: UUID) {
         guard conversations.contains(where: { $0.id == id }) else { return }
         activeID = id
-        settings.lastActiveConversationID = id.uuidString
+        // 不保存的对话下次启动就不在了，别让它成为「上次打开的那个」。
+        if !ephemeralIDs.contains(id) { settings.lastActiveConversationID = id.uuidString }
+    }
+
+    // MARK: - 不保存的对话
+
+    func isEphemeral(_ id: UUID) -> Bool { ephemeralIDs.contains(id) }
+
+    /// 切到那个只在内存里的对话；还没有就建一个。
+    @discardableResult
+    func activateEphemeral(title: String) -> Conversation {
+        if let existing = conversations.first(where: { ephemeralIDs.contains($0.id) }) {
+            activeID = existing.id
+            return existing
+        }
+        var conversation = Conversation()
+        conversation.title = title
+        conversations.insert(conversation, at: 0)
+        ephemeralIDs.insert(conversation.id)
+        activeID = conversation.id
+        return conversation
+    }
+
+    /// 丢掉只在内存里的对话。正开着的话切回最近的那个已保存对话。
+    func discardEphemeral() {
+        guard !ephemeralIDs.isEmpty else { return }
+        conversations.removeAll { ephemeralIDs.contains($0.id) }
+        if let streamingConversationID, ephemeralIDs.contains(streamingConversationID) { self.streamingConversationID = nil }
+        if let activeID, ephemeralIDs.contains(activeID) { self.activeID = conversations.first?.id }
+        ephemeralIDs.removeAll()
     }
 
     /// 确保有一个可用的当前对话；已满且没有活跃对话时返回 nil。
@@ -348,6 +382,7 @@ final class ConversationStore: ObservableObject {
 
     func delete(_ id: UUID) {
         conversations.removeAll { $0.id == id }
+        ephemeralIDs.remove(id)
         if streamingConversationID == id { streamingConversationID = nil }
         if activeID == id {
             activeID = conversations.first?.id
@@ -363,6 +398,7 @@ final class ConversationStore: ObservableObject {
         loadIssue = nil
         saveIssue = nil
         conversations.removeAll()
+        ephemeralIDs.removeAll()
         activeID = nil
         settings.lastActiveConversationID = nil
     }

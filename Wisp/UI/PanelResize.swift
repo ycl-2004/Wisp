@@ -6,6 +6,7 @@ import SwiftUI
 /// AppKit 的 borderless resize 入口可抓的只有一两个像素，而且 contentView 铺满之后
 /// 基本抓不到；它还会在窗口外沿安装系统缩放光标。这里由内容之上的透明视图接管：
 /// 命中边缘就自己算新 frame，其他位置一律放行，SwiftUI 的点击、悬停、拖动窗口都不受影响。
+/// 鼠标指针从不改变：哪里能缩放由内侧那圈蓝色提示线说明。
 enum PanelResize {
     /// 边缘可抓的宽度。太小抓不住，太大就会吃掉贴边控件的点击。
     static let grabInset: CGFloat = 6
@@ -14,51 +15,29 @@ enum PanelResize {
     /// 内层提示线与面板边缘的距离，不占用实际内容的命中区域。
     static let guideInset: CGFloat = 4
 
-    /// Resizing is still handled by the overlay, but its pointer stays an arrow.
-    /// This keeps the local-cursor experiment and ordinary Wisp use visually stable.
-    @MainActor static func cursor(for edges: Edges) -> NSCursor {
-        guard !WispCursorPolicy.isEnabled, !edges.isEmpty else { return .arrow }
-        if #available(macOS 15.0, *) {
-            let position: NSCursor.FrameResizePosition
-            switch edges {
-            case [.left, .top]: position = .topLeft
-            case [.right, .top]: position = .topRight
-            case [.left, .bottom]: position = .bottomLeft
-            case [.right, .bottom]: position = .bottomRight
-            case .left: position = .left
-            case .right: position = .right
-            case .top: position = .top
-            default: position = .bottom
-            }
-            // https://developer.apple.com/documentation/appkit/nscursor/frameresize(position:directions:)
-            return .frameResize(position: position, directions: .all)
-        }
-        return edges.contains(.left) || edges.contains(.right) ? .resizeLeftRight : .resizeUpDown
-    }
-
     struct Edges: OptionSet {
         let rawValue: Int
         static let left = Edges(rawValue: 1 << 0)
         static let right = Edges(rawValue: 1 << 1)
-        static let top = Edges(rawValue: 1 << 2)
         static let bottom = Edges(rawValue: 1 << 3)
     }
 
-    /// 视图坐标（左下原点）里这个点抓到了哪几条边。四角落在两条边上。
+    /// 视图坐标（左下原点）里这个点抓到了哪几条边。下面两个角落在两条边上。
+    ///
+    /// 最上面那一条（整条，含两个上角）不缩放，和面板其余空白处一样用来拖动。以前顶边也能缩放，
+    /// 用户抓面板最顺手的位置恰好是顶边，结果横着拖纹丝不动、竖着拖改了高度又被收起高度夹回去，
+    /// 像是卡住。高度仍然可以从底边和下面两个角调。
     static func edges(at point: NSPoint, in size: NSSize,
                       inset: CGFloat = grabInset, corner: CGFloat = cornerSize) -> Edges {
         guard size.width > 0, size.height > 0,
-              point.x >= 0, point.y >= 0, point.x <= size.width, point.y <= size.height else { return [] }
+              point.x >= 0, point.y >= 0, point.x <= size.width, point.y < size.height - inset else { return [] }
         var edges: Edges = []
         if point.x <= inset { edges.insert(.left) }
         if point.x >= size.width - inset { edges.insert(.right) }
         if point.y <= inset { edges.insert(.bottom) }
-        if point.y >= size.height - inset { edges.insert(.top) }
         // 角上放宽：只有 6 点见方的角很难瞄准，而拖角是最常用的缩放动作。
         if point.x <= corner, point.y <= corner { edges.formUnion([.left, .bottom]) }
         if point.x >= size.width - corner, point.y <= corner { edges.formUnion([.right, .bottom]) }
-        if point.x <= corner, point.y >= size.height - corner { edges.formUnion([.left, .top]) }
-        if point.x >= size.width - corner, point.y >= size.height - corner { edges.formUnion([.right, .top]) }
         return edges
     }
 
@@ -75,9 +54,7 @@ enum PanelResize {
             frame.size.width = width(start.width - translation.width)
             frame.origin.x = start.maxX - frame.size.width
         }
-        if edges.contains(.top) {
-            frame.size.height = height(start.height + translation.height)
-        } else if edges.contains(.bottom) {
+        if edges.contains(.bottom) {
             frame.size.height = height(start.height - translation.height)
             frame.origin.y = start.maxY - frame.size.height
         }
@@ -101,26 +78,11 @@ final class PanelResizeOverlay: NSView {
         // `hitTest` already receives a point in this view's coordinate system.
         // Converting it from the superview shifts the edge hit box whenever the
         // overlay is not positioned at the superview's origin.
-        let local = point
-        // The title drag view lives below this overlay. Let it win when the user
-        // starts a drag on the title's top edge; otherwise that same gesture is
-        // interpreted as a resize and never reaches `performDrag(with:)`.
-        if dragAreaFrames().contains(where: { $0.contains(local) }) { return nil }
-        return PanelResize.edges(at: local, in: bounds.size).isEmpty ? nil : self
+        return PanelResize.edges(at: point, in: bounds.size).isEmpty ? nil : self
     }
 
-    private func dragAreaFrames() -> [NSRect] {
-        guard let superview else { return [] }
-        var frames: [NSRect] = []
-        var pending = superview.subviews
-        while let candidate = pending.popLast() {
-            if candidate is WindowDragArea.DragView {
-                frames.append(convert(candidate.bounds, from: candidate))
-            }
-            pending.append(contentsOf: candidate.subviews)
-        }
-        return frames
-    }
+    // The panel is non-activating: the first press from another app must already resize.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
         guard let window else { return }
@@ -141,13 +103,14 @@ final class PanelResizeOverlay: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        guard !activeEdges.isEmpty else { return }
         activeEdges = []
         // NSWindowDelegate 的 didEndLiveResize 只在系统自己的缩放里发，这里手动补一次，
         // 否则收起／展开的高度记不住。
         window?.delegate?.windowDidEndLiveResize?(Notification(name: NSWindow.didEndLiveResizeNotification))
     }
 
-    // MARK: - 指针与把手
+    // MARK: - 悬停提示
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -160,9 +123,7 @@ final class PanelResizeOverlay: NSView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        let edges = PanelResize.edges(at: point, in: bounds.size)
-        PanelResize.cursor(for: edges).set()
+        let edges = PanelResize.edges(at: convert(event.locationInWindow, from: nil), in: bounds.size)
         if edges != hoveringEdges {
             hoveringEdges = edges
             needsDisplay = true
@@ -170,7 +131,6 @@ final class PanelResizeOverlay: NSView {
     }
 
     override func mouseExited(with event: NSEvent) {
-        NSCursor.arrow.set()
         if !hoveringEdges.isEmpty {
             hoveringEdges = []
             needsDisplay = true
@@ -201,6 +161,7 @@ final class PanelResizeOverlay: NSView {
 
         // Each edge gets a short centered dash. The dashes stay inside the panel,
         // so they describe the gesture without creating a second outer frame.
+        // The top one is a move grabber: that edge moves the panel instead of resizing it.
         let halfMarker: CGFloat = 11
         marker.move(to: NSPoint(x: guide.midX - halfMarker, y: guide.minY))
         marker.line(to: NSPoint(x: guide.midX + halfMarker, y: guide.minY))
@@ -215,26 +176,56 @@ final class PanelResizeOverlay: NSView {
     }
 }
 
-/// 让一块 SwiftUI 区域变成能拖着走窗口的「标题栏」。
+/// 面板上凡是不是控件的地方，按住都能拖着整个窗口走。
 ///
-/// 面板是 borderless 的，`isMovableByWindowBackground` 只在点到真正的空背景时才算数：
-/// 收起时面板大半是背景，随便拖哪儿都能动；一展开，中间就被消息列表占满，
-/// 用户去拖那里等于在拖一个 ScrollView，窗口纹丝不动。这层贴在头部标题那一段的背景上，
-/// 按钮仍然在它上面照常收自己的点击，点到标题和空白处就开始拖窗口。
-struct WindowDragArea: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView { DragView() }
-    func updateNSView(_ view: NSView, context: Context) {}
+/// 手势挂在整块内容上：按钮、菜单、输入框、可选中的文字各有自己的手势或 AppKit 视图，优先级
+/// 比它高，照常收自己的点击；其余位置（留白、间隙、标题文字）都落到这个手势上。新加的控件
+/// 不需要登记。
+///
+/// 窗口是自己跟着鼠标挪的，不交给系统。实测（2026-11-18，macOS 27.2，触控板）：在这种无边框、
+/// 不激活的面板上，`NSWindow.performDrag(with:)` 和 SwiftUI 的 `WindowDragGesture` 都只打出
+/// 「Window move completed without beginning」，窗口不动；`isMovableByWindowBackground` 只在点到
+/// 空背景时有效，压着文字和图标的地方不行。所以之前标题拖不动、只有零碎的缝隙能拖。
+extension View {
+    func dragsPanel() -> some View { modifier(PanelDrag()) }
+}
 
-    final class DragView: NSView {
-        override var mouseDownCanMoveWindow: Bool { true }
+private struct PanelDrag: ViewModifier {
+    @State private var move = PanelMove()
 
-        // The panel is intentionally non-activating. Accept the first press so a
-        // drag works from another app or Space instead of requiring a click first.
-        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-        override func mouseDown(with event: NSEvent) {
-            // performDrag 自己接管这一次拖动，窗口移完会照常发 windowDidMove，位置就存下来了。
-            window?.performDrag(with: event)
-        }
+    func body(content: Content) -> some View {
+        content
+            .contentShape(Rectangle())
+            // 起手距离 3 点：点一下不算拖。
+            .gesture(DragGesture(minimumDistance: 3)
+                .onChanged { _ in move.changed() }
+                .onEnded { _ in move.ended() })
+            // The panel is non-activating: a drag has to work on the first press from another app.
+            // https://developer.apple.com/documentation/swiftui/view/allowswindowactivationevents(_:)
+            .allowsWindowActivationEvents(true)
     }
+}
+
+/// One drag of a window: it follows the mouse by the distance the mouse has travelled, and stays
+/// inside the visible area of the screen the mouse is on, so it cannot be lost off screen.
+@MainActor
+final class PanelMove {
+    private var start: (window: NSWindow, frame: NSRect, mouse: NSPoint)?
+
+    /// The window is the one the current mouse event belongs to. Screen coordinates are used
+    /// because the window itself is moving, which would drag window coordinates along.
+    func changed(mouse: NSPoint = NSEvent.mouseLocation, window: NSWindow? = nil) {
+        if start == nil, let window = window ?? NSApp.currentEvent?.window { start = (window, window.frame, mouse) }
+        guard let start else { return }
+        var frame = start.frame
+        frame.origin.x += mouse.x - start.mouse.x
+        frame.origin.y += mouse.y - start.mouse.y
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? start.window.screen {
+            frame = ScreenGeometry.clamp(frame, on: screen)
+        }
+        // A move posts `windowDidMove`, which is where the panel's position is saved.
+        start.window.setFrameOrigin(frame.origin)
+    }
+
+    func ended() { start = nil }
 }

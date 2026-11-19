@@ -40,21 +40,22 @@ final class AppSettingsWipeTests: XCTestCase {
         "captureMode", "captureScope", "screenHiddenBundleIDs",
         "maxConversations", "maxUserTurns", "sendScreenshot",
         "shortcutTrigger", "advancedShortcut", "lastActiveConversationID",
-        "panelFrame", "notesText", "notesPanelFrame", "debugDumpEnabled",
+        "panelFrame", "debugDumpEnabled",
         "showIsland", "showsMenuBarIcon", "hideFromScreenCapture",
-        "localCursorEnabled", "islandPosition", "idleDismissSeconds",
+        "islandPosition", "idleDismissSeconds",
         "panelBackgroundOpacity", "panelOpaqueWhenActive",
         "checkForUpdates", "lastUpdateCheck", "islandOrigin",
         "islandAnchor", "appLanguage", "listeningEnabled",
         "responseMode", "responseModels", "settingsTab",
-        "listeningPreferences", "quickCommands", "localSpeechScanRequested",
+        "listeningPreferences", "quickCommands", "captionCommandsSeeded",
         "AppleLanguages",
+        // Left behind by removed features (recording notes, cursor lock, local speech models).
+        "notesText", "notesPanelFrame", "localCursorEnabled", "localSpeechScanRequested",
     ]
 
     func testKeysOwnedByOtherTypesAreTheRegisteredOnes() {
         XCTAssertEqual(ListeningPreferences.key, "listeningPreferences")
         XCTAssertEqual(AppSettings.quickCommandsKey, "quickCommands")
-        XCTAssertEqual(AppSettings.localSpeechScanRequestedKey, "localSpeechScanRequested")
         XCTAssertEqual(AppSettings.appleLanguagesKey, "AppleLanguages")
         XCTAssertEqual(AppSettings.settingsTabKey, "settingsTab")
     }

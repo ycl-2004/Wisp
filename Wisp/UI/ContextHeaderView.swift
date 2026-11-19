@@ -1,24 +1,24 @@
 import AppKit
 import SwiftUI
 
-/// 标题与共享快捷控制两行；录音时第二行让位给语音，采集详情使用弹窗。
+/// 一行头部：对话记录、正在看的应用、截图开关、模型、设置、展开。
+/// 不常用的东西收进别处：新建对话和计数在对话记录里，读取时间在标题的提示里，
+/// 采集详情只在需要用户处理时出现。
 struct ContextHeaderView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
     @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var listening = ListeningModel.shared
-    @ObservedObject private var pushToTalk = PushToTalk.shared
-    @AppStorage(AppSettings.settingsTabKey) private var settingsTab: SettingsView.Tab = .model
-    @Environment(\.openSettings) private var openSettings
+    @ObservedObject private var captions = LiveCaptions.shared
 
     var body: some View {
-        VStack(spacing: 0) {
-            titleRow
-            metaRow
+        GeometryReader { geometry in
+            // The captions button takes its own width (26) plus one gap (6) when voice is on.
+            row(modelWidth: min(170, max(70, geometry.size.width - (captions.isEnabled ? 302 : 270))))
         }
+        .frame(height: DS.headerHeight - 4)
         .padding(.horizontal, DS.gutter)
-        .padding(.top, 7)
-        .padding(.bottom, 5)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
         .background(alignment: .bottom) {
             if !model.isCollapsed {
                 Rectangle().fill(DS.hairline).frame(height: 0.5)
@@ -26,9 +26,7 @@ struct ContextHeaderView: View {
         }
     }
 
-    // MARK: - 第一行
-
-    private var titleRow: some View {
+    private func row(modelWidth: CGFloat) -> some View {
         HStack(spacing: 6) {
             Button {
                 model.toggleConversationList()
@@ -38,11 +36,8 @@ struct ContextHeaderView: View {
                       : "bubble.left.and.bubble.right")
             }
             .buttonStyle(IconButtonStyle())
-            .help(model.showsConversationList
-                  ? "回到当前对话"
-                  : "对话记录（\(store.conversations.count)/\(store.maxConversations)），可切换和删除")
+            .help(model.showsConversationList ? "回到当前对话" : "对话记录")
 
-            // 图标到右边控件之间这一段是这个无边框面板的标题栏：拖它可以把窗口挪走。
             HStack(spacing: 6) {
                 appIcon
                     .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
@@ -66,31 +61,41 @@ struct ContextHeaderView: View {
 
                 Spacer(minLength: 2)
             }
-            // Put the drag view above the non-interactive title content. With a
-            // background view, the text and icon can win hit-testing, leaving only
-            // the small gap beside them draggable.
-            .overlay(WindowDragArea())
-            .help("拖这里可以移动面板")
+            .help(titleHelp)
 
             if model.isCapturing {
                 ProgressView().controlSize(.small).scaleEffect(0.7).frame(width: 16)
-            } else if model.packet != nil {
-                TimelineView(.periodic(from: .now, by: 30)) { context in
-                    Text(model.contextAge(relativeTo: context.date))
-                        .font(.system(size: 9.5))
-                        .foregroundStyle(.tertiary)
-                }
-                .overlay(WindowDragArea())
             }
 
-            Button { model.refreshContext() } label: { Image(systemName: "arrow.clockwise") }
-                .buttonStyle(IconButtonStyle())
-                .help("重新读取当前屏幕（\(model.contextAge)）")
-                .disabled(model.isCapturing)
+            if hasBlockingNote { notesButton }
 
-            Button { model.newConversation() } label: { Image(systemName: "square.and.pencil") }
-                .buttonStyle(IconButtonStyle())
-                .help(store.canCreateNew ? "新建对话" : "已达上限，可移除最早的对话后新建")
+            Button {
+                model.toggleScreenshot()
+            } label: {
+                toggleChip(settings.sendScreenshot ? "camera.fill" : "camera", isOn: settings.sendScreenshot)
+            }
+            .buttonStyle(.plain)
+            .help(screenshotChipText)
+            .accessibilityLabel("附带截图")
+            .accessibilityValue(settings.sendScreenshot ? "On" : "Off")
+            .fixedSize()
+
+            // Turning voice on in Settings shows this; captions themselves start here, from the
+            // shortcut or from the menu bar.
+            if captions.isEnabled {
+                Button {
+                    captions.toggleFromUser()
+                } label: {
+                    toggleChip(captions.isActive ? "captions.bubble.fill" : "captions.bubble", isOn: captions.isActive)
+                }
+                .buttonStyle(.plain)
+                .help(captions.isActive ? "关闭字幕" : "打开字幕")
+                .accessibilityLabel("实时字幕")
+                .accessibilityValue(captions.isActive ? "On" : "Off")
+                .fixedSize()
+            }
+
+            ModelSwitcher(width: modelWidth)
 
             // Keep settings reachable even when macOS crowds out an enabled menu item.
             SettingsLink { Image(systemName: "gearshape") }
@@ -100,12 +105,48 @@ struct ContextHeaderView: View {
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }
             } label: {
-                Image(systemName: model.isCollapsed ? "chevron.down" : "chevron.up")
+                // The panel opens upward from its input box, so the arrow points the way it moves.
+                Image(systemName: model.isCollapsed ? "chevron.up" : "chevron.down")
             }
             .buttonStyle(IconButtonStyle())
             .help(model.isCollapsed ? "展开" : "收起")
         }
-        .frame(height: DS.headerHeight - 8)
+    }
+
+    /// An icon that is tinted and backed while its switch is on.
+    private func toggleChip(_ symbol: String, isOn: Bool) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(isOn ? Color.blue : Color.secondary)
+            .frame(width: 26, height: 22)
+            .background(RoundedRectangle(cornerRadius: DS.chipCorner)
+                .fill(isOn ? Color.blue.opacity(0.14) : .clear))
+    }
+
+    /// 标题的提示：这份上下文是什么时候读的、正文读到了多少。还没读过就没有提示。
+    private var titleHelp: String {
+        guard model.packet != nil else { return "" }
+        return String(localized: "读取于：\(model.contextAge) · \(pageTextChipText)")
+    }
+
+    /// 只在需要用户动手时出现（比如去开权限）；平常的采集说明不占位置。
+    private var notesButton: some View {
+        Button { model.showsNotes.toggle() } label: {
+            Image(systemName: "exclamationmark.circle").foregroundStyle(Color.orange)
+        }
+        .buttonStyle(IconButtonStyle())
+        .help("采集详情")
+        .accessibilityLabel("采集详情")
+        .popover(isPresented: $model.showsNotes) {
+            VStack(alignment: .leading, spacing: 8) {
+                if model.packet?.hasPageText == true { Text(pageTextChipText) }
+                notesBlock
+            }
+            .font(DS.meta)
+            .padding(12)
+            .frame(width: 300, alignment: .leading)
+            .background(ScreenPrivacyWindow())
+        }
     }
 
     private var appIcon: some View {
@@ -131,92 +172,6 @@ struct ContextHeaderView: View {
         guard let components = URLComponents(string: raw), let host = components.host else { return raw }
         let path = components.path == "/" ? "" : components.path
         return host.replacingOccurrences(of: "www.", with: "") + path
-    }
-
-    // MARK: - 第二行
-
-    private var metaRow: some View {
-        GeometryReader { geometry in
-            if listening.isActive || pushToTalk.isActive {
-                ListeningView()
-            } else {
-                metaContent(modelWidth: min(200, max(60, geometry.size.width - 250)))
-            }
-        }
-        .frame(height: 30)
-    }
-
-    private func metaContent(modelWidth: CGFloat) -> some View {
-        HStack(spacing: DS.tightGap) {
-            ListeningView()
-                .fixedSize()
-
-            Button {
-                model.toggleScreenshot()
-            } label: {
-                Image(systemName: settings.sendScreenshot ? "camera.fill" : "camera")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(settings.sendScreenshot ? Color.blue : Color.secondary)
-                    .frame(width: 26, height: 24)
-                    .background(RoundedRectangle(cornerRadius: DS.chipCorner)
-                        .fill(settings.sendScreenshot ? Color.blue.opacity(0.14) : .clear))
-            }
-            .buttonStyle(PrivacyPlainButtonStyle())
-            .help(screenshotChipText)
-            .accessibilityLabel("附带截图")
-            .accessibilityValue(settings.sendScreenshot ? "On" : "Off")
-            .fixedSize()
-
-            if !notes.isEmpty || model.packet?.hasPageText == true {
-                Button { model.showsNotes.toggle() } label: {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(hasBlockingNote ? Color.orange : Color.secondary)
-                }
-                .buttonStyle(IconButtonStyle())
-                .help("采集详情")
-                .accessibilityLabel("采集详情")
-                .popover(isPresented: $model.showsNotes) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if model.packet?.hasPageText == true { Text(pageTextChipText) }
-                        if !notes.isEmpty { notesBlock }
-                    }
-                    .font(DS.meta)
-                    .padding(12)
-                    .frame(width: 300, alignment: .leading)
-                    .background(ScreenPrivacyWindow())
-                }
-            }
-
-            // Keep a generous, stable drag lane between the left status controls
-            // and the model picker. It remains available while the content above
-            // changes, but does not cover any button or text field.
-            Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(WindowDragArea())
-                .accessibilityHidden(true)
-
-            ModelSwitcher(width: modelWidth)
-            Text(counters)
-                .font(DS.meta.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .fixedSize()
-            if listening.isEnabled {
-                Button {
-                    settingsTab = .audio
-                    openSettings()
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                }
-                .buttonStyle(IconButtonStyle())
-                .help("音频设置…")
-                .accessibilityLabel("音频设置…")
-            }
-        }
-    }
-
-    private var counters: String {
-        let turns = store.active?.userTurnCount ?? 0
-        return "\(turns)/\(store.maxUserTurns) · \(store.conversations.count)/\(store.maxConversations)"
     }
 
     private var screenshotChipText: String {

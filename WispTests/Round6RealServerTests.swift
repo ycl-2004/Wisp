@@ -17,7 +17,7 @@ import XCTest
 final class Round6RealServerTests: XCTestCase {
 
     private static let serverSource = """
-    import sys, time
+    import json, sys, time
     from http.server import BaseHTTPRequestHandler, HTTPServer
 
     mode = sys.argv[1]
@@ -35,7 +35,7 @@ final class Round6RealServerTests: XCTestCase {
 
         def do_GET(self):
             if self.path.endswith("/models"):
-                if mode == "models-ok":
+                if mode in ("models-ok", "caption-echo"):
                     self.reply(200, b'{"data":[{"id":"fake-b"},{"id":"fake-a"}]}')
                 elif mode == "models-empty":
                     self.reply(200, b'{"data":[]}')
@@ -48,8 +48,7 @@ final class Round6RealServerTests: XCTestCase {
 
         def do_POST(self):
             length = int(self.headers.get("Content-Length") or 0)
-            if length:
-                self.rfile.read(length)
+            body = self.rfile.read(length) if length else b""
             if mode == "cloud-400":
                 self.reply(400, b'{"error":{"message":"real-server says no"}}')
                 return
@@ -62,6 +61,10 @@ final class Round6RealServerTests: XCTestCase {
                 b'data: {"choices":[{"delta":{"content":"answer"}}]}\\n\\n',
                 b'data: [DONE]\\n\\n',
             ]
+            if mode == "caption-echo":
+                messages = json.dumps(json.loads(body)["messages"], ensure_ascii=False)
+                payload = json.dumps({"choices": [{"delta": {"content": messages}}]}).encode()
+                pieces = [b'data: ' + payload + b'\\n\\n', b'data: [DONE]\\n\\n']
             for piece in pieces:
                 self.wfile.write(piece)
                 self.wfile.flush()
@@ -151,6 +154,52 @@ final class Round6RealServerTests: XCTestCase {
             XCTAssertTrue(message.contains("real-server says no"), message)
         }
     }
+
+    #if os(macOS) && !SWIFT_PACKAGE
+    @MainActor
+    func testAutomaticCaptionAnswerPreservesDraftAndExcludesItFromRequest() async throws {
+        let port = try startServer(mode: "caption-echo")
+        let model = AssistantModel.shared
+        let settings = model.settings
+        let captions = LiveCaptions.shared
+        let saved = (settings.providerKind, settings.ollamaBaseURL, settings.ollamaModel,
+                     captions.asksThroughAPI, model.input, model.errorText, model.isCollapsed, model.store.activeID)
+        defer {
+            model.stopStreaming()
+            model.store.discardEphemeral()
+            model.store.activeID = saved.7
+            settings.providerKind = saved.0
+            settings.ollamaBaseURL = saved.1
+            settings.ollamaModel = saved.2
+            captions.asksThroughAPI = saved.3
+            model.input = saved.4
+            model.errorText = saved.5
+            model.setCollapsedSilently(saved.6)
+        }
+        settings.providerKind = ProviderKind.ollama.rawValue
+        settings.ollamaBaseURL = baseURL(port)
+        settings.ollamaModel = "fake-a"
+        captions.asksThroughAPI = false
+        let draft = "Private unsent draft"
+        let words = "Where does the test file go?"
+        model.input = draft
+        await model.refreshOnboardingReadiness()
+
+        model.runAutomaticCaptionCommand(QuickCommand.captionDefaults[0], words: words)
+        let deadline = Date().addingTimeInterval(5)
+        while (model.isPreparingResponse || model.isStreaming) && Date() < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        XCTAssertEqual(model.lastResponseTiming?.outcome, "completed")
+        XCTAssertEqual(model.input, draft)
+        let messages = try XCTUnwrap(model.store.active?.messages)
+        XCTAssertEqual(messages.count, 2)
+        let echoedRequest = try XCTUnwrap(messages.last?.text)
+        XCTAssertTrue(echoedRequest.contains(words))
+        XCTAssertFalse(echoedRequest.contains(draft))
+    }
+    #endif
 
     // MARK: - Ollama probe against scripted /v1/models shapes
 

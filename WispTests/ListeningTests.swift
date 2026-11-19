@@ -21,43 +21,19 @@ final class ListeningTests: XCTestCase {
     }
 
     @MainActor
-    func testOpeningTranscriptExpandsCollapsedPanelAndLeavesHistoryList() {
-        let model = AssistantModel.shared
-        let collapsed = model.isCollapsed, list = model.showsConversationList, transcript = model.showsTranscript
-        defer {
-            model.setCollapsedSilently(collapsed)
-            model.showsConversationList = list
-            model.showsTranscript = transcript
-        }
-        model.setCollapsedSilently(true)
-        model.showsConversationList = true
-        model.showsTranscript = false
-        model.toggleTranscriptView()
-        XCTAssertTrue(model.showsTranscript)
-        XCTAssertFalse(model.isCollapsed)
-        XCTAssertFalse(model.showsConversationList)
-        model.toggleTranscriptView()
-        XCTAssertFalse(model.showsTranscript)
-        XCTAssertFalse(model.isCollapsed)
-    }
-
-    @MainActor
     func testOpeningHistoryExpandsCollapsedPanel() {
         let model = AssistantModel.shared
-        let collapsed = model.isCollapsed, list = model.showsConversationList, transcript = model.showsTranscript
+        let collapsed = model.isCollapsed, list = model.showsConversationList
         defer {
             model.setCollapsedSilently(collapsed)
             model.showsConversationList = list
-            model.showsTranscript = transcript
         }
         model.setCollapsedSilently(true)
         model.showsConversationList = false
-        model.showsTranscript = false
 
         model.toggleConversationList()
 
         XCTAssertTrue(model.showsConversationList)
-        XCTAssertFalse(model.showsTranscript)
         XCTAssertFalse(model.isCollapsed)
     }
 
@@ -75,218 +51,16 @@ final class ListeningTests: XCTestCase {
         XCTAssertEqual(copy.floatChannelData![1][127], 255)
     }
 
-    func testSchedulerSerializesSourcesAndRejectsLateCallbacks() throws {
-        let queue = DispatchQueue(label: "listening-test")
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16))
-        buffer.frameLength = 16
-        var starts: [ListeningSource] = []
-        var callbacks: [(ListeningSpeechScheduler.Update) -> Void] = []
-        var segments: [ListeningSegment] = []
-        var cancellations = 0
-        let scheduler = ListeningSpeechScheduler(queue: queue, recognize: { batch, callback in
-            starts.append(batch.source)
-            callbacks.append(callback)
-            return { cancellations += 1 }
-        }, onSegment: { segments.append($0) }, onFailure: { XCTFail($0) })
-        queue.sync {
-            scheduler.enqueue(.init(source: .microphone, offset: 10, duration: 1, buffers: [buffer]))
-            scheduler.enqueue(.init(source: .application, offset: 11, duration: 1, buffers: [buffer]))
-            XCTAssertEqual(starts, [.microphone])
-            callbacks[0](.init(text: "my voice", start: 0.2, end: 0.8, isFinal: true))
-        }
-        queue.sync {
-            XCTAssertEqual(starts, [.microphone, .application])
-            XCTAssertEqual(segments.first?.start, 10.2)
-            callbacks[0](.init(text: "late text", isFinal: true))
-            scheduler.cancel()
-            callbacks[1](.init(text: "after stop", isFinal: true))
-        }
-        queue.sync {
-            XCTAssertEqual(segments.count, 1)
-            XCTAssertEqual(cancellations, 1)
-            XCTAssertTrue(scheduler.isDrained)
-        }
-    }
-
-    func testSchedulerStopsAtBoundedBacklogAndDoesNotStartMoreRequests() throws {
-        let queue = DispatchQueue(label: "listening-overload-test")
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16))
-        buffer.frameLength = 16
-        var starts = 0
-        var failures: [String] = []
-        let scheduler = ListeningSpeechScheduler(queue: queue, recognize: { _, _ in
-            starts += 1
-            return {}
-        }, onSegment: { _ in }, onFailure: { failures.append($0) })
-        queue.sync {
-            for _ in 0..<20 {
-                scheduler.enqueue(.init(source: .application, offset: 0, duration: 1, buffers: [buffer]))
-            }
-            XCTAssertEqual(starts, 1)
-            XCTAssertEqual(failures.count, 1)
-            XCTAssertTrue(scheduler.isDrained)
-        }
-    }
-
-    func testQuietBoundaryChecksAllChannels() throws {
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 2))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16))
-        buffer.frameLength = 16
-        for channel in 0..<2 { for frame in 0..<16 { buffer.floatChannelData![channel][frame] = 0 } }
-        XCTAssertTrue(ListeningSpeechTrack.isQuiet(buffer))
-        buffer.floatChannelData![1][0] = 0.5
-        XCTAssertFalse(ListeningSpeechTrack.isQuiet(buffer))
-    }
-
-    func testTracksFlushTrailingAudioAndRetentionIsOptIn() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let queue = DispatchQueue(label: "listening-retention-test")
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1600))
-        buffer.frameLength = 1600
-        for frame in 0..<1600 { buffer.floatChannelData![0][frame] = 0.25 }
-        var starts: [ListeningSource] = []
-        let scheduler = ListeningSpeechScheduler(queue: queue, recognize: { batch, callback in
-            starts.append(batch.source)
-            callback(.init(text: "fixture", isFinal: true))
-            return {}
-        }, onSegment: { _ in }, onFailure: { XCTFail($0) })
-        queue.sync {
-            let retained = ListeningSpeechTrack(source: .microphone, scheduler: scheduler,
-                                                 directory: directory, onFailure: { XCTFail($0) })
-            let ephemeral = ListeningSpeechTrack(source: .application, scheduler: scheduler,
-                                                  directory: nil, onFailure: { XCTFail($0) })
-            retained.append(buffer, offset: 0)
-            ephemeral.append(buffer, offset: 0)
-            XCTAssertTrue(starts.isEmpty)
-            retained.finish()
-            ephemeral.finish()
-        }
-        queue.sync { XCTAssertEqual(starts, [.microphone, .application]) }
-        queue.sync { scheduler.cancel() }
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), ["microphone-1.caf"])
-        let file = try AVAudioFile(forReading: directory.appendingPathComponent("microphone-1.caf"))
-        XCTAssertEqual(file.length, 1600)
-        let restored = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 1600))
-        try file.read(into: restored)
-        XCTAssertEqual(restored.floatChannelData![0][1599], 0.25)
-    }
-
-    /// Common device formats are saved as AAC (≈8 KB/s per channel instead of 192 KB/s),
-    /// so a two-hour session fits under the per-track cap; others stay PCM.
-    func testCommonDeviceFormatsSaveCompressedAndOthersStayPCM() throws {
-        let mono48 = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
-        let aac = ListeningSpeechTrack.fileSettings(for: mono48)
-        XCTAssertEqual(aac.settings[AVFormatIDKey] as? AudioFormatID, kAudioFormatMPEG4AAC)
-        XCTAssertEqual(aac.bytesPerSecond, 8_000)
-        XCTAssertLessThan(aac.bytesPerSecond * 2 * 3600, Double(ListeningSpeechTrack.audioByteLimit))
-        let mono16 = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        let pcm = ListeningSpeechTrack.fileSettings(for: mono16)
-        XCTAssertNotEqual(pcm.settings[AVFormatIDKey] as? AudioFormatID, kAudioFormatMPEG4AAC)
-        XCTAssertEqual(pcm.bytesPerSecond, 16_000 * 4)
-
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let queue = DispatchQueue(label: "listening-aac-test")
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: mono48, frameCapacity: 4_800))
-        buffer.frameLength = 4_800
-        for frame in 0..<4_800 { buffer.floatChannelData![0][frame] = sin(Float(frame) * 0.05) * 0.3 }
-        let scheduler = ListeningSpeechScheduler(queue: queue, recognize: { _, callback in
-            callback(.init(text: "fixture", isFinal: true))
-            return {}
-        }, onSegment: { _ in }, onFailure: { XCTFail($0) })
-        queue.sync {
-            let track = ListeningSpeechTrack(source: .microphone, scheduler: scheduler,
-                                             directory: directory, onFailure: { XCTFail($0) })
-            for _ in 0..<10 { track.append(buffer, offset: 0) }
-            track.finish()
-        }
-        queue.sync { scheduler.cancel() }
-        let file = try AVAudioFile(forReading: directory.appendingPathComponent("microphone-1.caf"))
-        XCTAssertEqual(file.fileFormat.streamDescription.pointee.mFormatID, kAudioFormatMPEG4AAC)
-        XCTAssertEqual(file.length, 48_000)
-    }
-
-    /// Reaching the audio cap used to throw and stop the whole session, transcription
-    /// included, about 22 minutes into a meeting. Now it stops saving audio only.
-    func testAudioCapStopsSavingButNotTranscription() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let queue = DispatchQueue(label: "listening-cap-test")
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1600))
-        buffer.frameLength = 1600
-        for frame in 0..<1600 { buffer.floatChannelData![0][frame] = 0.25 }
-        var batches = 0
-        var notices: [String] = []
-        let scheduler = ListeningSpeechScheduler(queue: queue, recognize: { _, callback in
-            batches += 1
-            callback(.init(text: "fixture", isFinal: true))
-            return {}
-        }, onSegment: { _ in }, onFailure: { XCTFail($0) })
-        queue.sync {
-            // One 0.1 s PCM buffer is 6,400 bytes: the second one crosses a 10,000-byte cap.
-            let track = ListeningSpeechTrack(source: .microphone, scheduler: scheduler, directory: directory,
-                                             onFailure: { XCTFail("the cap must not stop recording: \($0)") },
-                                             onNotice: { notices.append($0) }, audioByteLimit: 10_000)
-            for _ in 0..<5 { track.append(buffer, offset: 0) }
-            track.finish()
-        }
-        queue.sync { XCTAssertEqual(batches, 1, "all five buffers still reach recognition") }
-        queue.sync { scheduler.cancel() }
-        XCTAssertEqual(notices.count, 1)
-        let file = try AVAudioFile(forReading: directory.appendingPathComponent("microphone-1.caf"))
-        XCTAssertEqual(file.length, 1600, "only what fit under the cap was saved")
-    }
-
-    func testDraftPreservesExistingTextAndDoesNotFollowLaterRecognition() {
-        var transcript = transcript()
-        let part = segment(start: 0, end: 1, text: "first version", final: false)
-        transcript.upsert(part)
-        let draft = ListeningTranscript.appendingToDraft(transcript.unstagedDraft(excluding: []).text, existing: "My question")!
-        transcript.upsert(segment(id: part.id, start: 0, end: 2, text: "corrected version"))
-        XCTAssertTrue(draft.hasPrefix("My question\n\n"))
-        XCTAssertTrue(draft.contains("first version"))
-        XCTAssertFalse(draft.contains("corrected version"))
-        XCTAssertNil(ListeningTranscript.appendingToDraft("more", existing: String(repeating: "x", count: 12_000)))
-    }
-
-    func testCompletedBatchReleasesAudioBeforeTimeoutFires() throws {
-        let queue = DispatchQueue(label: "listening-release-test")
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        var buffer: AVAudioPCMBuffer? = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16))
-        buffer?.frameLength = 16
-        weak var retained = buffer
-        let scheduler = ListeningSpeechScheduler(queue: queue, recognize: { _, callback in
-            callback(.init(text: "done", isFinal: true))
-            return {}
-        }, onSegment: { _ in }, onFailure: { XCTFail($0) })
-        queue.sync {
-            scheduler.enqueue(.init(source: .microphone, offset: 0, duration: 1, buffers: [buffer!]))
-        }
-        buffer = nil
-        queue.sync { XCTAssertTrue(scheduler.isDrained) }
-        XCTAssertNil(retained, "Completed PCM must not be retained by the ten-second timeout closure")
-    }
-
     @MainActor
     func testStagingDoesNotSendPersistOrCopyAndClearingRestoresNormalDraftMode() {
         let model = AssistantModel.shared
         let previous = model.input
         let previousSpeechMode = model.isSpeechDraft
-        let previousTranscript = model.showsTranscript
         let previousList = model.showsConversationList
         let previousCollapsed = model.isCollapsed
         defer {
             model.input = ""
             if previousSpeechMode { _ = model.stageSpeechDraft(previous) } else { model.input = previous }
-            model.showsTranscript = previousTranscript
             model.showsConversationList = previousList
             model.setCollapsedSilently(previousCollapsed)
         }
@@ -307,39 +81,19 @@ final class ListeningTests: XCTestCase {
 
     @MainActor
     func testAudioAndDataSettingsRenderWithoutStartingCapture() throws {
-        let wasActive = ListeningModel.shared.isActive
+        let wasActive = LiveCaptions.shared.isActive
         try render(AudioSettingsView(), filename: "wisp-audio-settings.png")
         try render(AudioSettingsView(), filename: "wisp-audio-settings-full.png", height: 660)
         try render(DataSettingsView(wipeResult: .constant(nil)).environmentObject(AssistantModel.shared),
                    filename: "wisp-data-settings.png")
-        XCTAssertEqual(ListeningModel.shared.isActive, wasActive)
+        XCTAssertEqual(LiveCaptions.shared.isActive, wasActive)
     }
 
-    /// 总开关关掉之后不能再开始录音，转写页也得让出来——那一页只有语音条能退出。
     @MainActor
-    func testDisablingVoiceInputBlocksStartAndClosesTheTranscriptPage() {
-        let listening = ListeningModel.shared
-        let assistant = AssistantModel.shared
-        let wasEnabled = listening.isEnabled
-        let wasMode = listening.mode
-        let wasShowingTranscript = assistant.showsTranscript
-        defer {
-            listening.isEnabled = wasEnabled
-            listening.mode = wasMode
-            assistant.showsTranscript = wasShowingTranscript
-        }
-
-        listening.isEnabled = true
-        listening.mode = .microphone
-        assistant.showsTranscript = true
-        XCTAssertTrue(listening.canStart)
-
-        listening.isEnabled = false
-        XCTAssertFalse(listening.canStart)
-        XCTAssertFalse(assistant.showsTranscript)
-
-        listening.isEnabled = true
-        XCTAssertTrue(listening.canStart)
+    func testPrivacySettingsRenderWithoutStartingPresentation() throws {
+        let wasOpen = PresentationDisplay.shared.isOpen
+        try render(PrivacySettingsView(), filename: "wisp-privacy-settings.png")
+        XCTAssertEqual(PresentationDisplay.shared.isOpen, wasOpen)
     }
 
     /// 所有界面截图都走这里：写到 /private/tmp 方便肉眼看，同时留成测试附件。
@@ -369,32 +123,18 @@ final class ListeningTests: XCTestCase {
         return image
     }
 
-    func testContinuousDraftTransferExcludesAlreadyStagedSpeech() {
-        var transcript = transcript()
-        let first = segment(start: 0, end: 4, text: "first question", final: false)
-        transcript.upsert(first)
-        XCTAssertTrue(transcript.unstagedDraft(excluding: []).text.contains("first question"))
-        transcript.upsert(segment(id: first.id, start: 0, end: 4, text: "corrected first question"))
-        XCTAssertEqual(transcript.unstagedDraft(excluding: [first.id]).text, "")
-        let next = segment(start: 5, end: 9, text: "next question")
-        transcript.upsert(next)
-        let pending = transcript.unstagedDraft(excluding: [first.id]).text
-        XCTAssertTrue(pending.contains("next question"))
-        XCTAssertFalse(pending.contains("first question"))
-    }
-
     @MainActor
     func testIntegratedCompactChatRenders() throws {
         let model = AssistantModel.shared
         let collapsed = model.isCollapsed
-        let enabled = ListeningModel.shared.isEnabled
+        let enabled = LiveCaptions.shared.isEnabled
         model.setCollapsedSilently(true)
         defer {
             model.setCollapsedSilently(collapsed)
-            ListeningModel.shared.isEnabled = enabled
+            LiveCaptions.shared.isEnabled = enabled
         }
         for voiceEnabled in [true, false] {
-            ListeningModel.shared.isEnabled = voiceEnabled
+            LiveCaptions.shared.isEnabled = voiceEnabled
             try render(ChatView().environmentObject(model).environmentObject(model.store),
                        filename: "wisp-integrated-chat-\(voiceEnabled).png", height: PanelController.collapsedHeight)
         }
@@ -437,7 +177,7 @@ final class ListeningTests: XCTestCase {
 
     @MainActor
     func testPanelHostingDoesNotImposeContentDrivenResizeLimits() throws {
-        let host = PanelController.makePanelContentView(ListeningView())
+        let host = PanelController.makePanelContentView(PushToTalkBar())
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 180),
                               styleMask: [.borderless, .resizable], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
@@ -445,7 +185,7 @@ final class ListeningTests: XCTestCase {
         window.contentView = host
         window.minSize = NSSize(width: 380, height: 144)
         window.maxSize = NSSize(width: 2400, height: 1000)
-        XCTAssertTrue(try XCTUnwrap(host.subviews.first as? NSHostingView<ListeningView>).sizingOptions.isEmpty)
+        XCTAssertTrue(try XCTUnwrap(host.subviews.first as? NSHostingView<PushToTalkBar>).sizingOptions.isEmpty)
         for size in [NSSize(width: 380, height: 152), NSSize(width: 900, height: 700), NSSize(width: 620, height: 180)] {
             window.setContentSize(size)
             host.layoutSubtreeIfNeeded()
@@ -457,151 +197,7 @@ final class ListeningTests: XCTestCase {
     }
 
     @MainActor
-    func testListeningViewRendersAtPanelWidth() throws {
-        for width in [PanelController.width, 380] {
-            try render(ListeningView().environmentObject(AssistantModel.shared)
-                        .background(Color(nsColor: .windowBackgroundColor)),
-                       filename: "wisp-listening-ui-\(Int(width)).png", width: width, height: 34)
-        }
-    }
-
-    /// 语音条每一种状态都要能在面板宽度和最窄宽度下看：录音时右边多两个控件，
-    /// 字幕被挤没了就说明这一行设计不成立。
-    @MainActor
-    func testListeningBarRendersEveryStateAtBothWidths() throws {
-        let states: [(String, ListeningBar)] = [
-            ("idle", bar(state: .idle, caption: String(localized: "语音输入"))),
-            ("recording", bar(state: .recording,
-                              startedAt: Date().addingTimeInterval(-95),
-                              caption: "那这版就按上周的方案走，周一之前给一个结论。",
-                              hasTranscript: true, canTransfer: true)),
-            ("stopped", bar(state: .idle, caption: "周一之前给一个结论。",
-                            hasTranscript: true, canTransfer: true)),
-            ("transcript", bar(state: .idle, caption: "周一之前给一个结论。",
-                               hasTranscript: true, canTransfer: true, showsTranscript: true)),
-            ("busy", bar(state: .stopping, caption: String(localized: "正在保存末尾文字…"))),
-            ("error", bar(state: .idle, caption: "",
-                          error: String(localized: "请在系统设置 → 隐私与安全性 → 麦克风中允许 Wisp。"))),
-        ]
-        for (name, view) in states {
-            for width in [PanelController.width, 380] {
-                try render(view.background(Color(nsColor: .windowBackgroundColor)),
-                           filename: "wisp-listening-bar-\(name)-\(Int(width)).png",
-                           width: width, height: 32)
-            }
-        }
-    }
-
-    @MainActor
-    func testTranscriptPageRendersFilledAndEmpty() throws {
-        var filled = transcript()
-        let script = [("远端音频", "我们把语音这块的验收标准定一下。", true),
-                      ("我方麦克风", "我这边先补一版测试，明天给结论。", true),
-                      ("远端音频", "行，那窗口长度就按九十秒来。", false)]
-        for (index, item) in script.enumerated() {
-            filled.upsert(segment(source: item.0 == "远端音频" ? .application : .microphone,
-                                  start: Double(index * 6), end: Double(index * 6 + 5),
-                                  text: item.1, final: item.2))
-        }
-        try render(page(filled), filename: "wisp-transcript-filled.png", height: 260)
-        try render(page(transcript()), filename: "wisp-transcript-empty.png", height: 160)
-        try render(page(nil), filename: "wisp-transcript-none.png", height: 160)
-    }
-
-    private func page(_ transcript: ListeningTranscript?) -> some View {
-        TranscriptPage(transcript: transcript, onBack: {}, onCopy: {}, onOpenFiles: {})
-            .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    private func bar(state: ListeningModel.State, startedAt: Date? = nil, caption: String = "",
-                     error: String? = nil, mode: ListeningMode = .both, hasTranscript: Bool = false,
-                     canTransfer: Bool = false, showsTranscript: Bool = false,
-                     perform: @escaping (ListeningBar.Action) -> Void = { _ in }) -> ListeningBar {
-        ListeningBar(state: state, startedAt: startedAt, caption: caption, error: error, mode: mode,
-                     hasTranscript: hasTranscript, canTransfer: canTransfer,
-                     showsTranscript: showsTranscript, perform: perform)
-    }
-
-    func testElapsedLabelStaysTwoDigitsUntilAnHour() {
-        XCTAssertEqual(ElapsedLabel.text(for: 0), "00:00")
-        XCTAssertEqual(ElapsedLabel.text(for: 59.9), "00:59")
-        XCTAssertEqual(ElapsedLabel.text(for: 95), "01:35")
-        XCTAssertEqual(ElapsedLabel.text(for: 3_600), "1:00:00")
-        XCTAssertEqual(ElapsedLabel.text(for: 7_384), "2:03:04")
-    }
-
-    // MARK: - 一键分析
-
-    @MainActor
-    func testOneKeyAnalysisAsksAQuestionOnlyWhenTheUserDidNotTypeOne() {
-        let model = AssistantModel.shared
-        let previousInput = model.input
-        let previousCollapsed = model.isCollapsed
-        let previousTranscript = model.showsTranscript
-        defer {
-            model.input = previousInput
-            model.showsTranscript = previousTranscript
-            model.setCollapsedSilently(previousCollapsed)
-        }
-        let count = model.store.conversations.reduce(0) { $0 + $1.messages.count }
-
-        model.input = ""
-        XCTAssertTrue(model.stageSpeechDraft("[00:00:00–00:00:04] 远端音频: 下周一给结论",
-                                             fallbackQuestion: ListeningModel.analysisQuestion))
-        XCTAssertTrue(model.input.hasPrefix(ListeningModel.analysisQuestion))
-        XCTAssertTrue(model.input.hasSuffix("下周一给结论"))
-        XCTAssertTrue(model.isSpeechDraft)
-
-        // 只打了空格也算没写问题。
-        model.input = "  \n "
-        XCTAssertTrue(model.stageSpeechDraft("第二段", fallbackQuestion: ListeningModel.analysisQuestion))
-        XCTAssertTrue(model.input.hasPrefix(ListeningModel.analysisQuestion))
-
-        // 用户自己写了问题就用他的，默认问题不许挤进去。
-        model.input = "这段里他们答应了什么？"
-        XCTAssertTrue(model.stageSpeechDraft("第三段", fallbackQuestion: ListeningModel.analysisQuestion))
-        XCTAssertEqual(model.input, "这段里他们答应了什么？\n\n第三段")
-
-        // 放草稿这一步永远不发送。
-        XCTAssertFalse(model.isStreaming)
-        XCTAssertEqual(model.store.conversations.reduce(0) { $0 + $1.messages.count }, count)
-    }
-
-    @MainActor
-    func testOneKeyAnalysisBudgetsForDefaultAndTypedQuestions() {
-        let model = AssistantModel.shared
-        let previous = (model.input, model.isSpeechDraft, model.isCollapsed, model.showsTranscript, model.showsConversationList)
-        defer {
-            if previous.1 { _ = model.stageSpeechDraft(previous.0) } else { model.input = previous.0 }
-            model.setCollapsedSilently(previous.2)
-            model.showsTranscript = previous.3
-            model.showsConversationList = previous.4
-        }
-        var meeting = transcript()
-        for index in 0..<100 {
-            let text = index == 99 ? "Final decision" : String(repeating: "x", count: 126)
-            XCTAssertTrue(meeting.upsert(.init(id: UUID(), source: .application, start: Double(index * 4),
-                                               end: Double(index * 4 + 4), text: text, isFinal: true)))
-        }
-        let fallback = ListeningModel.analysisQuestion
-        let typed = "What did the team decide? " + String(repeating: "a", count: 500)
-        for (input, question) in [("", fallback), (typed, typed)] {
-            model.input = input
-            let consumed = model.stageSpeechDraft(meeting, excluding: [], fallbackQuestion: fallback)
-            XCTAssertEqual(consumed, Set(meeting.segments.map(\.id)))
-            XCTAssertEqual(model.input.components(separatedBy: "\n\n").first, question)
-            XCTAssertLessThanOrEqual(model.input.count, ListeningTranscript.draftLimit)
-            XCTAssertTrue(model.input.hasSuffix("Final decision"))
-        }
-
-        let full = String(repeating: "x", count: ListeningTranscript.draftLimit)
-        model.input = full
-        XCTAssertNil(model.stageSpeechDraft(meeting, excluding: [], fallbackQuestion: fallback))
-        XCTAssertEqual(model.input, full)
-    }
-
-    @MainActor
-    func testAnalysisDraftIsRefusedWhileAnAnswerIsStreaming() {
+    func testSpeechDraftIsRefusedWhileAnAnswerIsStreaming() {
         let model = AssistantModel.shared
         let previousInput = model.input
         let wasStreaming = model.isStreaming
@@ -611,89 +207,275 @@ final class ListeningTests: XCTestCase {
         }
         model.input = ""
         model.isStreaming = true
-        XCTAssertFalse(model.stageSpeechDraft("会议内容", fallbackQuestion: ListeningModel.analysisQuestion))
+        XCTAssertFalse(model.stageSpeechDraft("刚才问的问题"))
         XCTAssertEqual(model.input, "")
     }
 
+    // MARK: - 字幕
+
+    /// 总开关关掉时字幕停下、快捷键开不起来。
     @MainActor
-    func testCopyingAWholeTranscriptIsNotCappedByTheDraftBudget() {
-        let pasteboard = NSPasteboard.general
-        let previous = pasteboard.string(forType: .string)
-        defer {
-            pasteboard.clearContents()
-            if let previous { pasteboard.setString(previous, forType: .string) }
-        }
-        // 一份长会议的全文远超发给模型的那 12,000 字预算，复制仍然要拿到整份。
-        let whole = String(repeating: "会议", count: ListeningTranscript.draftLimit)
-        ListeningModel.shared.copyText(whole)
-        XCTAssertEqual(pasteboard.string(forType: .string)?.count, whole.count)
-        let version = pasteboard.changeCount
-        ListeningModel.shared.copyText("")
-        XCTAssertEqual(pasteboard.changeCount, version)
+    func testDisablingVoiceStopsCaptionsAndBlocksTheShortcut() {
+        let captions = LiveCaptions.shared
+        let wasEnabled = captions.isEnabled
+        defer { captions.isEnabled = wasEnabled; captions.stop() }
+        captions.isEnabled = false
+        captions.toggleFromUser()
+        XCTAssertFalse(captions.isActive)
+        XCTAssertFalse(captions.showsStrip)
     }
 
-    /// 面板一展开，中间就被消息列表占满，`isMovableByWindowBackground` 在那儿不起作用。
-    /// 头部标题这一段必须是真的能拖走窗口的，按钮不受影响。
     @MainActor
-    func testHeaderTitleAreaDragsTheWindowWhileButtonsKeepTheirClicks() throws {
-        let host = NSHostingView(rootView: ContextHeaderView()
-            .environmentObject(AssistantModel.shared)
-            .environmentObject(ConversationStore.shared)
-            .frame(width: 620, height: 60))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 60),
-                              styleMask: [.borderless], backing: .buffered, defer: false)
-        window.contentView = host
-        window.isReleasedWhenClosed = false
-        defer { window.close() }
-        host.layoutSubtreeIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
-        // 标题和它右边的空白：拖这里等于拖窗口。
-        let title = try XCTUnwrap(host.hitTest(NSPoint(x: 200, y: 38)))
-        XCTAssertTrue(title is WindowDragArea.DragView, "标题区应该命中拖动层，实际是 \(type(of: title))")
-        XCTAssertTrue(title.mouseDownCanMoveWindow)
-        XCTAssertTrue(title.acceptsFirstMouse(for: nil), "非活跃面板的第一次按下也应该开始拖动")
-        // 最左边是对话记录按钮，它不能被拖动层盖住。
-        let button = host.hitTest(NSPoint(x: 22, y: 38))
-        XCTAssertFalse(button is WindowDragArea.DragView)
+    func testDisablingVoiceCancelsMicrophoneStartupAndQueuedSpeech() async {
+        let captions = LiveCaptions.shared
+        let microphone = PushToTalk.shared
+        let model = AssistantModel.shared
+        let settings = model.settings
+        let saved = (captions.isEnabled, model.input, settings.providerKind, settings.ollamaBaseURL,
+                     settings.ollamaModel, settings.responseMode, settings.sendScreenshot, model.isCollapsed)
+        defer {
+            PanelController.shared.hide()
+            model.stopStreaming()
+            captions.isEnabled = saved.0
+            model.input = saved.1
+            settings.providerKind = saved.2
+            settings.ollamaBaseURL = saved.3
+            settings.ollamaModel = saved.4
+            settings.responseMode = saved.5
+            settings.sendScreenshot = saved.6
+            model.setCollapsedSilently(saved.7)
+        }
+        settings.providerKind = ProviderKind.ollama.rawValue
+        settings.ollamaBaseURL = "http://127.0.0.1:1/v1"
+        settings.ollamaModel = "test-model"
+        settings.responseMode = .quick
+        settings.sendScreenshot = false
+        model.input = "Keep this typed draft"
+        let messageCount = model.store.conversations.reduce(0) { $0 + $1.messages.count }
+
+        captions.isEnabled = true
+        // Both operations are cancelled before the actor can run their queued work.
+        microphone.begin()
+        XCTAssertEqual(microphone.state, .preparing)
+        XCTAssertTrue(model.submitSpeech("Do not send this transcription"))
+        XCTAssertTrue(model.isPreparingResponse)
+        captions.isEnabled = false
+        microphone.end()
+        PanelController.shared.hide()
+        await Task.yield()
+
+        XCTAssertEqual(microphone.state, .idle)
+        XCTAssertTrue(microphone.caption.isEmpty)
+        XCTAssertFalse(model.isPreparingResponse)
+        XCTAssertFalse(model.isStreaming)
+        XCTAssertEqual(model.input, "Keep this typed draft")
+        XCTAssertEqual(model.store.conversations.reduce(0) { $0 + $1.messages.count }, messageCount)
+    }
+
+    @MainActor
+    func testCaptionCommandFailureStaysInTheCompactPanel() throws {
+        let captions = LiveCaptions.shared
+        let model = AssistantModel.shared
+        let saved = (captions.isEnabled, model.errorText, model.isCollapsed)
+        defer {
+            captions.isEnabled = saved.0
+            model.errorText = saved.1
+            model.setCollapsedSilently(saved.2)
+        }
+        captions.isEnabled = true
+        captions.stop()
+        model.setCollapsedSilently(true)
+        model.errorText = nil
+        let height = PanelController.extraRowsHeight
+
+        model.run(QuickCommand.captionDefaults[0])
+
+        XCTAssertTrue(model.isCollapsed)
+        XCTAssertEqual(model.panelError, String(localized: "请先点面板上的字幕按钮，再运行这条指令。"))
+        XCTAssertEqual(PanelController.extraRowsHeight, height + ChatView.errorRowHeight)
+        try render(ChatView().environmentObject(model).environmentObject(model.store),
+                   filename: "wisp-compact-caption-error.png", width: 380,
+                   height: PanelController.collapsedHeight + PanelController.extraRowsHeight)
+    }
+
+    /// 停字幕要把内存里的话和那个不保存的提问对话一起扔掉。
+    @MainActor
+    func testStoppingCaptionsDiscardsTheCaptionConversation() {
+        let store = ConversationStore.shared
+        let previousActive = store.activeID
+        defer { store.discardEphemeral(); if let previousActive { store.select(previousActive) } }
+        let saved = store.savedCount
+        let caption = store.activateEphemeral(title: "会议提问（不保存）")
+        XCTAssertEqual(store.activeID, caption.id)
+        XCTAssertEqual(store.savedCount, saved, "不保存的对话不占对话上限")
+        LiveCaptions.shared.stop()
+        XCTAssertFalse(store.conversations.contains { $0.id == caption.id })
+        XCTAssertNotEqual(store.activeID, caption.id)
+    }
+
+    /// 面板里的字幕条每种状态都在默认宽度和最窄宽度下渲染；最新的字在末尾，两行放不下时丢的是开头。
+    @MainActor
+    func testCaptionBarRendersEveryStateAtBothWidths() throws {
+        let long = "我们这个项目的 RAG 链路是先把文档切块，然后存到向量数据库里面。你能说一下这个 folder 里面的 API 是怎么调用的吗？"
+        let states: [(String, CaptionBar)] = [
+            ("starting", CaptionBar(state: .starting, text: "")),
+            ("listening", CaptionBar(state: .running, text: "", lastChange: Date())),
+            ("words", CaptionBar(state: .running, text: long, lastChange: Date())),
+            ("quiet", CaptionBar(state: .running, text: long, lastChange: Date().addingTimeInterval(-30))),
+            ("message", CaptionBar(state: .idle, text: "", message: "电脑进入睡眠或锁定，字幕已停止。")),
+            ("permission", CaptionBar(state: .idle, text: "",
+                                      message: "字幕要用「屏幕与系统音频录制」权限才能听电脑的声音。请在系统设置中打开 Wisp，再开字幕。",
+                                      openSettings: {})),
+        ]
+        for (name, bar) in states {
+            for width in [PanelController.width, 380] {
+                try render(bar.background(Color(nsColor: .windowBackgroundColor)),
+                           filename: "wisp-caption-bar-\(name)-\(Int(width)).png",
+                           width: width, height: CaptionBar.height)
+            }
+        }
+    }
+
+    @MainActor
+    func testPushToTalkRowRendersEveryState() throws {
+        for (name, state, caption) in [("preparing", PushToTalk.State.preparing, ""),
+                                       ("listening", .listening, "RAG 是什么？"),
+                                       ("finishing", .finishing, "RAG 是什么？")] {
+            try render(PushToTalkRow(state: state, caption: caption).background(Color(nsColor: .windowBackgroundColor)),
+                       filename: "wisp-push-to-talk-\(name).png", width: 380, height: 32)
+        }
+    }
+
+    /// 字幕条在面板里：收起时面板为它让出高度，关掉字幕就还回去。
+    @MainActor
+    func testCollapsedPanelMakesRoomForTheCaptionStrip() {
+        let captions = LiveCaptions.shared
+        captions.stop()
+        defer { captions.dismissMessage() }
+        let plain = PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight)
+        let rowsBefore = PanelController.extraRowsHeight
+        XCTAssertEqual(plain, PanelController.collapsedHeight)
+        captions.stop(reason: "Caption test message")
+        XCTAssertEqual(PanelController.extraRowsHeight, rowsBefore + CaptionBar.height)
+        XCTAssertEqual(PanelController.collapsedHeight(forInputHeight: ChatInput.defaultHeight + 30), plain + 30)
+    }
+
+    /// 展开和收起时底边不动：输入框留在原地，面板向上打开。
+    @MainActor
+    func testExpandingOpensUpwardFromTheInputBox() {
+        let collapsed = NSRect(x: 300, y: 100, width: 620, height: 162)
+        let expanded = PanelController.frame(collapsed, resizedTo: 560)
+        XCTAssertEqual(expanded.minY, collapsed.minY)
+        XCTAssertEqual(expanded.minX, collapsed.minX)
+        XCTAssertEqual(expanded.height, 560)
+        XCTAssertEqual(PanelController.frame(expanded, resizedTo: 162), collapsed)
+    }
+
+    func testPanelReopensOnItsSavedDisplayAndFallsBackWhenDisconnected() {
+        let primary = NSRect(x: 0, y: 24, width: 1440, height: 850)
+        let external = NSRect(x: -1920, y: 100, width: 1920, height: 1000)
+        let displays = [(frame: primary, visibleFrame: primary), (frame: external, visibleFrame: external)]
+        let size = NSSize(width: 620, height: 82)
+        let savedOrigin = NSPoint(x: -1000, y: 140)
+
+        XCTAssertEqual(ScreenGeometry.panelFrame(size: size, savedOrigin: savedOrigin,
+                                                 displays: displays, fallback: primary),
+                       NSRect(origin: savedOrigin, size: size))
+        let fallback = NSRect(x: 410, y: 40, width: 620, height: 82)
+        XCTAssertEqual(ScreenGeometry.panelFrame(size: size, savedOrigin: savedOrigin,
+                                                 displays: [displays[0]], fallback: primary), fallback)
+        XCTAssertEqual(ScreenGeometry.panelFrame(size: size, savedOrigin: nil,
+                                                 displays: displays, fallback: primary), fallback)
+    }
+
+    @MainActor
+    func testHidingThePanelStopsCaptions() {
+        let captions = LiveCaptions.shared
+        PanelController.shared.hide()
+        XCTAssertFalse(captions.isActive)
     }
 
     // MARK: - 面板缩放
 
-    func testResizeGrabsOnlyTheEdgesAndWidensAtTheCorners() {
+    func testResizeGrabsTheSideAndBottomEdgesButNotTheTopEdge() {
         let size = NSSize(width: 620, height: 180)
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 310, y: 90), in: size), [])
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 2, y: 90), in: size), .left)
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 618, y: 90), in: size), .right)
-        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 310, y: 178), in: size), .top)
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 310, y: 2), in: size), .bottom)
-        // 角上放宽到 16 点，斜着拖才抓得住。
+        // 顶边和面板其余空白处一样用来拖动，不缩放——包括两个上角。
+        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 310, y: 178), in: size), [])
+        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 2, y: 178), in: size), [])
+        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 618, y: 174), in: size), [])
+        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 8, y: 172), in: size), [])
+        // 顶上那一条以下，两条侧边照常缩放。
+        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 2, y: 173), in: size), .left)
+        // 下面两个角放宽到 16 点，斜着拖才抓得住。
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 610, y: 10), in: size), [.right, .bottom])
-        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 8, y: 172), in: size), [.left, .top])
+        XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 8, y: 8), in: size), [.left, .bottom])
         // 界外和退化尺寸都不该报边。
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: -1, y: 90), in: size), [])
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 310, y: 181), in: size), [])
         XCTAssertEqual(PanelResize.edges(at: NSPoint(x: 0, y: 0), in: .zero), [])
     }
 
+    /// The blue guide says where the panel resizes; the pointer itself never changes, on any edge.
     @MainActor
-    func testPanelResizeCursorFollowsPrivacySwitch() {
-        WispCursorPolicy.setEnabled(true)
-        defer { WispCursorPolicy.setEnabled(false) }
+    func testHoveringAResizeEdgeLeavesThePointerAlone() throws {
         XCTAssertFalse(PanelController.panelStyleMask.contains(.resizable),
                        "The AppKit resizable style would reinstall the system resize cursor")
         XCTAssertEqual(PanelResize.guideInset, 4)
-        let edgeCombinations: [PanelResize.Edges] = [
-            [], .left, .right, .top, .bottom,
-            [.left, .top], [.right, .top], [.left, .bottom], [.right, .bottom]
-        ]
-        for edges in edgeCombinations {
-            XCTAssertTrue(PanelResize.cursor(for: edges) === NSCursor.arrow)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 180),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let overlay = PanelResizeOverlay(frame: NSRect(x: 0, y: 0, width: 620, height: 180))
+        window.contentView = overlay
+        NSCursor.arrow.set()
+        // Both sides, the bottom, a bottom corner, the top edge and the middle.
+        for point in [NSPoint(x: 2, y: 90), NSPoint(x: 618, y: 90), NSPoint(x: 310, y: 2),
+                      NSPoint(x: 4, y: 4), NSPoint(x: 310, y: 178), NSPoint(x: 310, y: 90)] {
+            let event = try XCTUnwrap(NSEvent.mouseEvent(
+                with: .mouseMoved, location: point, modifierFlags: [], timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 0, pressure: 0))
+            overlay.mouseMoved(with: event)
+            XCTAssertTrue(NSCursor.current === NSCursor.arrow, "pointer changed at \(point)")
         }
-        WispCursorPolicy.setEnabled(false)
-        XCTAssertTrue(PanelResize.cursor(for: []) === NSCursor.arrow)
-        for edges in edgeCombinations where !edges.isEmpty {
-            XCTAssertFalse(PanelResize.cursor(for: edges) === NSCursor.arrow)
-        }
+        overlay.mouseExited(with: try XCTUnwrap(NSEvent.mouseEvent(
+            with: .mouseMoved, location: NSPoint(x: -5, y: 90), modifierFlags: [], timestamp: 0,
+            windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 0, pressure: 0)))
+        XCTAssertTrue(NSCursor.current === NSCursor.arrow)
+    }
+
+    /// The panel follows the mouse by the distance it travelled and cannot be dragged off screen.
+    @MainActor
+    func testDraggingMovesTheWindowWithTheMouseAndKeepsItOnScreen() throws {
+        let screen = try XCTUnwrap(NSScreen.main)
+        let visible = screen.visibleFrame
+        let window = NSWindow(contentRect: NSRect(x: (visible.midX - 200).rounded(), y: visible.midY.rounded(),
+                                                  width: 400, height: 82),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        // Whole points, as AppKit placed it.
+        let start = window.frame, size = start.size
+        let grab = NSPoint(x: start.minX + 100, y: start.minY + 40)
+
+        let move = PanelMove()
+        move.changed(mouse: grab, window: window)
+        XCTAssertEqual(window.frame.origin, start.origin, "the first event only marks where the drag began")
+        move.changed(mouse: NSPoint(x: grab.x + 30, y: grab.y - 20), window: nil)
+        XCTAssertEqual(window.frame.origin, NSPoint(x: start.minX + 30, y: start.minY - 20))
+        XCTAssertEqual(window.frame.size, size, "moving never resizes")
+        // Far past the bottom-right corner: the whole window stays in the visible area.
+        move.changed(mouse: NSPoint(x: visible.maxX - 1, y: visible.minY + 1), window: nil)
+        XCTAssertTrue(visible.contains(window.frame), "\(window.frame) left \(visible)")
+
+        // Each drag measures from its own start.
+        move.ended()
+        let before = window.frame.origin
+        move.changed(mouse: NSPoint(x: visible.midX, y: visible.midY), window: window)
+        XCTAssertEqual(window.frame.origin, before)
     }
 
     func testResizeKeepsTheOppositeEdgeFixedAndObeysWindowLimits() {
@@ -710,9 +492,6 @@ final class ListeningTests: XCTestCase {
         let leftward = resized(.left, -100, 0)
         XCTAssertEqual(leftward.width, 720)
         XCTAssertEqual(leftward.maxX, start.maxX)
-        let taller = resized(.top, 0, 120)
-        XCTAssertEqual(taller.height, 300)
-        XCTAssertEqual(taller.minY, start.minY)
         let lower = resized(.bottom, 0, -120)
         XCTAssertEqual(lower.height, 300)
         XCTAssertEqual(lower.maxY, start.maxY)
@@ -721,15 +500,16 @@ final class ListeningTests: XCTestCase {
         XCTAssertEqual(squeezed.size, minSize)
         XCTAssertEqual(squeezed.maxX, start.maxX)
         XCTAssertEqual(squeezed.maxY, start.maxY)
-        let stretched = resized([.right, .top], 5_000, 5_000)
+        let stretched = resized([.right, .bottom], 5_000, -5_000)
         XCTAssertEqual(stretched.size, maxSize)
-        XCTAssertEqual(stretched.origin, start.origin)
+        XCTAssertEqual(stretched.minX, start.minX)
+        XCTAssertEqual(stretched.maxY, start.maxY)
     }
 
     @MainActor
     func testResizeOverlayInterceptsEdgesAndLetsContentKeepItsClicks() throws {
         let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 180))
-        let host = PanelController.makePanelContentView(ListeningView())
+        let host = PanelController.makePanelContentView(PushToTalkBar())
         host.frame = root.bounds
         root.addSubview(host)
         host.layoutSubtreeIfNeeded()
@@ -739,23 +519,12 @@ final class ListeningTests: XCTestCase {
         XCTAssertEqual(host.subviews.last, overlay)
         XCTAssertTrue(host.hitTest(NSPoint(x: 618, y: 90)) is PanelResizeOverlay)
         XCTAssertTrue(host.hitTest(NSPoint(x: 612, y: 6)) is PanelResizeOverlay)
+        // The top edge is not a resize edge: a press there reaches the content, which drags the panel.
+        XCTAssertNil(overlay.hitTest(NSPoint(x: 310, y: 178)))
+        XCTAssertFalse(host.hitTest(NSPoint(x: 310, y: 178)) is PanelResizeOverlay)
         XCTAssertNil(overlay.hitTest(NSPoint(x: 310, y: 90)))
         XCTAssertFalse(host.hitTest(NSPoint(x: 310, y: 90)) is PanelResizeOverlay)
         // 发送键在右下角，离边 12 点：它的位置不能被缩放层吞掉。
         XCTAssertFalse(host.hitTest(NSPoint(x: 620 - 25, y: 22)) is PanelResizeOverlay)
-    }
-
-    @MainActor
-    func testResizeOverlayDoesNotStealTitleEdgeDrags() {
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 180))
-        let drag = WindowDragArea.DragView(frame: NSRect(x: 100, y: 174, width: 420, height: 6))
-        root.addSubview(drag)
-        let overlay = PanelResizeOverlay(frame: root.bounds)
-        root.addSubview(overlay)
-
-        // The title drag strip is allowed to overlap the top resize edge without
-        // being converted into a resize gesture.
-        XCTAssertTrue(root.hitTest(NSPoint(x: 200, y: 178)) === drag)
-        XCTAssertTrue(root.hitTest(NSPoint(x: 20, y: 178)) === overlay)
     }
 }

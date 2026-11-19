@@ -26,6 +26,19 @@ enum KeychainStore {
 
     static func hasKey(for provider: CloudProvider) -> Bool { load(for: provider) != nil }
 
+    // MARK: - 语音识别服务
+
+    /// 云端实时字幕（Soniox）的 Key，和对话服务商的 Key 分开存。
+    private static let speechAccount = "speech-soniox"
+
+    @discardableResult
+    static func saveSpeechKey(_ key: String) -> Bool { write(key, account: speechAccount) }
+
+    static func loadSpeechKey() -> String? { read(account: speechAccount) }
+
+    @discardableResult
+    static func deleteSpeechKey() -> Bool { remove(account: speechAccount) }
+
     /// 清除全部数据时用：把每一家的 Key 连同旧条目一起删掉。
     /// 返回是否全部删干净 — 以前不返回结果，擦除失败时用户以为 Key
     /// 已经没了，其实还躺在钥匙串里（#43）。
@@ -36,6 +49,7 @@ enum KeychainStore {
             if !remove(account: provider.keychainAccount) { allRemoved = false }
         }
         if !remove(account: legacyAccount) { allRemoved = false }
+        if !remove(account: speechAccount) { allRemoved = false }
         return allRemoved
     }
 
