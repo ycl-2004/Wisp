@@ -108,7 +108,7 @@ struct OnboardingView: View {
             HStack(spacing: 10) {
                 Button("打开完整设置") {
                     dismiss()
-                    openSettings()
+                    SettingsWindowPresenter.open(using: openSettings)
                 }
                 Spacer(minLength: 0)
                 Button("稍后再说") { dismiss() }

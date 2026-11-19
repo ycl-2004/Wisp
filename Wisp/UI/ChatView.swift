@@ -72,6 +72,7 @@ struct ChatView: View {
         .sheet(isPresented: $model.showsOnboarding,
                onDismiss: { model.onboardingSheetDismissed() }) {
             OnboardingView()
+                .background(ScreenPrivacyWindow())
         }
     }
 
@@ -263,7 +264,7 @@ struct ChatView: View {
             Divider()
             Button("编辑常用指令…") {
                 settingsTab = .commands
-                openSettings()
+                SettingsWindowPresenter.open(using: openSettings)
             }
         } label: {
             Image(systemName: "sparkles").font(.system(size: 11, weight: .medium))
@@ -319,8 +320,6 @@ struct ChatView: View {
 struct ChatEmptyStateView: View {
     @EnvironmentObject var model: AssistantModel
     @ObservedObject private var commands = QuickCommandStore.shared
-    @ObservedObject private var captions = LiveCaptions.shared
-    @ObservedObject private var pushToTalk = PushToTalk.shared
 
     private var appName: String {
         model.packet?.appName ?? String(localized: "当前应用")

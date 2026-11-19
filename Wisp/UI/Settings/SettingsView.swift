@@ -1,4 +1,77 @@
+import AppKit
 import SwiftUI
+
+/// Keeps the Settings window above regular apps and the floating assistant panel,
+/// and reliably brings it to the active Space in this `.accessory` (LSUIElement) app.
+@MainActor
+enum SettingsWindowPresenter {
+    /// Above normal windows (0) and the assistant panel (.floating = 3),
+    /// while remaining below pop-up menus (.popUpMenu = 101) and the status island.
+    static let windowLevel = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
+    static let collectionBehavior: NSWindow.CollectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+
+    private static weak var settingsWindow: NSWindow?
+
+    static func configure(_ window: NSWindow, bringToFront: Bool = false) {
+        settingsWindow = window
+        ScreenPrivacy.apply(to: window)
+        if window.level != windowLevel { window.level = windowLevel }
+        let desired = window.collectionBehavior.union(collectionBehavior)
+        if window.collectionBehavior != desired { window.collectionBehavior = desired }
+        if bringToFront {
+            NSApp?.activate(ignoringOtherApps: true)
+            window.orderFrontRegardless()
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    static func open(using openSettings: OpenSettingsAction) {
+        NSApp.activate(ignoringOtherApps: true)
+        openSettings()
+        DispatchQueue.main.async {
+            if let window = settingsWindow {
+                configure(window, bringToFront: true)
+            }
+        }
+    }
+}
+
+/// Applies screen privacy, elevated window level, and Space behavior to the SwiftUI Settings window.
+struct SettingsWindowConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> WindowView { WindowView() }
+
+    func updateNSView(_ view: WindowView, context: Context) {
+        if let window = view.window {
+            SettingsWindowPresenter.configure(window)
+        }
+    }
+
+    final class WindowView: NSView {
+        private var keyObserver: NSObjectProtocol?
+
+        deinit {
+            if let keyObserver { NotificationCenter.default.removeObserver(keyObserver) }
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let keyObserver {
+                NotificationCenter.default.removeObserver(keyObserver)
+                self.keyObserver = nil
+            }
+            guard let window else { return }
+            SettingsWindowPresenter.configure(window, bringToFront: true)
+            keyObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak window] _ in
+                guard let window else { return }
+                MainActor.assumeIsolated { SettingsWindowPresenter.configure(window) }
+            }
+        }
+    }
+}
 
 struct SettingsView: View {
     enum Tab: String { case model, panel, commands, capture, audio, privacy, data, general }

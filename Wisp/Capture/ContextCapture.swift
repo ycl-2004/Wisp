@@ -137,7 +137,7 @@ enum ContextCapture {
             case .noWindow:
                 packet.notes.append(.info(String(localized: "找不到可截取的窗口。")))
             case .failed(let message):
-                packet.notes.append(.info(String(localized: "截图失败：\(message)")))
+                packet.notes.append(.blocking(String(localized: "截图失败：\(message)")))
             }
         }
 

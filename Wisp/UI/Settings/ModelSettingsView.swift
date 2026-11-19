@@ -162,14 +162,17 @@ struct ModelSettingsView: View {
             Field(label: "API Key") {
                 HStack(spacing: 6) {
                     SecureField(cloudProvider.keyPlaceholder, text: $apiKey)
+                        .frame(minWidth: 0, maxWidth: .infinity)
                         .focused($keyFieldFocused)
                         .onChange(of: apiKey) { testResult = nil }
                         .onSubmit { persistKey(apiKey, for: settings.cloudProvider) }
                     if let console = cloudProvider.keyConsoleURL {
                         Link("获取", destination: console)
                             .font(.system(size: 11))
+                            .fixedSize()
                     }
                     InfoButton(message: String(localized: "请求发送到 \(endpointText)。API Key 按服务商分开保存在 macOS 钥匙串。"))
+                        .fixedSize()
                 }
             }
         }

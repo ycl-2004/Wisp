@@ -52,8 +52,9 @@ struct GeneralSettingsView: View {
 
             Section {
                 Button("重新运行首次设置") {
-                    PanelController.shared.show()
-                    AssistantModel.shared.showsOnboarding = true
+                    PanelController.shared.show {
+                        AssistantModel.shared.showsOnboarding = true
+                    }
                 }
             } header: {
                 SettingsSectionHeader("帮助", info: String(localized: "重新打开首次设置向导：连接模型、录屏权限和呼出快捷键都可以在里面完成。"))

@@ -7,6 +7,7 @@ import SwiftUI
 struct ContextHeaderView: View {
     @EnvironmentObject var model: AssistantModel
     @EnvironmentObject var store: ConversationStore
+    @Environment(\.openSettings) private var openSettings
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var captions = LiveCaptions.shared
 
@@ -72,7 +73,9 @@ struct ContextHeaderView: View {
             Button {
                 model.toggleScreenshot()
             } label: {
-                toggleChip(settings.sendScreenshot ? "camera.fill" : "camera", isOn: settings.sendScreenshot)
+                toggleChip(settings.sendScreenshot ? "camera.fill" : "camera",
+                           isOn: settings.sendScreenshot,
+                           tint: screenshotChipMissing ? .orange : .blue)
             }
             .buttonStyle(.plain)
             .help(screenshotChipText)
@@ -98,9 +101,13 @@ struct ContextHeaderView: View {
             ModelSwitcher(width: modelWidth)
 
             // Keep settings reachable even when macOS crowds out an enabled menu item.
-            SettingsLink { Image(systemName: "gearshape") }
-                .buttonStyle(IconButtonStyle())
-                .help("设置")
+            Button {
+                SettingsWindowPresenter.open(using: openSettings)
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(IconButtonStyle())
+            .help("设置")
 
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }
@@ -113,14 +120,20 @@ struct ContextHeaderView: View {
         }
     }
 
+    private var screenshotChipMissing: Bool {
+        guard settings.sendScreenshot, !model.isCapturing,
+              let packet = model.packet, !packet.isExcluded else { return false }
+        return !packet.hasScreenshot
+    }
+
     /// An icon that is tinted and backed while its switch is on.
-    private func toggleChip(_ symbol: String, isOn: Bool) -> some View {
+    private func toggleChip(_ symbol: String, isOn: Bool, tint: Color = .blue) -> some View {
         Image(systemName: symbol)
             .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(isOn ? Color.blue : Color.secondary)
+            .foregroundStyle(isOn ? tint : Color.secondary)
             .frame(width: 26, height: 22)
             .background(RoundedRectangle(cornerRadius: DS.chipCorner)
-                .fill(isOn ? Color.blue.opacity(0.14) : .clear))
+                .fill(isOn ? tint.opacity(0.14) : .clear))
     }
 
     /// 标题的提示：这份上下文是什么时候读的、正文读到了多少。还没读过就没有提示。

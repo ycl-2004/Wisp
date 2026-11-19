@@ -171,4 +171,70 @@ enum ScreenCapturer {
         guard let image = ctx.makeImage() else { return nil }
         return encodeJPEG(image)
     }
+
+    private static let supportedImageExtensions: Set<String> = [
+        "png", "jpg", "jpeg", "webp", "heic", "heif", "tiff", "tif", "gif", "bmp",
+    ]
+    private static let maxAttachedImageFileBytes = 20 * 1024 * 1024
+    private static let maxAttachedImages = 4
+
+    /// Extracts existing local image file paths pasted or dropped as standalone lines in user input
+    /// (for example, screenshot paths dragged in from MacShot or Finder).
+    static func extractLocalImagePaths(from text: String, fileManager: FileManager = .default) -> [String] {
+        var paths: [String] = []
+        var seen = Set<String>()
+        for rawLine in text.components(separatedBy: .newlines) {
+            guard paths.count < maxAttachedImages else { break }
+            guard let path = normalizedLocalImagePath(rawLine),
+                  !seen.contains(path),
+                  fileManager.isReadableFile(atPath: path) else { continue }
+            var isDirectory: ObjCBool = false
+            guard fileManager.fileExists(atPath: path, isDirectory: &isDirectory),
+                  !isDirectory.boolValue else { continue }
+            seen.insert(path)
+            paths.append(path)
+        }
+        return paths
+    }
+
+    /// Reads and downscales local image files referenced in a manual user message so the model
+    /// receives actual image bytes rather than only a filesystem path.
+    static func loadReferencedImages(in text: String) -> [Data] {
+        extractLocalImagePaths(from: text).compactMap { loadImageJPEG(atPath: $0) }
+    }
+
+    static func loadImageJPEG(atPath path: String, maxLongEdge: CGFloat = 2048) -> Data? {
+        let url = URL(fileURLWithPath: path)
+        guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize,
+              size > 0, size <= maxAttachedImageFileBytes,
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: Int(maxLongEdge),
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+                ?? CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
+        return encodeJPEG(image)
+    }
+
+    private static func normalizedLocalImagePath(_ rawLine: String) -> String? {
+        var candidate = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        if (candidate.hasPrefix("\"") && candidate.hasSuffix("\""))
+            || (candidate.hasPrefix("'") && candidate.hasSuffix("'")) {
+            candidate = String(candidate.dropFirst().dropLast())
+        }
+        let path: String
+        if candidate.hasPrefix("file://"), let url = URL(string: candidate), url.isFileURL {
+            path = url.path
+        } else if candidate.hasPrefix("/") {
+            path = candidate
+        } else {
+            return nil
+        }
+        let ext = URL(fileURLWithPath: path).pathExtension.lowercased()
+        guard supportedImageExtensions.contains(ext) else { return nil }
+        return path
+    }
 }

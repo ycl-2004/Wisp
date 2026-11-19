@@ -61,11 +61,6 @@ final class AssistantModel: ObservableObject {
     let settings = AppSettings.shared
 
     private var streamTask: Task<Void, Never>?
-    /// 已经发过截图的那份上下文，避免同一张图重复发。
-    private var lastSentPacketID: UUID?
-    /// 上一次采集到的画面，用来判断屏幕有没有真的变过。
-    private var lastScreenshotHash: Int?
-    private var lastURL: String?
 
     var ownWindowIDs: [CGWindowID] = []
     /// 浮窗抢到焦点后，仍然记得要读取哪个应用。
@@ -132,13 +127,6 @@ final class AssistantModel: ObservableObject {
            let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
             targetApp = running
         }
-
-        // 画面和网址都没变的话，沿用上一份的「已发过截图」标记，别重复付图片的钱。
-        let hash = result.screenshotJPEG?.hashValue
-        let unchanged = (hash != nil && hash == lastScreenshotHash && result.url == lastURL)
-        if !unchanged { lastSentPacketID = nil }
-        lastScreenshotHash = hash
-        lastURL = result.url
 
         packet = result
         pendingText = pending
@@ -450,7 +438,7 @@ final class AssistantModel: ObservableObject {
             guard !Task.isCancelled else { return }
             if mode == .quick {
                 if sendScreenshot { await captureShot(screenshotOnly: true, attachScreenshot: true) }
-            } else if packet == nil || contextIsStale || capturedScreenshotOnly {
+            } else if packet == nil || contextIsStale || capturedScreenshotOnly || (sendScreenshot && packet?.hasScreenshot != true) {
                 await captureShot(screenshotOnly: false)
             }
             guard !Task.isCancelled, responseGeneration == generation else { return }
@@ -546,7 +534,7 @@ final class AssistantModel: ObservableObject {
         let generation = beginResponse(config)
         preparationTask = Task {
             defer { endPreparation(generation) }
-            if packet == nil || contextIsStale || capturedScreenshotOnly {
+            if packet == nil || contextIsStale || capturedScreenshotOnly || (sendScreenshot && packet?.hasScreenshot != true) {
                 await captureShot(screenshotOnly: false)
             }
             guard !Task.isCancelled, responseGeneration == generation else { return }
@@ -556,16 +544,18 @@ final class AssistantModel: ObservableObject {
             guard !Task.isCancelled, responseGeneration == generation else { return }
             guard !isStreaming, store.active?.id == conversationID,
                   store.active?.messages.last?.id == answerID else { return cancelPreparation() }
+            let attachedImages = ScreenCapturer.loadReferencedImages(in: question.text)
             var screenshot: Data?
             if samePage {
                 let (snapshot, shot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
-                store.updateContext(snapshot, sentScreenshot: shot != nil, messageID: question.id, in: conversationID)
+                store.updateContext(snapshot, sentScreenshot: shot != nil || !attachedImages.isEmpty,
+                                    messageID: question.id, in: conversationID)
                 screenshot = shot
             }
             store.removeMessage(previous.id, from: conversationID)
             errorText = nil
             streamAnswer(in: conversationID, config: config, screenshot: screenshot,
-                         skippedPage: false, generation: generation, restoring: previous)
+                         attachedImages: attachedImages, skippedPage: false, generation: generation, restoring: previous)
         }
     }
 
@@ -669,10 +659,12 @@ final class AssistantModel: ObservableObject {
         if source != .automaticCaption { input = "" }
 
         let (snapshot, screenshot) = contextForSend(config: config, sendScreenshot: sendScreenshot)
-        store.append(Message(role: .user, text: question, context: snapshot, sentScreenshot: screenshot != nil),
+        let attachedImages = source == .manual ? ScreenCapturer.loadReferencedImages(in: question) : []
+        let hasImage = screenshot != nil || !attachedImages.isEmpty
+        store.append(Message(role: .user, text: question, context: snapshot, sentScreenshot: hasImage),
                      to: conversationID)
         streamAnswer(in: conversationID, config: config, screenshot: screenshot,
-                     skippedPage: skippedPage, generation: generation, restoring: nil)
+                     attachedImages: attachedImages, skippedPage: skippedPage, generation: generation, restoring: nil)
     }
 
     /// 这一轮附哪张截图、问题记下哪份上下文。
@@ -680,12 +672,7 @@ final class AssistantModel: ObservableObject {
         // Conversation history remains in PromptBuilder; stale screen context does not
         // belong to a camera-off Quick question.
         if config.responseMode == .quick && !sendScreenshot { return (nil, nil) }
-        var screenshotToSend: Data?
-        if sendScreenshot, let packet, packet.hasScreenshot,
-           (config.responseMode != .standard || lastSentPacketID != packet.id) {
-            screenshotToSend = packet.screenshotJPEG
-            lastSentPacketID = packet.id
-        }
+        let screenshotToSend = (sendScreenshot && packet?.hasScreenshot == true) ? packet?.screenshotJPEG : nil
         var snapshot = packet?.isExcluded == true ? nil : packet?.snapshot()
         // History never stores screenshot bytes; report only the image actually sent this turn.
         snapshot?.hadScreenshot = screenshotToSend != nil
@@ -695,14 +682,15 @@ final class AssistantModel: ObservableObject {
     /// 给对话里最后那个问题生成回答。`previous` 是被重答替换掉的旧回答：
     /// 新回答一个字都没出来时放回去，重答失败不会让人两头落空。
     private func streamAnswer(in conversationID: UUID, config: ProviderConfig, screenshot: Data?,
-                              skippedPage: Bool, generation: UUID, restoring previous: Message?) {
+                              attachedImages: [Data] = [], skippedPage: Bool, generation: UUID, restoring previous: Message?) {
         let assistantMessage = Message(role: .assistant, text: "", mode: config.responseMode)
         store.append(assistantMessage, to: conversationID)
 
         let history = store.conversations.first { $0.id == conversationID }?.messages ?? []
         let payloadMessages = Array(history.dropLast())
         let payload = PromptBuilder.build(messages: payloadMessages, liveScreenshot: screenshot,
-                                          mode: config.responseMode, skippedPageCapture: skippedPage)
+                                          attachedImages: attachedImages, mode: config.responseMode,
+                                          skippedPageCapture: skippedPage)
 
         lastResponseTiming?.requestStartedAt = ProcessInfo.processInfo.systemUptime
         isStreaming = true
@@ -789,6 +777,9 @@ final class AssistantModel: ObservableObject {
 
     func toggleScreenshot() {
         settings.sendScreenshot.toggle()
+        if settings.sendScreenshot, packet?.hasScreenshot != true {
+            contextIsStale = true
+        }
     }
 
     func excludeCurrentApp() {

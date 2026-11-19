@@ -27,7 +27,9 @@ enum PromptBuilder {
     /// - Parameters:
     ///   - messages: 当前对话的全部消息，最后一条应为本轮用户消息。
     ///   - liveScreenshot: 本轮要发送的截图；nil 表示不发图。
-    static func build(messages: [Message], liveScreenshot: Data?, mode: ResponseMode = .quick, skippedPageCapture: Bool = false) -> [[String: Any]] {
+    ///   - attachedImages: 用户主动附带或拖入的本地图片（JPEG）。
+    static func build(messages: [Message], liveScreenshot: Data?, attachedImages: [Data] = [],
+                      mode: ResponseMode = .quick, skippedPageCapture: Bool = false) -> [[String: Any]] {
         let instructions = [systemPrompt, ResponsePolicy.evidenceInstructions, mode.prompt,
                             skippedPageCapture ? ResponsePolicy.skippedContextNotice : ""]
             .filter { !$0.isEmpty }.joined(separator: "\n\n")
@@ -55,12 +57,21 @@ enum PromptBuilder {
                     blocks.append(["type": "text", "text": text])
                 }
 
-                if index == lastIndex, let jpeg = liveScreenshot, !jpeg.isEmpty {
-                    let base64 = jpeg.base64EncodedString()
-                    blocks.append([
-                        "type": "image_url",
-                        "image_url": ["url": "data:image/jpeg;base64,\(base64)"],
-                    ])
+                if index == lastIndex {
+                    if let jpeg = liveScreenshot, !jpeg.isEmpty {
+                        let base64 = jpeg.base64EncodedString()
+                        blocks.append([
+                            "type": "image_url",
+                            "image_url": ["url": "data:image/jpeg;base64,\(base64)"],
+                        ])
+                    }
+                    for jpeg in attachedImages where !jpeg.isEmpty {
+                        let base64 = jpeg.base64EncodedString()
+                        blocks.append([
+                            "type": "image_url",
+                            "image_url": ["url": "data:image/jpeg;base64,\(base64)"],
+                        ])
+                    }
                 }
 
                 blocks.append(["type": "text", "text": message.text])

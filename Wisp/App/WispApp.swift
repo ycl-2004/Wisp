@@ -34,7 +34,7 @@ struct WispApp: App {
 
         Settings {
             SettingsView()
-                .background(ScreenPrivacyWindow())
+                .background(SettingsWindowConfigurator())
                 .environmentObject(AssistantModel.shared)
                 .environmentObject(ConversationStore.shared)
         }
@@ -49,6 +49,8 @@ private struct MenuContent: View {
     @ObservedObject private var store = ConversationStore.shared
     @ObservedObject private var updateNotice = UpdateNotice.shared
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var presentation = PresentationDisplay.shared
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Button(String(localized: "唤起助手")) {
@@ -64,8 +66,14 @@ private struct MenuContent: View {
         // 录演示视频时要临时露出来，藏在设置里第四层太远了。
         Toggle("共享时隐藏", isOn: Binding(
             get: { settings.hideFromScreenCapture },
-            set: { PresentationDisplay.shared.setHiding($0) }
+            set: { presentation.setHiding($0) }
         ))
+
+        if settings.hideFromScreenCapture {
+            Button(presentation.isOpen ? String(localized: "关闭演示屏") : String(localized: "启动专用演示屏")) {
+                if presentation.isOpen { presentation.stop() } else { presentation.start() }
+            }
+        }
 
         if let version = updateNotice.availableVersion {
             Divider()
@@ -78,8 +86,8 @@ private struct MenuContent: View {
 
         Text("\(store.savedCount)/\(store.maxConversations) 个对话")
 
-        SettingsLink {
-            Text("设置…")
+        Button("设置…") {
+            SettingsWindowPresenter.open(using: openSettings)
         }
         .keyboardShortcut(",", modifiers: .command)
 

@@ -6,6 +6,7 @@ import SwiftUI
 struct IslandView: View {
     @EnvironmentObject var model: IslandModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
     @ObservedObject private var settings = AppSettings.shared
 
     let notchWidth: CGFloat
@@ -89,7 +90,7 @@ struct IslandView: View {
                     AssistantModel.shared.toggleScreenshot()
                 }
                 Divider()
-                SettingsLink { Text("设置…") }
+                Button("设置…") { SettingsWindowPresenter.open(using: openSettings) }
                 // 退出不放在这里：右键菜单贴着药丸，误点一下就整个退出，
                 // 而重新打开要回到状态栏菜单。菜单栏那份仍然有「退出」。
             }

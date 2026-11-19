@@ -7,6 +7,7 @@ struct ModelSwitcher: View {
     var width: CGFloat = 200
     @ObservedObject private var settings = AppSettings.shared
     @StateObject private var state = ModelMenuState.shared
+    @Environment(\.openSettings) private var openSettings
     @State private var hovering = false
 
     private var models: ActiveModels { ActiveModels(settings: settings, state: state) }
@@ -77,7 +78,7 @@ struct ModelSwitcher: View {
             if currentKind == .codexCLI, settings.cliProvider == .agy {
                 Button("刷新 Agy 模型") { state.refreshAgy() }
             }
-            SettingsLink { Text("更多设置…") }
+            Button("更多设置…") { SettingsWindowPresenter.open(using: openSettings) }
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: currentKind.symbol).font(.system(size: 9))
