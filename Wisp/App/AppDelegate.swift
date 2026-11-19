@@ -130,6 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             // 先于任何窗口显示：晚一轮 runloop 就够被录进去一帧。
             ScreenPrivacy.start()
+            ArrowCursorPolicy.start()
             privacyObservation = AppSettings.shared.objectWillChange.sink { [weak self] _ in
                 Task { @MainActor in self?.closePresentationWhenHidingIsOff() }
             }

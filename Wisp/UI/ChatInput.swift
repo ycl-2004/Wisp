@@ -151,6 +151,20 @@ final class PlaceholderTextView: NSTextView {
         NSString(string: placeholder).draw(at: origin, withAttributes: attributes)
     }
 
+    override func resetCursorRects() {
+        discardCursorRects()
+        addCursorRect(visibleRect, cursor: .arrow)
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.arrow.set()
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        NSCursor.arrow.set()
+    }
+
     override func doCommand(by selector: Selector) {
         if selector == #selector(NSResponder.insertNewline(_:)) {
             let modifiers = NSApp.currentEvent?.modifierFlags ?? []

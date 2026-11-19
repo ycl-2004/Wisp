@@ -56,7 +56,7 @@ enum ScreenPrivacy {
 
     /// 自有窗口在首次显示前调用；设置成功本身不代表接收端已隐藏内容。
     static func apply(to window: NSWindow) {
-        // Never expose the private moving arrow, even when window hiding is off.
+        // Respect windows with an explicit fixed sharing policy (such as PresentationWindow).
         let type: NSWindow.SharingType
         if let surface = window as? FixedWindowSharing {
             type = surface.fixedSharingType
