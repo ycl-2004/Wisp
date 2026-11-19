@@ -29,7 +29,7 @@ final class NonAudioAcceptanceTests: XCTestCase {
     func testNonAudioSettingsTabsRenderAtTheirActualWindowSize() throws {
         let saved = UserDefaults.standard.object(forKey: "settingsTab")
         defer { UserDefaults.standard.set(saved, forKey: "settingsTab") }
-        for tab in ["model", "panel", "commands", "capture", "privacy", "data", "general"] {
+        for tab in ["model", "panel", "commands", "capture", "audio", "privacy", "data", "general"] {
             UserDefaults.standard.set(tab, forKey: "settingsTab")
             try render(SettingsView().environmentObject(AssistantModel.shared)
                 .environmentObject(ConversationStore.shared),
