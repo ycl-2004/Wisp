@@ -237,6 +237,8 @@ final class AdvancedShortcutMonitor {
     private let tapInterval: TimeInterval = 0.45
     private var localMonitor: Any?
     private var globalMonitor: Any?
+    private var activationObserver: NSObjectProtocol?
+    private var lastAccessibilityTrusted = false
     private var isStarted = false
     private var onMatch: (() -> Void)?
 
@@ -260,12 +262,40 @@ final class AdvancedShortcutMonitor {
             self?.handle(event)
             return event
         }
+        installGlobalMonitor()
+        lastAccessibilityTrusted = Permissions.hasAccessibility
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshGlobalMonitorIfNeeded() }
+        }
+        isStarted = true
+    }
+
+    /// Re-registers the global monitor once Accessibility permission is granted so
+    /// enhanced shortcuts start working immediately without restarting Wisp.
+    func refreshGlobalMonitorIfNeeded() {
+        let trusted = Permissions.hasAccessibility
+        guard trusted != lastAccessibilityTrusted else { return }
+        lastAccessibilityTrusted = trusted
+        if trusted {
+            installGlobalMonitor()
+        }
+    }
+
+    private func installGlobalMonitor() {
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+            self.globalMonitor = nil
+        }
+        let eventMask: NSEvent.EventTypeMask = [.keyUp, .flagsChanged]
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: eventMask) { [weak self] event in
             Task { @MainActor [weak self] in
                 self?.handle(event)
             }
         }
-        isStarted = true
     }
 
     func configure(onMatch: @escaping () -> Void) {

@@ -14,6 +14,9 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
     static let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000,
                                       channels: 1, interleaved: true)!
 
+    static let maxInFlightSends = 32
+
+    private let session: URLSession
     private let task: URLSessionWebSocketTask
     private let onUpdate: @Sendable (CaptionUpdate) -> Void
     private let onFailure: @Sendable (String) -> Void
@@ -21,9 +24,12 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
     private let converter = PCMConverter(format: SonioxSpeech.format)
     private let lock = NSLock()
     private var drained = false
+    private var inFlightSends = 0
 
-    private init(task: URLSessionWebSocketTask, onUpdate: @escaping @Sendable (CaptionUpdate) -> Void,
+    private init(session: URLSession, task: URLSessionWebSocketTask,
+                 onUpdate: @escaping @Sendable (CaptionUpdate) -> Void,
                  onFailure: @escaping @Sendable (String) -> Void) {
+        self.session = session
         self.task = task
         self.onUpdate = onUpdate
         self.onFailure = onFailure
@@ -39,10 +45,16 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
         }
         var request = URLRequest(url: endpoint)
         request.setValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization")
-        let task = URLSession.shared.webSocketTask(with: request)
-        let speech = SonioxSpeech(task: task, onUpdate: onUpdate, onFailure: onFailure)
+        let session = URLSession(configuration: OpenAICompatibleProvider.privateSessionConfiguration())
+        let task = session.webSocketTask(with: request)
+        let speech = SonioxSpeech(session: session, task: task, onUpdate: onUpdate, onFailure: onFailure)
         task.resume()
-        try await task.send(.string(configuration(locale: locale)))
+        do {
+            try await task.send(.string(configuration(locale: locale)))
+        } catch {
+            session.invalidateAndCancel()
+            throw error
+        }
         speech.receive()
         return speech
     }
@@ -102,17 +114,15 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
             case .success(.string(let text)):
                 switch Self.parse(text) {
                 case .updates(let updates)?: updates.forEach(self.onUpdate)
-                case .finished?: self.markDrained(); return
-                case .failure(let message)?: self.markDrained(); self.onFailure(message); return
+                case .finished?: self.finishDrained(); return
+                case .failure(let message)?: self.failOnce(message); return
                 case nil: break
                 }
                 self.receive()
             case .success:
                 self.receive()
             case .failure(let error):
-                guard !self.isDrained else { return }
-                self.markDrained()
-                self.onFailure(String(localized: "与 Soniox 的连接中断：\(error.localizedDescription)"))
+                self.failOnce(String(localized: "与 Soniox 的连接中断：\(error.localizedDescription)"))
             }
         }
     }
@@ -120,25 +130,71 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
     func append(_ buffer: AVAudioPCMBuffer) {
         guard buffer.frameLength > 0, !isDrained else { return }
         guard let converted = converter.convert(buffer) else {
-            markDrained()
-            return onFailure(String(localized: "无法转换这段音频的格式，字幕已停止。"))
+            return failOnce(String(localized: "无法转换这段音频的格式，字幕已停止。"))
         }
         let bytes = Int(converted.frameLength) * Int(Self.format.streamDescription.pointee.mBytesPerFrame)
         guard bytes > 0, let samples = converted.audioBufferList.pointee.mBuffers.mData else { return }
-        task.send(.data(Data(bytes: samples, count: bytes))) { _ in }
+        let accepted = lock.withLock { () -> Bool in
+            guard !drained else { return false }
+            guard inFlightSends < Self.maxInFlightSends else { return false }
+            inFlightSends += 1
+            return true
+        }
+        guard accepted else {
+            if !isDrained {
+                failOnce(String(localized: "上传音频到 Soniox 过慢，字幕已停止。请检查网络后重试。"))
+            }
+            return
+        }
+        task.send(.data(Data(bytes: samples, count: bytes))) { [weak self] error in
+            guard let self else { return }
+            self.lock.withLock { self.inFlightSends = max(0, self.inFlightSends - 1) }
+            if let error {
+                self.failOnce(String(localized: "发送音频到 Soniox 失败：\(error.localizedDescription)"))
+            }
+        }
     }
 
     func endAudio() {
+        guard !isDrained else { return }
         // An empty text frame ends the stream; the server sends what is left, then `finished`.
-        task.send(.string("")) { _ in }
+        task.send(.string("")) { [weak self] error in
+            if let error {
+                self?.failOnce(String(localized: "结束 Soniox 连接失败：\(error.localizedDescription)"))
+            }
+        }
     }
 
     var isDrained: Bool { lock.withLock { drained } }
 
-    private func markDrained() { lock.withLock { drained = true } }
+    private func finishDrained() {
+        let shouldClose = lock.withLock { () -> Bool in
+            guard !drained else { return false }
+            drained = true
+            return true
+        }
+        if shouldClose { session.finishTasksAndInvalidate() }
+    }
+
+    private func failOnce(_ message: String) {
+        let shouldReport = lock.withLock { () -> Bool in
+            guard !drained else { return false }
+            drained = true
+            return true
+        }
+        guard shouldReport else { return }
+        task.cancel(with: .goingAway, reason: nil)
+        session.invalidateAndCancel()
+        onFailure(message)
+    }
 
     func cancel() {
-        markDrained()
+        let shouldClose = lock.withLock { () -> Bool in
+            let wasOpen = !drained
+            drained = true
+            return wasOpen
+        }
         task.cancel(with: .goingAway, reason: nil)
+        if shouldClose { session.invalidateAndCancel() }
     }
 }

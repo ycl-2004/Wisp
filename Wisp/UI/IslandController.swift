@@ -113,7 +113,7 @@ final class IslandController: NSObject {
     }
 
     private func rebuildContent(on panel: NSPanel) {
-        let screen = ScreenGeometry.activeScreen ?? NSScreen.main!
+        guard let screen = ScreenGeometry.activeScreen ?? NSScreen.main ?? NSScreen.screens.first else { return }
         let info = ScreenGeometry.notch(on: screen)
         let root = AnyView(
             IslandView(notchWidth: info.hasNotch ? info.width : 0,
@@ -133,8 +133,8 @@ final class IslandController: NSObject {
 
     /// 窗口尺寸固定不变，变的是小圆在窗口里的位置，以及窗口整体落在哪。
     private func relayout() {
-        guard let panel else { return }
-        let screen = ScreenGeometry.activeScreen ?? NSScreen.main!
+        guard let panel,
+              let screen = ScreenGeometry.activeScreen ?? NSScreen.main ?? NSScreen.screens.first else { return }
         let info = ScreenGeometry.notch(on: screen)
         let model = IslandModel.shared
         let state = IslandLayout.state(hovered: model.isHovered,

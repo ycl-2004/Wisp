@@ -20,16 +20,21 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
 
     private var monitor: PresentationMonitor?
     private var output: NSPanel?
-    private let imageContext = CIContext(options: [.cacheIntermediates: false])
+    /// Dedicated off-main serial queue for converting 1920x1080 SCStream frames to CGImage
+    /// so the main thread stays responsive during screen sharing.
+    private let renderQueue = DispatchQueue(label: "com.yichenlin.Wisp.presentation", qos: .userInteractive)
+    private nonisolated let imageContext = CIContext(options: [.cacheIntermediates: false])
     private var imageLayer: CALayer?
     private var stream: SCStream?
     private var session: Task<Void, Never>?
     private var sourceID: CGDirectDisplayID = 0
     private var generation = UUID()
 
+    /// Turning hiding off closes any active presentation display. Turning hiding on only
+    /// enables window privacy; the virtual extended display starts only when explicitly requested.
     func setHiding(_ enabled: Bool) {
         ScreenPrivacy.setEnabled(enabled)
-        if enabled { start() } else { stop() }
+        if !enabled { stop() }
     }
 
     func start() {
@@ -82,7 +87,7 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
                 config.showsCursor = true
                 config.capturesAudio = false
                 let capture = SCStream(filter: filter(display, apps), configuration: config, delegate: self)
-                try capture.addStreamOutput(self, type: .screen, sampleHandlerQueue: .main)
+                try capture.addStreamOutput(self, type: .screen, sampleHandlerQueue: renderQueue)
                 stream = capture
                 try await capture.startCapture()
                 if Task.isCancelled {
@@ -219,26 +224,30 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
     }
 
     nonisolated func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
-        // Registered on DispatchQueue.main. Never queue old frames across a stop/restart.
-        MainActor.assumeIsolated {
-            guard self.stream === stream, type == .screen, let layer = imageLayer,
-                  let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
-                  let raw = attachments.first?[.status] as? Int, let status = SCFrameStatus(rawValue: raw) else { return }
-            guard status != .idle else { return }
-            guard status == .complete, let pixels = sample.imageBuffer else {
-                layer.contents = nil
-                if isReady { isReady = false }
-                return
+        guard type == .screen,
+              let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
+              let raw = attachments.first?[.status] as? Int, let status = SCFrameStatus(rawValue: raw) else { return }
+        guard status != .idle else { return }
+        guard status == .complete, let pixels = sample.imageBuffer else {
+            Task { @MainActor [weak self] in
+                guard let self, self.stream === stream else { return }
+                self.imageLayer?.contents = nil
+                if self.isReady { self.isReady = false }
             }
-            // Draw normal window contents. Some whole-display recorders omit a
-            // nested video presentation layer even when it displays locally.
-            let image = CIImage(cvPixelBuffer: pixels)
-            guard let frame = imageContext.createCGImage(image, from: image.extent) else {
-                fail(String(localized: "演示画面绘制失败。请结束共享并重新启动演示屏。"))
+            return
+        }
+        // Convert off the main thread; draw normal window contents because some whole-display
+        // recorders omit a nested video presentation layer even when it displays locally.
+        let image = CIImage(cvPixelBuffer: pixels)
+        let frame = imageContext.createCGImage(image, from: image.extent)
+        Task { @MainActor [weak self] in
+            guard let self, self.stream === stream, let layer = self.imageLayer else { return }
+            guard let frame else {
+                self.fail(String(localized: "演示画面绘制失败。请结束共享并重新启动演示屏。"))
                 return
             }
             layer.contents = frame
-            if !isReady { isReady = true }
+            if !self.isReady { self.isReady = true }
         }
     }
 }

@@ -372,6 +372,17 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// 恢复出厂设置后清掉内存里缓存的面板位置与尺寸，避免下次关闭面板又写回旧值。
+    func resetStoredFrame() {
+        frameSaveTimer?.invalidate()
+        frameSaveTimer = nil
+        pendingFrameString = nil
+        storedCollapsedHeight = Self.collapsedHeight
+        storedExpandedHeight = Self.expandedHeight
+        storedWidth = Self.width
+        storedOrigin = nil
+    }
+
     // MARK: - NSWindowDelegate
 
     func windowDidMove(_ notification: Notification) {
@@ -422,12 +433,4 @@ extension Notification.Name {
     static let wispPanelDidShow = Notification.Name("wispPanelDidShow")
     /// 面板拿到／失去焦点，或者鼠标进出面板。userInfo["active"] 是 Bool。
     static let wispPanelActivityChanged = Notification.Name("wispPanelActivityChanged")
-}
-
-private extension NSRect {
-    init?(fromStored string: String) {
-        let rect = NSRectFromString(string)
-        guard rect.width > 200, rect.height > 80 else { return nil }
-        self = rect
-    }
 }

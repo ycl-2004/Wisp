@@ -69,7 +69,9 @@ struct DataSettingsView: View {
 
     private func wipe() {
         model.stopStreaming()
+        PushToTalk.shared.cancel()
         captions.stop()
+        PresentationDisplay.shared.stop()
         do {
             try settings.wipeLocalData(in: AppSettings.supportDirectory)
         } catch {
@@ -77,6 +79,7 @@ struct DataSettingsView: View {
             return
         }
 
+        PanelController.shared.resetStoredFrame()
         model.store.resetAfterDataWipe()
         let keysRemoved = KeychainStore.deleteAll()
         captions.reloadPreferences()

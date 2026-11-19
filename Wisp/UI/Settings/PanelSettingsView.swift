@@ -199,7 +199,15 @@ struct PanelSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { hasAccessibility = Permissions.hasAccessibility }
+        .onAppear { refreshAccessibility() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessibility()
+        }
+    }
+
+    private func refreshAccessibility() {
+        hasAccessibility = Permissions.hasAccessibility
+        AdvancedShortcutMonitor.shared.refreshGlobalMonitorIfNeeded()
     }
 }
 

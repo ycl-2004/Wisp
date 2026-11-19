@@ -189,12 +189,6 @@ struct ProviderConfig: Sendable {
         }
     }
 
-    static func provider(for kind: ProviderKind) -> ChatProvider {
-        guard kind == .codexCLI else { return OpenAICompatibleProvider() }
-        return provider(for: ProviderConfig(kind: .codexCLI,
-                                            cliProvider: AppSettings.shared.cliProvider))
-    }
-
     static func provider(for config: ProviderConfig) -> ChatProvider {
         guard config.kind == .codexCLI else { return OpenAICompatibleProvider() }
         switch config.cliProvider {

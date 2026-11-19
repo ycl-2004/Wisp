@@ -10,8 +10,9 @@ import SwiftUI
 enum PanelResize {
     /// 边缘可抓的宽度。太小抓不住，太大就会吃掉贴边控件的点击。
     static let grabInset: CGFloat = 6
-    /// 右下角把手的边长，四角同样按这个尺寸放宽命中区。
-    static let cornerSize: CGFloat = 16
+    /// 右下角把手的边长，四角同样按这个尺寸放宽命中区。保持严格小于 DS.gutter (12)，
+    /// 避免覆盖底部发送按钮的边缘点击区。
+    static let cornerSize: CGFloat = 11
     /// 内层提示线与面板边缘的距离，不占用实际内容的命中区域。
     static let guideInset: CGFloat = 4
 

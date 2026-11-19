@@ -9,9 +9,6 @@ enum LaunchAtLogin {
 
     static var isEnabled: Bool { status == .enabled }
 
-    /// 用户在「系统设置 → 通用 → 登录项」里把它关掉了，需要引导他去那里重新打开。
-    static var needsApproval: Bool { status == .requiresApproval }
-
     static func set(_ enabled: Bool) throws {
         if enabled {
             guard status != .enabled else { return }

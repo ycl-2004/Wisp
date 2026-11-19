@@ -9593,6 +9593,54 @@
           }
         }
       }
+    },
+    "上传音频到 Soniox 过慢，字幕已停止。请检查网络后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio upload to Soniox fell behind, so captions stopped. Check your network and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上传音频到 Soniox 过慢，字幕已停止。请检查网络后重试。"
+          }
+        }
+      }
+    },
+    "发送音频到 Soniox 失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to send audio to Soniox: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送音频到 Soniox 失败：%@"
+          }
+        }
+      }
+    },
+    "结束 Soniox 连接失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to close the Soniox stream: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束 Soniox 连接失败：%@"
+          }
+        }
+      }
     }
   }
 }
