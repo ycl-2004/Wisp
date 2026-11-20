@@ -167,17 +167,25 @@ final class CLIStreamingTests: XCTestCase {
             defer { CLITemporaryDirectory.remove(directory) }
             let binary = directory.appendingPathComponent("fixture")
             let workspace = directory.appendingPathComponent("workspace")
+            let trace = directory.appendingPathComponent("handshake")
             let script = """
             #!/usr/bin/python3
             import json,os,time,signal
             signal.signal(signal.SIGTERM,signal.SIG_IGN)
-            def emit(value): print(json.dumps(value),flush=True)
+            def trace(step):
+                with open('\(trace.path)', 'a') as log: log.write(step + '\\n')
+            def receive(step):
+                value = input()
+                trace(step + ':' + value)
+            def emit(value):
+                trace('emit:' + json.dumps(value))
+                print(json.dumps(value),flush=True)
             open('\(workspace.path)','w').write(os.getcwd())
             if '\(codex)' == 'true':
-                input();emit({'id':0,'result':{}})
-                input();input();emit({'id':3,'result':{'data':[]}})
-                input();emit({'id':1,'result':{'thread':{'id':'t'}}})
-                input();emit({'method':'item/agentMessage/delta','params':{'threadId':'t','itemId':'a','delta':'first'}})
+                receive('initialize');emit({'id':0,'result':{}})
+                receive('initialized');receive('models');emit({'id':3,'result':{'data':[]}})
+                receive('thread');emit({'id':1,'result':{'thread':{'id':'t'}}})
+                receive('turn');emit({'method':'item/agentMessage/delta','params':{'threadId':'t','itemId':'a','delta':'first'}})
             else:
                 emit({'event':'step_update','step_update':{'step_type':'agent_response','text_delta':'first'}})
             time.sleep(30)
@@ -196,6 +204,7 @@ final class CLIStreamingTests: XCTestCase {
                 }
             }
             await fulfillment(of: [firstChunk], timeout: 5)
+            print("\(providerName) fixture handshake: \((try? String(contentsOf: trace, encoding: .utf8)) ?? "not started")")
             reader.cancel()
             await reader.value
             let workPath = try String(contentsOf: workspace, encoding: .utf8)
