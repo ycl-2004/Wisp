@@ -184,13 +184,16 @@ final class CLIStreamingTests: XCTestCase {
             """
             try script.write(to: binary, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: binary.path)
-            let firstChunk = expectation(description: "first chunk before cancellation")
+            let providerName = codex ? "Codex" : "AGY"
+            let firstChunk = expectation(description: "\(providerName) first chunk before cancellation")
             let provider: any ChatProvider = codex ? CodexCLIProvider() : AgyCLIProvider()
             let config = ProviderConfig(kind: .codexCLI, model: "fixture", cliPath: binary.path)
             let reader = Task {
                 do {
                     for try await _ in provider.stream(messages: [], config: config) { firstChunk.fulfill() }
-                } catch { /* Cancellation may finish iteration or throw. */ }
+                } catch {
+                    if !Task.isCancelled { XCTFail("\(providerName) stream failed before cancellation: \(error)") }
+                }
             }
             await fulfillment(of: [firstChunk], timeout: 5)
             reader.cancel()
