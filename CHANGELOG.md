@@ -1,9 +1,12 @@
 # Wisp release notes
 
-## Unreleased
+## 0.5.0 — 2026-11-20
 
 ### Added
 
+- **Presentation Display:** an optional virtual display mirrors regular app windows while
+  filtering Wisp out, providing a separate screen to share. See the privacy section in
+  the README for requirements and limitations.
 - First-run onboarding: a sheet that connects a model, grants screen capture and teaches
   the summon shortcut. Readiness is judged on the connection actually selected.
 - **Live captions**, replacing live listening. The captions button in the panel header
@@ -22,6 +25,9 @@
   chosen language plus English.
 - **Answer automatically (experimental, off by default):** when the other side ends a
   sentence with a question mark and pauses for a second, Quick Ask runs by itself.
+- **Quit Wisp from Settings → General and from the island's right-click menu.** With the
+  menu bar icon turned off there used to be no visible way to quit. The notch-style island
+  now has the same right-click menu as the desktop one (it had none).
 
 ### Changed
 
@@ -66,6 +72,22 @@
 
 ### Fixed
 
+- Panel: sending from the conversation list now shows the answer instead of streaming it
+  behind the list; the list closes when the panel hides. "Context" on a question opens
+  that question's context (it only changed its label). Return pressed while the panel
+  re-captures after a click is sent when the capture finishes; Return pressed during an
+  answer says why nothing was sent. At the turn limit a **New conversation** button
+  (`⌘N`) appears and the placeholder says so; "New conversation" reuses an empty one.
+  Deleting the conversation being answered stops the answer. Errors fixable in Settings
+  (missing key, CLI not found, Ollama not running) get an **Open Settings** button.
+  Streaming no longer pulls you back to the bottom while you scroll up to reread.
+- Settings: picking "No built-in suggestions" no longer saves `__none__` as the model
+  name. Onboarding offers System Settings when screen recording was denied before. The
+  Capture tab refreshes when you come back from System Settings. "Wait 0 seconds" no
+  longer shows while auto-dismiss is off. Ollama not installed offers a download link
+  instead of a dead button. Deleting a command asks first, and an empty prompt is
+  flagged. A failed Soniox key save is reported. English: "接法" is "Connection" (both
+  menu headings read "Provider"), and macOS permission buttons read "System Settings…".
 - The collapse arrow points the way the panel moves: up to open, down to close.
 - An error a gateway sends inside an HTTP 200 stream is shown as an error, not saved as
   the answer (and no longer sent back to the model as its previous reply). A stream that

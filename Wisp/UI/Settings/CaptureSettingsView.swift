@@ -32,6 +32,7 @@ private struct CaptureOptionCard: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color.accentColor)
+                        .accessibilityHidden(true)
                 }
             }
             // Keep the hit target as large as the visual card, including its empty space.
@@ -58,6 +59,8 @@ private struct CaptureOptionCard: View {
                 .padding(.trailing, 7)
         }
         .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
+        // 选中只靠描边和对勾表达，读屏得另外告诉它。
+        .accessibilityAddTraits(selected ? .isSelected : [])
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: selected)
         .animation(.easeOut(duration: 0.12), value: hovering)
@@ -161,8 +164,9 @@ struct CaptureSettingsView: View {
                     ), format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 110)
+                    .accessibilityLabel(Text("页面文字上限"))
                     Spacer()
-                    InfoButton(message: String(localized: "超出上限时保留开头和结尾，并标记省略。"))
+                    InfoButton(message: String(localized: "可填 2,000–500,000 个字符，超出范围会自动调回。超出上限时保留开头和结尾，并标记省略。"))
                 }
                 .accessibilityElement(children: .contain)
             } header: {
@@ -192,6 +196,11 @@ struct CaptureSettingsView: View {
         }
         .formStyle(.grouped)
         .onAppear { refresh(); reloadProfiles() }
+        // 从系统设置授权回来，或者刚在浏览器里打开了 JavaScript 权限，回到 Wisp 时就重读一次。
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refresh()
+            reloadProfiles()
+        }
     }
 
     private func refresh() {

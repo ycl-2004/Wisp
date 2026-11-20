@@ -81,19 +81,7 @@ struct IslandView: View {
             .accessibilityLabel(Text("唤起助手"))
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { PanelController.shared.show() }
-            .contextMenu {
-                Button("唤起助手") { PanelController.shared.show() }
-                Button("新建对话") { AssistantModel.shared.newConversation() }
-                Button("刷新上下文") { AssistantModel.shared.refreshContext() }
-                Divider()
-                Button(settings.sendScreenshot ? "不附带截图" : "附带截图") {
-                    AssistantModel.shared.toggleScreenshot()
-                }
-                Divider()
-                Button("设置…") { SettingsWindowPresenter.open(using: openSettings) }
-                // 退出不放在这里：右键菜单贴着药丸，误点一下就整个退出，
-                // 而重新打开要回到状态栏菜单。菜单栏那份仍然有「退出」。
-            }
+            .contextMenu { islandMenu }
             // 起手距离 4pt：点击照常打开面板，真的拖了才移动窗口。
             .gesture(
                 DragGesture(minimumDistance: 4)
@@ -104,6 +92,25 @@ struct IslandView: View {
             .offset(x: rect.minX, y: window.height - rect.maxY)
         }
         .frame(width: window.width, height: window.height)
+    }
+
+    /// 底部和刘海两种形态共用的右键菜单。
+    /// 退出放最后、单独隔开，跟系统菜单的习惯一致：菜单栏图标关掉以后，
+    /// 这里和设置「通用」页是仅剩的两个看得见的退出入口。
+    @ViewBuilder
+    private var islandMenu: some View {
+        Button("唤起助手") { PanelController.shared.show() }
+        // 先把面板亮出来：新对话要看得见，满额时「顶掉哪一个」的确认框也挂在面板上。
+        Button("新建对话") { PanelController.shared.show { AssistantModel.shared.newConversation() } }
+        Button("刷新上下文") { AssistantModel.shared.refreshContext() }
+        Divider()
+        Button(settings.sendScreenshot ? "不附带截图" : "附带截图") {
+            AssistantModel.shared.toggleScreenshot()
+        }
+        Divider()
+        Button("设置…") { SettingsWindowPresenter.open(using: openSettings) }
+        Divider()
+        QuitWispButton()
     }
 
     private var capsuleBackground: some View {
@@ -266,6 +273,8 @@ struct IslandView: View {
             .accessibilityLabel(Text("唤起助手"))
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { PanelController.shared.show() }
+            // 刘海形态以前没有右键菜单，切过来之后连设置和退出都找不到。
+            .contextMenu { islandMenu }
             Spacer(minLength: 0)
         }
         .frame(width: IslandLayout.notchWindowSize(notchWidth: notchWidth, hasNotch: hasNotch).width,

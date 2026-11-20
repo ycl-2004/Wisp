@@ -93,12 +93,20 @@ private struct MenuContent: View {
 
         Divider()
 
+        QuitWispButton()
+            .keyboardShortcut("q", modifiers: .command)
+    }
+
+}
+
+/// 菜单栏、药丸右键菜单和设置「通用」页共用的退出入口。
+/// 菜单栏图标可以被关掉，药丸也可以被关掉，所以退出不能只放在其中一处。
+struct QuitWispButton: View {
+    var body: some View {
         Button("退出 Wisp") {
             NSApplication.shared.terminate(nil)
         }
-        .keyboardShortcut("q", modifiers: .command)
     }
-
 }
 
 /// Insertion is runtime state, not the persisted opt-out. Apple writes false on removal:

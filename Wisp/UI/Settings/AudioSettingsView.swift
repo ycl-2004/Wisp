@@ -17,6 +17,12 @@ struct AudioSettingsView: View {
     @State private var speechKey = ""
     @State private var hasSpeechKey = KeychainStore.loadSpeechKey() != nil
     @State private var requesting = false
+    @State private var speechKeyError = false
+
+    /// 字幕开着时识别引擎和语言改不了；灰掉的同时说清楚原因。
+    private var lockedWhileCaptioning: String {
+        captions.isActive ? String(localized: "字幕开着时不能改，先关掉字幕。") : ""
+    }
 
     var body: some View {
         Form {
@@ -28,6 +34,7 @@ struct AudioSettingsView: View {
                         Text("Soniox 云端（按用量计费）").tag(ListeningEngine.soniox)
                     }
                     .disabled(captions.isActive)
+                    .help(lockedWhileCaptioning)
                     if captions.engine == .soniox { sonioxKeyRow }
                     Picker("语言", selection: $captions.locale) {
                         Text("简体中文").tag("zh-CN")
@@ -36,6 +43,7 @@ struct AudioSettingsView: View {
                         Text("日本語").tag("ja-JP")
                     }
                     .disabled(captions.isActive)
+                    .help(lockedWhileCaptioning)
                     if captions.engine == .appleSpeech, !languageStatus.isEmpty {
                         LabeledContent("本机识别") { Text(languageStatus).foregroundStyle(.secondary) }
                     }
@@ -93,24 +101,37 @@ struct AudioSettingsView: View {
 
     /// The key is written to the Keychain only when saved, and never shown again.
     private var sonioxKeyRow: some View {
-        HStack {
-            if hasSpeechKey {
-                Text("Soniox API Key 已保存")
-                Spacer()
-                Button("清除") {
-                    KeychainStore.deleteSpeechKey()
-                    hasSpeechKey = false
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                if hasSpeechKey {
+                    Text("Soniox API Key 已保存")
+                    Spacer()
+                    Button("清除") {
+                        KeychainStore.deleteSpeechKey()
+                        hasSpeechKey = false
+                    }
+                } else {
+                    SecureField("Soniox API Key", text: $speechKey)
+                    Button("保存") {
+                        let key = speechKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !key.isEmpty else { return }
+                        // 存不进钥匙串时要说出来，否则看起来像按钮没反应。
+                        guard KeychainStore.saveSpeechKey(key) else {
+                            speechKeyError = true
+                            return
+                        }
+                        speechKey = ""
+                        speechKeyError = false
+                        hasSpeechKey = true
+                    }
+                    .disabled(speechKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Link("获取", destination: URL(string: "https://console.soniox.com")!)
                 }
-            } else {
-                SecureField("Soniox API Key", text: $speechKey)
-                Button("保存") {
-                    let key = speechKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !key.isEmpty, KeychainStore.saveSpeechKey(key) else { return }
-                    speechKey = ""
-                    hasSpeechKey = true
-                }
-                .disabled(speechKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Link("获取…", destination: URL(string: "https://console.soniox.com")!)
+            }
+            if speechKeyError {
+                Text("Soniox API Key 没能存进钥匙串，这次输入没有保存下来。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.red)
             }
         }
     }

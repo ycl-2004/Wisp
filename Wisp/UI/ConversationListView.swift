@@ -117,6 +117,7 @@ struct ConversationListView: View {
             Button { model.newConversation() } label: { Image(systemName: "square.and.pencil") }
                 .buttonStyle(IconButtonStyle())
                 .help(store.canCreateNew ? "新建对话" : "已达上限，可移除最早的对话后新建")
+                .accessibilityLabel(Text("新建对话"))
         }
         .padding(.horizontal, DS.gutter)
         .padding(.top, 8)

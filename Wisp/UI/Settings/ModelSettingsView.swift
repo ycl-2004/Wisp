@@ -256,11 +256,15 @@ struct ModelSettingsView: View {
             HStack(spacing: 8) {
                 Label("Ollama 没在运行", systemImage: "xmark.circle")
                     .font(.system(size: 11)).foregroundStyle(.red)
-                Button("启动 Ollama") {
-                    _ = OllamaSupport.startServer()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { probeOllama() }
+                if OllamaSupport.executablePath == nil {
+                    // 没装就给下载入口，别留一颗点不动又不说原因的按钮。
+                    Link("安装 Ollama", destination: URL(string: "https://ollama.com/download")!)
+                } else {
+                    Button("启动 Ollama") {
+                        _ = OllamaSupport.startServer()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { probeOllama() }
+                    }
                 }
-                .disabled(OllamaSupport.executablePath == nil)
             }
         case .failed(let message):
             Label(message, systemImage: "exclamationmark.triangle")
@@ -575,17 +579,23 @@ private struct ModelPickerRow: View {
     @State private var customText = ""
     @State private var loaded = false
 
+    /// 没有内置推荐时下拉里那一行只是说明，不是模型名，选中它什么都不写。
+    private static let noPresetsTag = "__none__"
+
     private var selection: String {
         if custom { return ModelCatalog.customTag }
+        // 列表为空、又没有「跟随默认」这一项时，让下拉显示那行说明，而不是一片空白。
+        if value.isEmpty, presets.isEmpty, emptyOptionTitle == nil { return Self.noPresetsTag }
         return value
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Field(label: label) {
-                Picker("", selection: Binding(
+                Picker(label, selection: Binding(
                     get: { selection },
                     set: { newValue in
+                        guard newValue != Self.noPresetsTag else { return }
                         if newValue == ModelCatalog.customTag {
                             custom = true
                             customText = value
@@ -602,7 +612,7 @@ private struct ModelPickerRow: View {
                         Text(preset.title).tag(preset.slug)
                     }
                     if presets.isEmpty {
-                        Text("没有内置推荐").tag("__none__")
+                        Text("没有内置推荐").tag(Self.noPresetsTag).disabled(true)
                     }
                     Divider()
                     Text("自定义…").tag(ModelCatalog.customTag)

@@ -6,10 +6,8 @@ on:
 
 jobs:
   # KeyboardShortcuts 3.1.0 (project.yml) declares Swift tools 6.2, so the
-  # project needs Xcode 26+; macos-26 ships it as the default. No hosted image
-  # can run Xcode 26 on macOS 14, so the minimum OS is covered at compile time
-  # (deploymentTarget 14.0 makes unguarded newer-API use a build error) and by
-  # a manual check before each release, not by a CI test run.
+  # project needs Xcode 26+; macos-26 ships it as the default. The app
+  # requires macOS 26; CI does not replace testing on physical Intel hardware.
   test-and-release-check:
     runs-on: macos-26
     steps:

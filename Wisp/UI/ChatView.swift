@@ -17,6 +17,9 @@ struct ChatView: View {
     @State private var inputHeight = ChatInput.defaultHeight
     /// 鼠标停在面板上，或者面板拿着焦点。半透明只在两者都不成立时生效。
     @State private var isActive = false
+    /// 回答流式输出时是否自动滚到底。用户自己往上翻就停下，翻回底部再接着跟。
+    @State private var followsLatest = true
+    @State private var isNearBottom = true
 
     /// 到轮次上限或对话数上限时不让继续输入。
     private var inputDisabled: Bool {
@@ -68,6 +71,12 @@ struct ChatView: View {
         .onChange(of: model.panelError != nil) { PanelController.shared.rowsChanged() }
         .onChange(of: model.showsConversationList) { _, showsHistory in
             if showsHistory, model.isCollapsed { model.setCollapsed(false) }
+            // 选完对话、新建或返回之后，搜索框没了，光标回到输入框。
+            if !showsHistory { focusRequest += 1 }
+        }
+        // 准备期间输入框被禁用会丢掉焦点；准备完把它还回去，接着打下一句不用再点。
+        .onChange(of: model.isPreparingResponse) { _, preparing in
+            if !preparing { focusRequest += 1 }
         }
         .sheet(isPresented: $model.showsOnboarding,
                onDismiss: { model.onboardingSheetDismissed() }) {
@@ -142,6 +151,13 @@ struct ChatView: View {
                                 .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
                             Spacer(minLength: 0)
+                            // 只读时提示里说「在设置里备份后重新开始」，那就直接给去那里的按钮。
+                            if store.isReadOnly {
+                                Button("打开设置") {
+                                    settingsTab = .general
+                                    SettingsWindowPresenter.open(using: openSettings)
+                                }
+                            }
                             Button("知道了") { store.dismissLoadIssue() }
                         }
                         .font(DS.meta)
@@ -167,10 +183,36 @@ struct ChatView: View {
                 .padding(.vertical, 12)
             }
             .scrollIndicators(.never)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.visibleRect.maxY >= geometry.contentSize.height - 60
+            } action: { _, nearBottom in
+                isNearBottom = nearBottom
+            }
+            // 只认用户自己的滚动：程序滚到底（.animating）不改跟随状态。
+            // 以前每来一段字都强制滚到底，往上翻着读前文会被一下下拽回去。
+            .onScrollPhaseChange { oldPhase, newPhase in
+                switch newPhase {
+                case .interacting:
+                    followsLatest = false
+                case .idle where oldPhase == .interacting || oldPhase == .decelerating:
+                    followsLatest = isNearBottom
+                default:
+                    break
+                }
+            }
             .onChange(of: store.active?.messages.last?.text) {
+                guard followsLatest else { return }
                 withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo("bottom", anchor: .bottom) }
             }
-            .onChange(of: store.activeID) { proxy.scrollTo("bottom", anchor: .bottom) }
+            // 新的一问（或换了对话）总是跳到底并恢复跟随。
+            .onChange(of: store.active?.messages.count) {
+                followsLatest = true
+                proxy.scrollTo("bottom", anchor: .bottom)
+            }
+            .onChange(of: store.activeID) {
+                followsLatest = true
+                proxy.scrollTo("bottom", anchor: .bottom)
+            }
         }
         .frame(maxHeight: .infinity)
         .mask(
@@ -195,6 +237,13 @@ struct ChatView: View {
                 .textSelection(.enabled)
                 .help(Text(error))
             Spacer(minLength: 0)
+            if let tab = model.errorSettingsTab {
+                Button("打开设置") {
+                    settingsTab = tab
+                    SettingsWindowPresenter.open(using: openSettings)
+                }
+                .controlSize(.small)
+            }
             Button("知道了") {
                 model.errorText = nil
                 pushToTalk.clearError()
@@ -209,10 +258,17 @@ struct ChatView: View {
     private var composer: some View {
         VStack(alignment: .leading, spacing: 5) {
             if let limit = model.turnLimitMessage ?? (store.active == nil ? model.conversationLimitMessage : nil) {
-                Text(limit)
-                    .font(DS.meta)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(limit)
+                        .font(DS.meta)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    // 提示里说「新建一个」，这里就给那颗按钮；满额时它会先问要顶掉哪一个。
+                    Button("新建对话") { model.newConversation() }
+                        .controlSize(.small)
+                        .keyboardShortcut("n", modifiers: .command)
+                }
             }
 
             if model.isSpeechDraft {
@@ -222,7 +278,9 @@ struct ChatView: View {
             }
             HStack(alignment: .bottom, spacing: 6) {
                 ChatInput(text: $model.input,
-                          placeholder: String(localized: "问点什么…  Return 发送，Shift+Return 换行"),
+                          placeholder: inputDisabled
+                              ? String(localized: "新建对话后继续提问")
+                              : String(localized: "问点什么…  Return 发送，Shift+Return 换行"),
                           isEnabled: !inputDisabled && !model.isPreparingResponse,
                           onSubmit: { model.send() },
                           onEscape: { PanelController.shared.hide() },
@@ -296,6 +354,7 @@ struct ChatView: View {
             .buttonStyle(.plain)
             .keyboardShortcut(".", modifiers: .command)
             .help("停止（⌘.）")
+            .accessibilityLabel(Text("停止生成"))
         } else {
             Button { model.send() } label: {
                 Image(systemName: "arrow.up").font(.system(size: 11, weight: .bold))
@@ -309,6 +368,7 @@ struct ChatView: View {
             .disabled(!model.canSend)
             .keyboardShortcut(.return, modifiers: .command)
             .help("发送（⌘↩）· \(providerLabel)")
+            .accessibilityLabel(Text("发送"))
             .animation(.easeOut(duration: 0.12), value: model.canSend)
         }
     }
@@ -436,6 +496,7 @@ private struct MessageRow: View {
     private var userCard: some View {
         VStack(alignment: .leading, spacing: 4) {
             header
+            contextPanel
             Text(message.text)
                 .font(DS.body)
                 .lineSpacing(3)
@@ -458,25 +519,7 @@ private struct MessageRow: View {
     private var assistantCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             header
-
-            if showsContext, let context = message.context {
-                ScrollView {
-                    Text(PromptBuilder.contextBlock(context, full: true))
-                        .font(.system(size: 10, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                }
-                .frame(maxHeight: 180)
-                .background(
-                    RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
-                        .fill(DS.faint)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
-                        .strokeBorder(DS.hairline, lineWidth: 0.5)
-                )
-            }
+            contextPanel
 
             if message.text.isEmpty && message.role == .assistant {
                 HStack(spacing: 7) {
@@ -492,6 +535,30 @@ private struct MessageRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+    }
+
+    /// 「上下文」按钮展开的那块。上下文记在提问那条消息上，所以两种卡片都要能画它，
+    /// 以前只有助手卡片画，点提问上的按钮只会改字、什么都不出来。
+    @ViewBuilder
+    private var contextPanel: some View {
+        if showsContext, let context = message.context {
+            ScrollView {
+                Text(PromptBuilder.contextBlock(context, full: true))
+                    .font(.system(size: 10, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+            }
+            .frame(maxHeight: 180)
+            .background(
+                RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                    .fill(DS.faint)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.cardCorner, style: .continuous)
+                    .strokeBorder(DS.hairline, lineWidth: 0.5)
+            )
         }
     }
 

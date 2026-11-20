@@ -38,6 +38,7 @@ struct ContextHeaderView: View {
             }
             .buttonStyle(IconButtonStyle())
             .help(model.showsConversationList ? "回到当前对话" : "对话记录")
+            .accessibilityLabel(Text(model.showsConversationList ? "回到当前对话" : "对话记录"))
 
             HStack(spacing: 6) {
                 appIcon
@@ -108,6 +109,7 @@ struct ContextHeaderView: View {
             }
             .buttonStyle(IconButtonStyle())
             .help("设置")
+            .accessibilityLabel(Text("设置"))
 
             Button {
                 withAnimation(.easeOut(duration: 0.18)) { model.setCollapsed(!model.isCollapsed) }
@@ -117,6 +119,7 @@ struct ContextHeaderView: View {
             }
             .buttonStyle(IconButtonStyle())
             .help(model.isCollapsed ? "展开" : "收起")
+            .accessibilityLabel(Text(model.isCollapsed ? "展开" : "收起"))
         }
     }
 
@@ -175,7 +178,7 @@ struct ContextHeaderView: View {
 
     private var subtitle: String? {
         guard let packet = model.packet else { return nil }
-        if packet.isExcluded { return "已排除" }
+        if packet.isExcluded { return String(localized: "已排除") }
         if let url = packet.url, !url.isEmpty { return shortURL(url) }
         if let title = packet.windowTitle, !title.isEmpty { return title }
         return nil

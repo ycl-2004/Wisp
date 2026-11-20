@@ -1074,22 +1074,6 @@
         }
       }
     },
-    "获取…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Get One…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "获取…"
-          }
-        }
-      }
-    },
     "设备端识别没有可用的音频格式。": {
       "localizations": {
         "en": {
@@ -4247,7 +4231,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Provider"
+            "value": "Connection"
           }
         },
         "zh-Hans": {
@@ -7711,7 +7695,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Settings…"
+            "value": "System Settings…"
           }
         },
         "zh-Hans": {
@@ -9638,6 +9622,214 @@
           "stringUnit": {
             "state": "translated",
             "value": "结束 Soniox 连接失败：%@"
+          }
+        }
+      }
+    },
+    "退出": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出"
+          }
+        }
+      }
+    },
+    "退出后全局快捷键、字幕和小药丸都会停止。要再用，从访达或聚焦打开 Wisp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitting stops the global shortcuts, captions and the island. To use Wisp again, open it from Finder or Spotlight."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出后全局快捷键、字幕和小药丸都会停止。要再用，从访达或聚焦打开 Wisp。"
+          }
+        }
+      }
+    },
+    "安装 Ollama": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install Ollama"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装 Ollama"
+          }
+        }
+      }
+    },
+    "可填 2,000–500,000 个字符，超出范围会自动调回。超出上限时保留开头和结尾，并标记省略。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter 2,000–500,000 characters; values outside that range are adjusted automatically. Over the limit, Wisp keeps the beginning and end and marks the omission."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可填 2,000–500,000 个字符，超出范围会自动调回。超出上限时保留开头和结尾，并标记省略。"
+          }
+        }
+      }
+    },
+    "字幕开着时不能改，先关掉字幕。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't be changed while captions are on. Turn captions off first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字幕开着时不能改，先关掉字幕。"
+          }
+        }
+      }
+    },
+    "Soniox API Key 没能存进钥匙串，这次输入没有保存下来。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Soniox API key could not be saved to the Keychain; this entry was not stored."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soniox API Key 没能存进钥匙串，这次输入没有保存下来。"
+          }
+        }
+      }
+    },
+    "删除「%@」？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除「%@」？"
+          }
+        }
+      }
+    },
+    "提问内容和它的快捷键都会被删掉，无法撤销。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Its prompt and shortcut will be deleted. This can't be undone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问内容和它的快捷键都会被删掉，无法撤销。"
+          }
+        }
+      }
+    },
+    "提问内容为空，这条指令不会出现在面板里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The prompt is empty, so this command won't appear in the panel."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问内容为空，这条指令不会出现在面板里。"
+          }
+        }
+      }
+    },
+    "正在回答。等它结束，或按 ⌘. 停止后再发送。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still answering. Wait for it to finish, or press ⌘. to stop, then send."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在回答。等它结束，或按 ⌘. 停止后再发送。"
+          }
+        }
+      }
+    },
+    "新建对话后继续提问": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start a new conversation to keep asking"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建对话后继续提问"
+          }
+        }
+      }
+    },
+    "打开设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开设置"
+          }
+        }
+      }
+    },
+    "发送": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送"
           }
         }
       }

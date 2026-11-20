@@ -1,6 +1,12 @@
 import Foundation
 
 enum ProviderError: LocalizedError {
+    /// 在设置「模型」页里就能修好的那些：面板的错误行旁边会给一颗「打开设置」。
+    static let fixableInModelSettings: [ProviderError] = [
+        .missingKey, .badBaseURL, .unauthorized,
+        .codexNotFound, .agyNotFound, .claudeCodeNotFound, .ollamaNotRunning,
+    ]
+
     case missingKey
     case badBaseURL
     case unauthorized

@@ -79,6 +79,8 @@ struct OnboardingView: View {
                     Permissions.requestScreenRecording()
                     // 首次请求系统会弹窗；授权与否回来时由 didBecomeActive 刷新。
                 }
+                // 拒绝过一次之后系统不再弹窗，「去授权」就没反应了，得能直接去系统设置。
+                Button("系统设置…") { Permissions.openScreenRecordingSettings() }
             }
         }
         .padding(.horizontal, 20)

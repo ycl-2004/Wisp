@@ -6,6 +6,8 @@ struct QuickCommandSettingsView: View {
     @ObservedObject private var store = QuickCommandStore.shared
     @State private var selection: QuickCommand.ID?
     @State private var confirmsRestore = false
+    /// 删除跟「恢复默认」一样不可撤销（提问内容和快捷键一起没了），所以同样先问一句。
+    @State private var pendingDelete: QuickCommand?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -28,6 +30,20 @@ struct QuickCommandSettingsView: View {
         } message: {
             Text("自己加的和改过的指令都会被替换，它们的快捷键也会清掉。")
         }
+        .confirmationDialog("删除「\(pendingDelete?.displayTitle ?? "")」？",
+                            isPresented: Binding(get: { pendingDelete != nil },
+                                                 set: { if !$0 { pendingDelete = nil } }),
+                            presenting: pendingDelete) { command in
+            Button("删除", role: .destructive) { delete(command.id) }
+        } message: { _ in
+            Text("提问内容和它的快捷键都会被删掉，无法撤销。")
+        }
+    }
+
+    private func delete(_ id: QuickCommand.ID) {
+        let index = store.commands.firstIndex { $0.id == id } ?? 0
+        store.delete(id)
+        selection = store.commands.indices.contains(index) ? store.commands[index].id : store.commands.last?.id
     }
 
     private var list: some View {
@@ -66,10 +82,7 @@ struct QuickCommandSettingsView: View {
                     .help("新建指令")
                     .accessibilityLabel("新建指令")
                 Button {
-                    guard let id = selection else { return }
-                    let index = store.commands.firstIndex { $0.id == id } ?? 0
-                    store.delete(id)
-                    selection = store.commands.indices.contains(index) ? store.commands[index].id : store.commands.last?.id
+                    pendingDelete = store.commands.first { $0.id == selection }
                 } label: { Image(systemName: "minus").frame(width: 20, height: 18) }
                     .disabled(selection == nil)
                     .help("删除选中的指令")
@@ -115,6 +128,12 @@ struct QuickCommandSettingsView: View {
                             .strokeBorder(DS.hairline, lineWidth: 0.5)
                     )
                     .accessibilityLabel("提问内容")
+                if !command.wrappedValue.isRunnable {
+                    // 空的指令不会出现在面板和快捷键里，别让人以为它坏了。
+                    Label("提问内容为空，这条指令不会出现在面板里。", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                }
             } header: {
                 Text("提问内容")
             }

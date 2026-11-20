@@ -183,9 +183,9 @@ struct PanelSettingsView: View {
                         PanelController.shared.refreshIdleTimer()
                     }
                 ))
-                CompactStepper("等待 \(Int(settings.idleDismissSeconds)) 秒",
+                CompactStepper("等待 \(idleSecondsShown) 秒",
                                value: Binding(
-                                   get: { max(1, Int(settings.idleDismissSeconds)) },
+                                   get: { idleSecondsShown },
                                    set: { seconds in
                                        idleSecondsDraft = seconds
                                        settings.idleDismissSeconds = Double(seconds)
@@ -203,6 +203,12 @@ struct PanelSettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshAccessibility()
         }
+    }
+
+    /// 关掉自动收起时显示上次的秒数（再打开就是它），不显示「等待 0 秒」。
+    private var idleSecondsShown: Int {
+        let current = Int(settings.idleDismissSeconds)
+        return current > 0 ? current : max(1, idleSecondsDraft)
     }
 
     private func refreshAccessibility() {

@@ -103,8 +103,8 @@ are hidden from shared screens.
 
 ## What leaves your Mac
 
-- **Soniox, only if you choose it for captions.** The selected app's audio while captions
-  run (see Live captions above).
+- **Soniox, only if you choose it as the recognizer.** Audio played by this Mac while
+  captions run, and microphone audio while Hold to ask is held (see Live captions above).
 - **Cloud provider.** Your question, the captured page text, the current
   screenshot, and the recent conversation history go to the Base URL you
   configured. What that service logs, how long it keeps it, and who can read it
@@ -234,7 +234,7 @@ for the tested configurations and remaining gaps.
 - **Screen Recording** — to capture the frontmost window, or the display it is
   on when Capture range is Entire screen. Without it Wisp still
   works, but sends no screenshot. Live captions use the same screen and system audio
-  authorization to listen to the selected application.
+  authorization to listen to audio played by this Mac.
 - **Microphone** — only for Hold to ask.
 - **Speech Recognition** — Wisp does not request it: captions and Hold to ask use the
   on-device recognizer (`SpeechAnalyzer`), or Soniox if you chose it. No automatic cloud fallback.

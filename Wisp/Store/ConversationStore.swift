@@ -250,6 +250,12 @@ final class ConversationStore: ObservableObject {
         return conversations.first { $0.id == activeID }
     }
 
+    /// 当前对话存在、会写盘、而且一句都还没问。「新建对话」遇到它就直接复用。
+    var activeIsBlank: Bool {
+        guard let active else { return false }
+        return active.messages.isEmpty && !ephemeralIDs.contains(active.id)
+    }
+
     func isAtTurnLimit(_ conversation: Conversation) -> Bool {
         conversation.userTurnCount >= maxUserTurns
     }

@@ -129,6 +129,13 @@ struct GeneralSettingsView: View {
             } header: {
                 SettingsSectionHeader("关于", info: String(localized: "崩溃日志由 macOS 控制台保存；Wisp 不包含统计或崩溃上报。"))
             }
+
+            // 菜单栏图标和药丸都能关掉，两者都关时这里是唯一看得见的退出入口。
+            Section {
+                QuitWispButton()
+            } header: {
+                SettingsSectionHeader("退出", info: String(localized: "退出后全局快捷键、字幕和小药丸都会停止。要再用，从访达或聚焦打开 Wisp。"))
+            }
         }
         .formStyle(.grouped)
         .sheet(isPresented: $showsNotices) {

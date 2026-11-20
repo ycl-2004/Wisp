@@ -141,14 +141,21 @@ final class PlaceholderTextView: NSTextView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         guard string.isEmpty, !placeholder.isEmpty else { return }
+        let font = font ?? NSFont.systemFont(ofSize: 13)
+        // 面板窄的时候（英文尤其长）占位符要截断，不能画出输入框外面。
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: font ?? NSFont.systemFont(ofSize: 13),
+            .font: font,
             .foregroundColor: NSColor.tertiaryLabelColor,
+            .paragraphStyle: paragraph,
         ]
         // 和正文用同一套内边距，占位符和插入点才对得齐。
-        let origin = NSPoint(x: textContainerInset.width + (textContainer?.lineFragmentPadding ?? 0),
-                             y: textContainerInset.height)
-        NSString(string: placeholder).draw(at: origin, withAttributes: attributes)
+        let inset = textContainerInset.width + (textContainer?.lineFragmentPadding ?? 0)
+        let rect = NSRect(x: inset, y: textContainerInset.height,
+                          width: max(0, bounds.width - inset * 2),
+                          height: ceil(font.ascender - font.descender + font.leading))
+        NSString(string: placeholder).draw(in: rect, withAttributes: attributes)
     }
 
     override func resetCursorRects() {

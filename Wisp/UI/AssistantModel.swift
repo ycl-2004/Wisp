@@ -136,6 +136,7 @@ final class AssistantModel: ObservableObject {
         // 不要用 contextIsStale 兼职表示这件事——否则发送时会白截一次图。
         contextIsStale = false
         if pending == nil { dumpIfNeeded() }
+        sendIfQueuedDuringCapture()
     }
 
     /// 第二阶段：读整页正文。
@@ -158,6 +159,14 @@ final class AssistantModel: ObservableObject {
         isCapturing = false
         contextIsStale = false
         dumpIfNeeded()
+        sendIfQueuedDuringCapture()
+    }
+
+    /// 采集期间按下的回车，在采集收尾时补发。两个阶段都要接：手动刷新时回车可能落在读正文那段。
+    private func sendIfQueuedDuringCapture() {
+        guard sendsAfterCapture else { return }
+        sendsAfterCapture = false
+        send()
     }
 
     /// 两个阶段一次跑完。手动刷新走这条。
@@ -266,6 +275,8 @@ final class AssistantModel: ObservableObject {
     /// 用户点回面板了。补一张新的截图和网址就够——正文和滑动采集留到发送时，
     /// 免得他只是回来看一眼、还没打算问，页面就先翻起来了。
     func panelDidBecomeKey() {
+        // 用户可能刚在设置窗口里填好 Key 回来：别让过期的标记在下次发送时又把向导弹出来。
+        if onboardingNeeded { Task { await refreshOnboardingReadiness() } }
         guard contextIsStale, !isStreaming, !isCapturing else { return }
         Task { await captureShot() }
     }
@@ -323,6 +334,9 @@ final class AssistantModel: ObservableObject {
         // 还在飞的采集就此作废（#41）：它回来时不许再写 packet。
         captureGeneration += 1
         isCapturing = false
+        sendsAfterCapture = false
+        // 下次打开回到当前对话，而不是停在一个收起的历史列表上。
+        showsConversationList = false
         pendingText = nil
         contextIsStale = true
         stopFollowingFrontWindow()
@@ -357,6 +371,17 @@ final class AssistantModel: ObservableObject {
         return canStartQuestion
     }
 
+    static var voiceDisabledMessage: String { String(localized: "请先在设置 → 音频中启用语音，再打开字幕。") }
+
+    /// 错误行要不要给「打开设置」、开哪一页。按错误原文精确比对：
+    /// 按「设置」二字去猜会把「系统设置 → 隐私」这类去 macOS 处理的错误也算进来。
+    var errorSettingsTab: SettingsView.Tab? {
+        guard let errorText else { return nil }
+        if ProviderError.fixableInModelSettings.contains(where: { $0.errorDescription == errorText }) { return .model }
+        if errorText == Self.voiceDisabledMessage { return .audio }
+        return nil
+    }
+
     var turnLimitMessage: String? {
         guard let conversation = store.active, store.isAtTurnLimit(conversation) else { return nil }
         return String(localized: "这个对话已经到 \(store.maxUserTurns) 轮上限。新建一个，或删掉一个旧对话腾位置。")
@@ -383,6 +408,12 @@ final class AssistantModel: ObservableObject {
     }
 
     func newConversation() {
+        // 当前这个还一句没问：直接用它，不再多建一个空对话占名额。
+        if store.activeIsBlank {
+            errorText = nil
+            showsConversationList = false
+            return
+        }
         guard store.canCreateNew else {
             // 满了不是死路：把「要顶掉哪一个」摆出来让用户确认。
             showsConversationList = true
@@ -409,14 +440,34 @@ final class AssistantModel: ObservableObject {
     }
 
     func delete(_ id: UUID) {
+        // 删的正是在回答的那个：先停下，别让请求继续烧 token、药丸继续显示「生成中」。
+        // 准备阶段还没开始流，那时在答的就是当前对话（准备期间切换对话会作废这次提问）。
+        let answering = isStreaming ? answeringConversationID : (isPreparingResponse ? store.active?.id : nil)
+        if let answering, answering == id { stopStreaming() }
         store.delete(id)
     }
 
     // MARK: - 发送
 
     func send() {
+        let hasText = !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if hasText, isStreaming || isPreparingResponse {
+            // 以前这里静默返回，看起来像回车坏了。
+            errorText = String(localized: "正在回答。等它结束，或按 ⌘. 停止后再发送。")
+            return
+        }
+        if hasText, isCapturing {
+            // 点回面板会补拍一张截图，通常不到一秒；这期间按的回车等它拍完就发，不吞掉。
+            sendsAfterCapture = true
+            return
+        }
         send(question: input, mode: settings.responseMode)
     }
+
+    /// 截图期间按了回车：拍完立即发送。藏面板、按停止时作废。
+    private var sendsAfterCapture = false
+    /// 正在流式回答的对话。用户可以边等边切去别的对话，所以不能拿当前对话代替。
+    private var answeringConversationID: UUID?
 
     /// `mode` 只管这一次：常用指令可以带着自己的模式发，不改输入框旁边那个开关。
     /// `screenshot` 同理，nil 跟随相机开关；`.current` 用面板当前的连接。
@@ -469,7 +520,7 @@ final class AssistantModel: ObservableObject {
     private func ask(aboutCaptions command: QuickCommand) {
         let captions = LiveCaptions.shared
         guard captions.isEnabled else {
-            errorText = String(localized: "请先在设置 → 音频中启用语音，再打开字幕。")
+            errorText = Self.voiceDisabledMessage
             return
         }
         guard captions.isRunning else {
@@ -594,6 +645,8 @@ final class AssistantModel: ObservableObject {
                                             startedAt: ProcessInfo.processInfo.systemUptime)
         errorText = nil
         isPreparingResponse = true
+        // 在历史列表里按了回车：回答写进当前对话，列表不收起的话就看不见它。
+        showsConversationList = false
         if isCollapsed { withAnimation(.easeOut(duration: 0.18)) { setCollapsed(false) } }
         return generation
     }
@@ -693,6 +746,7 @@ final class AssistantModel: ObservableObject {
                                           skippedPageCapture: skippedPage)
 
         lastResponseTiming?.requestStartedAt = ProcessInfo.processInfo.systemUptime
+        answeringConversationID = conversationID
         isStreaming = true
         streamTask = Task { [weak self] in
             guard let self else { return }
@@ -739,6 +793,7 @@ final class AssistantModel: ObservableObject {
             guard self.responseGeneration == generation else { return }
             self.lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
             self.isStreaming = false
+            self.answeringConversationID = nil
             self.streamTask = nil
         }
     }
@@ -769,6 +824,7 @@ final class AssistantModel: ObservableObject {
         // packet、清掉过期标记，害下一次发送跳过采集（#41）。
         captureGeneration += 1
         isCapturing = false
+        sendsAfterCapture = false
         streamTask?.cancel()
         store.flush()
     }
