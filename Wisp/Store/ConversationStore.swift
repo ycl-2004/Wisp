@@ -165,14 +165,25 @@ final class ConversationStore: ObservableObject {
     /// 损坏备份只留最新几份，否则每坏一次留一个几十 MB 的文件，无上限地涨。
     private func pruneCorruptBackups() {
         let directory = fileURL.deletingLastPathComponent()
+        let prefix = fileURL.deletingPathExtension().lastPathComponent + ".corrupt-"
         guard let all = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
         let backups = all
-            .filter { $0.hasPrefix("conversations.corrupt-") && $0.hasSuffix(".json") }
-            .sorted()
+            .filter { $0.hasPrefix(prefix) && $0.hasSuffix(".json") }
+            .sorted { lhs, rhs in
+                Self.corruptBackupSortKey(lhs, prefix: prefix) < Self.corruptBackupSortKey(rhs, prefix: prefix)
+            }
         guard backups.count > Self.maxCorruptBackups else { return }
         for name in backups.prefix(backups.count - Self.maxCorruptBackups) {
             try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
         }
+    }
+
+    private static func corruptBackupSortKey(_ filename: String, prefix: String) -> (Int, Int, String) {
+        let stem = String(filename.dropFirst(prefix.count).dropLast(".json".count))
+        let parts = stem.split(separator: "-").compactMap { Int($0) }
+        let stamp = parts.first ?? 0
+        let attempt = parts.count > 1 ? parts[1] : 0
+        return (stamp, attempt, filename)
     }
 
     private func persist() {
@@ -221,12 +232,24 @@ final class ConversationStore: ObservableObject {
     @discardableResult
     func archiveBlockingFileAndReset() -> String? {
         guard persistenceBlocked else { return nil }
-        let backup = fileURL.deletingPathExtension()
-            .appendingPathExtension("from-newer-version-\(Int(Date().timeIntervalSince1970)).json")
-        guard (try? FileManager.default.moveItem(at: fileURL, to: backup)) != nil else { return nil }
+        let stamp = Int(Date().timeIntervalSince1970)
+        var movedTo: URL?
+        for attempt in 0..<100 {
+            let suffix = attempt == 0 ? "from-newer-version-\(stamp)" : "from-newer-version-\(stamp)-\(attempt)"
+            let candidate = fileURL.deletingPathExtension().appendingPathExtension("\(suffix).json")
+            if (try? FileManager.default.moveItem(at: fileURL, to: candidate)) != nil {
+                movedTo = candidate
+                break
+            }
+            guard FileManager.default.fileExists(atPath: candidate.path) else { return nil }
+        }
+        guard let backup = movedTo else { return nil }
         persistenceBlocked = false
+        streamingConversationID = nil
         loadIssue = nil
+        saveIssue = nil
         conversations = []
+        ephemeralIDs.removeAll()
         activeID = nil
         settings.lastActiveConversationID = nil
         persist()
@@ -340,8 +363,9 @@ final class ConversationStore: ObservableObject {
     @discardableResult
     func ensureActive() -> Conversation? {
         if let active { return active }
-        if let first = conversations.first {
+        if let first = conversations.first(where: { !ephemeralIDs.contains($0.id) }) {
             activeID = first.id
+            settings.lastActiveConversationID = first.id.uuidString
             return first
         }
         return createNew()
@@ -391,8 +415,12 @@ final class ConversationStore: ObservableObject {
         ephemeralIDs.remove(id)
         if streamingConversationID == id { streamingConversationID = nil }
         if activeID == id {
-            activeID = conversations.first?.id
-            settings.lastActiveConversationID = activeID?.uuidString
+            activeID = conversations.first(where: { !ephemeralIDs.contains($0.id) })?.id ?? conversations.first?.id
+            if let activeID, !ephemeralIDs.contains(activeID) {
+                settings.lastActiveConversationID = activeID.uuidString
+            } else {
+                settings.lastActiveConversationID = nil
+            }
         }
         persist()
     }

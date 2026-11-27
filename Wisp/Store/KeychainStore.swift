@@ -4,7 +4,8 @@ import Security
 /// API Key 存 Keychain，不进 UserDefaults，也不进对话 JSON。
 /// 一家服务商一份条目，切换服务商时不会互相顶掉。
 enum KeychainStore {
-    private static let service = "com.yichenlin.Wisp"
+    /// 测试宿主用单独的服务名：不弹钥匙串授权框，也读不到、删不掉用户真实存的 Key（见 `TestHost`）。
+    static let service = TestHost.isActive ? "com.yichenlin.Wisp.tests" : "com.yichenlin.Wisp"
     /// 0.2.x 只有一份 Key，不分家。只在迁移时读它。
     private static let legacyAccount = "api-key"
 
@@ -85,14 +86,15 @@ enum KeychainStore {
     /// 原地更新，没有条目时才新增。以前是先删再加：加失败时（钥匙串拒绝、用户点了拒绝）
     /// 旧的那份能用的 Key 已经被删了，界面却只说「这次输入没有保存下来」。
     private static func write(_ key: String, account: String) -> Bool {
-        let value: [String: Any] = [
-            kSecValueData as String: Data(key.utf8),
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-        ]
-        let status = SecItemUpdate(query(account) as CFDictionary, value as CFDictionary)
+        let data = Data(key.utf8)
+        let status = SecItemUpdate(query(account) as CFDictionary,
+                                   [kSecValueData as String: data] as CFDictionary)
         if status == errSecSuccess { return true }
         guard status == errSecItemNotFound else { return false }
-        let attributes = query(account).merging(value) { _, new in new }
+        let attributes = query(account).merging([
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+        ]) { _, new in new }
         return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
     }
 

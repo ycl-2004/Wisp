@@ -185,6 +185,7 @@ final class QuickCommandStore: ObservableObject {
     func restoreDefaults() {
         // 显式恢复是解开 loadFailed 的唯一出口：先清状态，didSet 的保存才会落盘。
         loadFailed = false
+        defaults.set(true, forKey: AppSettings.captionCommandsSeededKey)
         KeyboardShortcuts.reset(commands.map(\.shortcutName))
         commands = QuickCommand.defaults
         if defaults == .standard { assignCaptionShortcuts() }
