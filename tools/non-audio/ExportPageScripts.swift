@@ -4,8 +4,7 @@ import Foundation
 
 @main struct ExportPageScripts {
     static func main() throws {
-        let scripts = ["begin": PageTextScript.beginJS, "step": PageTextScript.stepJS,
-                       "finish": PageTextScript.finishJS, "cleanup": PageTextScript.cleanupJS]
+        let scripts = ["read": PageTextScript.readJS]
         FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject: scripts, options: .sortedKeys))
     }
 }

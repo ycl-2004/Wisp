@@ -26,6 +26,19 @@ APP="/Applications/Wisp.app"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILT="$ROOT/Build/Release/Wisp.app"
 
+no_install=false
+keep_backup=false
+for arg in "$@"; do
+    case "$arg" in
+        --no-install) no_install=true ;;
+        --keep-backup) keep_backup=true ;;
+        *)
+            echo "未知参数：${arg}" >&2
+            exit 2
+            ;;
+    esac
+done
+
 cd "$ROOT"
 
 # 钥匙串里属于这个团队的开发证书，取指纹。
@@ -51,6 +64,7 @@ rm -rf "$ROOT/Build/Release"
 xcodebuild -project Wisp.xcodeproj -scheme Wisp -configuration Release \
     -arch arm64 -arch x86_64 \
     ONLY_ACTIVE_ARCH=NO \
+    SYMROOT="$ROOT/Build" \
     CODE_SIGN_STYLE=Manual \
     DEVELOPMENT_TEAM="$TEAM" \
     CODE_SIGN_IDENTITY="$identity" \
@@ -68,14 +82,9 @@ fi
 codesign --verify --deep --strict "$BUILT"
 echo "designated requirement：$requirement"
 
-if [[ "${1:-}" == "--no-install" ]]; then
+if [[ "$no_install" == true ]]; then
     echo "已构建并签名：${BUILT}（未安装）"
     exit 0
-fi
-
-if [[ "${1:-}" != "" && "${1:-}" != "--keep-backup" ]]; then
-    echo "未知参数：${1}" >&2
-    exit 2
 fi
 
 # 正在运行的 app 被换掉会留下一个坏掉的 bundle。启停 Wisp 由你自己来，脚本只拦一下。
@@ -116,7 +125,7 @@ mv "$staging/Wisp.app" "$APP"
 codesign --verify --deep --strict "$APP"
 trap - ERR
 rmdir "$staging"
-if [[ "${1:-}" == "--keep-backup" ]]; then
+if [[ "$keep_backup" == true ]]; then
     echo "已安装：${APP}；旧版本备份：$backup"
 else
     # Keep the old bundle only until the move and signature checks pass. The

@@ -90,7 +90,11 @@ enum KeychainStore {
 
     static func hasKey(for provider: CloudProvider) -> Bool { load(for: provider) != nil }
 
-    static func deleteAll() { storage.removeAll() }
+    @discardableResult
+    static func deleteAll() -> Bool {
+        storage.removeAll()
+        return true
+    }
 }
 
 // MARK: - UpdateChecker (real one lives in AppLifecycle.swift, AppKit)

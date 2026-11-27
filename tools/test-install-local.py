@@ -17,6 +17,9 @@ BUILT="$1/Built.app"
 TMPDIR="$1"
 failure="$2"
 shift 2
+# The real script parses its arguments before this block; the fixture does the same.
+keep_backup=false
+if [[ "${1:-}" == "--keep-backup" ]]; then keep_backup=true; fi
 sign_calls=0
 ditto() {
     [[ "$failure" != copy ]] || return 17
