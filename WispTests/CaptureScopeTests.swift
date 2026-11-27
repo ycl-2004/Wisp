@@ -26,17 +26,10 @@ final class CaptureScopeTests: XCTestCase {
     }
 
     func testExcludedAppsAreAlwaysHiddenFromWholeScreenCaptures() throws {
-        let settings = AppSettings.shared
-        let defaults = UserDefaults.standard
-        // The test host shares the installed app's defaults domain. Snapshot only what is
-        // persisted: `object(forKey:)` would also return registered defaults and write them back.
-        let keys = ["excludedBundleIDs", "screenHiddenBundleIDs", "captureScope"]
-        let persisted = defaults.persistentDomain(forName: try XCTUnwrap(Bundle.main.bundleIdentifier)) ?? [:]
-        defer {
-            for key in keys {
-                if let value = persisted[key] { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }
-            }
-        }
+        let suiteName = "WispTests.CaptureScope.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
         defaults.removeObject(forKey: "captureScope")
         XCTAssertEqual(settings.captureScope, .window)
 

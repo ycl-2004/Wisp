@@ -15,6 +15,41 @@ final class SonioxSpeechTests: XCTestCase {
         }
     }
 
+    /// A server that accepts the connection and never answers the upgrade must not leave
+    /// captions waiting forever. Loopback only: the listener never replies.
+    func testHandshakeThatNeverCompletesTimesOut() async throws {
+        let listener = Darwin.socket(AF_INET, SOCK_STREAM, 0)
+        XCTAssertGreaterThanOrEqual(listener, 0)
+        defer { Darwin.close(listener) }
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        address.sin_port = 0
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let bound = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.bind(listener, $0, length) }
+        }
+        XCTAssertEqual(bound, 0)
+        XCTAssertEqual(Darwin.listen(listener, 4), 0)
+        _ = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.getsockname(listener, $0, &length) }
+        }
+        let port = Int(UInt16(bigEndian: address.sin_port))
+        let endpoint = try XCTUnwrap(URL(string: "ws://127.0.0.1:\(port)/transcribe-websocket"))
+
+        let started = Date()
+        do {
+            let speech = try await SonioxSpeech.start(apiKey: "fixture", locale: "en-US", endpoint: endpoint,
+                                                      handshakeTimeout: 0.5,
+                                                      onUpdate: { _ in }, onFailure: { _ in })
+            speech.cancel()
+            XCTFail("A handshake that never completes should fail")
+        } catch let failure as ListeningFailure {
+            XCTAssertEqual(failure.message, String(localized: "连接 Soniox 超时，请检查网络后重试。"))
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
+    }
+
     func testConfigurationAsksForRawPCMAndTheMeetingLanguagePlusEnglish() throws {
         let config = try XCTUnwrap(JSONSerialization.jsonObject(
             with: Data(SonioxSpeech.configuration(locale: "zh-CN").utf8)) as? [String: Any])

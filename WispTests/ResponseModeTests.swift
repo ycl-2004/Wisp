@@ -2,18 +2,16 @@ import XCTest
 @testable import Wisp
 
 final class ResponseModeTests: XCTestCase {
-    func testCustomerModesAreQuickAndDeepAndLegacyStandardMigratesToQuick() {
+    func testCustomerModesAreQuickAndDeepAndLegacyStandardMigratesToQuick() throws {
         XCTAssertEqual(ResponseMode.allCases, [.quick, .deep])
-        let defaults = UserDefaults.standard
-        let previous = defaults.object(forKey: "responseMode")
-        defer {
-            if let previous { defaults.set(previous, forKey: "responseMode") }
-            else { defaults.removeObject(forKey: "responseMode") }
-        }
+        let suiteName = "WispTests.ResponseMode.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
         defaults.set(ResponseMode.standard.rawValue, forKey: "responseMode")
-        XCTAssertEqual(AppSettings.shared.responseMode, .quick)
+        XCTAssertEqual(settings.responseMode, .quick)
         defaults.set(ResponseMode.deep.rawValue, forKey: "responseMode")
-        XCTAssertEqual(AppSettings.shared.responseMode, .deep)
+        XCTAssertEqual(settings.responseMode, .deep)
     }
 
     func testSelectionFreezesRequestAndIsolatesConnections() {
@@ -32,7 +30,7 @@ final class ResponseModeTests: XCTestCase {
         var cosmetic = baseline
         cosmetic.baseURL = "  HTTPS://EXAMPLE.COM/v1/  "
         XCTAssertEqual(baseline.responseConnectionKey, cosmetic.responseConnectionKey)
-        var cli = ProviderConfig(kind: .codexCLI, cliProvider: .codex, cliPath: "/tmp/../tmp/codex")
+        let cli = ProviderConfig(kind: .codexCLI, cliProvider: .codex, cliPath: "/tmp/../tmp/codex")
         var cliCosmetic = cli
         cliCosmetic.cliPath = "/tmp/codex"
         XCTAssertEqual(cli.responseConnectionKey, cliCosmetic.responseConnectionKey)
@@ -208,13 +206,14 @@ extension ResponseModeTests {
 
 extension ResponseModeTests {
     func testHighThinkingSiblingOnlyNamesListedModels() {
-        let presets = ["gemini-3.6-flash-low", "gemini-3.6-flash-medium", "gemini-3.6-flash-high",
-                       "gemini-3.1-pro-low", "gemini-3.1-pro-high", "gpt-oss-120b-medium", "claude-sonnet-4-6"]
+        let presets = ["gemini-4-neon-low", "gemini-4-neon-medium", "gemini-4-neon-high", "gemini-4-neon-xhigh",
+                       "claude-opus-5-5-low", "claude-opus-5-5-high", "gpt-oss-120b-medium", "claude-sonnet-4-6"]
             .map { ModelCatalog.Preset(slug: $0, title: $0, note: "") }
-        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-3.6-flash-low", in: presets), "gemini-3.6-flash-high")
-        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-3.6-flash-medium", in: presets), "gemini-3.6-flash-high")
-        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-3.1-pro-low", in: presets), "gemini-3.1-pro-high")
-        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-3.6-flash-high", in: presets), "gemini-3.6-flash-high")
+        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-4-neon-low", in: presets), "gemini-4-neon-high")
+        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-4-neon-medium", in: presets), "gemini-4-neon-high")
+        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "claude-opus-5-5-low", in: presets), "claude-opus-5-5-high")
+        XCTAssertEqual(ModelCatalog.highThinkingSibling(of: "gemini-4-neon-high", in: presets), "gemini-4-neon-high")
+        XCTAssertNil(ModelCatalog.highThinkingSibling(of: "gemini-4-neon-xhigh", in: presets))
         XCTAssertNil(ModelCatalog.highThinkingSibling(of: "gpt-oss-120b-medium", in: presets))
         XCTAssertNil(ModelCatalog.highThinkingSibling(of: "claude-sonnet-4-6", in: presets))
         XCTAssertNil(ModelCatalog.highThinkingSibling(of: "", in: presets))
