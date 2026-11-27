@@ -73,6 +73,9 @@ enum CaptureScope: String, CaseIterable, Identifiable, Codable {
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
+    /// 每次执行恢复出厂时递增（仅内存计数，不进 UserDefaults），供已挂载的设置视图清空内存态缓存。
+    @Published private(set) var dataWipeCount = 0
+
     private let d: UserDefaults
 
     private enum K {
@@ -604,6 +607,7 @@ final class AppSettings: ObservableObject {
         for key in K.all + K.retired {
             d.removeObject(forKey: key)
         }
+        dataWipeCount &+= 1
         objectWillChange.send()
     }
 }

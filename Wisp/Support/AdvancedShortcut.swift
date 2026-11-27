@@ -22,19 +22,6 @@ enum ShortcutTriggerMode: String, CaseIterable, Identifiable {
         }
     }
 
-    var detail: String {
-        switch self {
-        case .standard:
-            return String(localized: "Command、Option、Control 等常规组合")
-        case .enhancedSingle:
-            return String(localized: "支持 Shift、Globe/Fn 和单独的修饰键")
-        case .doubleTap:
-            return String(localized: "连续按两次同一个键，例如 Control")
-        case .tripleTap:
-            return String(localized: "连续按三次同一个键")
-        }
-    }
-
     var tapCount: Int? {
         switch self {
         case .standard: return nil
@@ -89,6 +76,11 @@ struct AdvancedShortcut: Codable, Equatable {
 enum ShortcutKeyInfo {
     static let supportedModifiers: NSEvent.ModifierFlags = [
         .capsLock, .shift, .control, .option, .command, .function
+    ]
+
+    /// 普通按键组合里参与匹配的修饰键：不含 Caps Lock，否则开启大写锁定时 Shift+Space 等全部失效。
+    static let keyChordModifiers: NSEvent.ModifierFlags = [
+        .shift, .control, .option, .command, .function
     ]
 
     static func modifierFlag(for keyCode: UInt16) -> NSEvent.ModifierFlags? {
@@ -222,15 +214,32 @@ enum ShortcutKeyInfo {
 final class AdvancedShortcutMonitor {
     static let shared = AdvancedShortcutMonitor()
 
-    private struct Candidate: Equatable {
+    struct Candidate: Equatable {
         let keyCode: UInt16
         let kind: AdvancedShortcut.KeyKind
         let modifiers: UInt
 
         init(_ shortcut: AdvancedShortcut) {
-            keyCode = shortcut.keyCode
             kind = shortcut.kind
+            // 左右两侧的同一修饰键显示名完全相同（如 Control / ⌃），匹配时归一化到左侧标准键码。
+            if shortcut.kind == .modifier, let flag = ShortcutKeyInfo.modifierFlag(for: shortcut.keyCode) {
+                keyCode = Self.canonicalModifierKeyCode(for: flag, fallback: shortcut.keyCode)
+            } else {
+                keyCode = shortcut.keyCode
+            }
             modifiers = shortcut.modifiers
+        }
+
+        private static func canonicalModifierKeyCode(for flag: NSEvent.ModifierFlags, fallback: UInt16) -> UInt16 {
+            switch flag {
+            case .capsLock: return UInt16(kVK_CapsLock)
+            case .shift: return UInt16(kVK_Shift)
+            case .control: return UInt16(kVK_Control)
+            case .option: return UInt16(kVK_Option)
+            case .command: return UInt16(kVK_Command)
+            case .function: return UInt16(kVK_Function)
+            default: return fallback
+            }
         }
     }
 
@@ -245,6 +254,8 @@ final class AdvancedShortcutMonitor {
     private var lastCandidate: Candidate?
     private var lastTapDate: Date?
     private var tapCount = 0
+    /// 修饰键按下期间是否按过其它普通键或同时按了多个修饰键；为真时松开该修饰键不算「单独轻点修饰键」。
+    private var modifierChordInterrupted = false
 
     private var recordingTapCount: Int?
     private var recordingCandidate: Candidate?
@@ -252,12 +263,12 @@ final class AdvancedShortcutMonitor {
     private var recordingCompletion: ((AdvancedShortcut) -> Void)?
     private var recordingGeneration = 0
 
-    private init() {}
+    init() {}
 
     func start() {
         guard !isStarted else { return }
 
-        let eventMask: NSEvent.EventTypeMask = [.keyUp, .flagsChanged]
+        let eventMask: NSEvent.EventTypeMask = [.keyDown, .keyUp, .flagsChanged]
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: eventMask) { [weak self] event in
             self?.handle(event)
             return event
@@ -290,7 +301,7 @@ final class AdvancedShortcutMonitor {
             NSEvent.removeMonitor(globalMonitor)
             self.globalMonitor = nil
         }
-        let eventMask: NSEvent.EventTypeMask = [.keyUp, .flagsChanged]
+        let eventMask: NSEvent.EventTypeMask = [.keyDown, .keyUp, .flagsChanged]
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: eventMask) { [weak self] event in
             Task { @MainActor [weak self] in
                 self?.handle(event)
@@ -412,13 +423,32 @@ final class AdvancedShortcutMonitor {
         recordingCandidate = nil
     }
 
-    private func candidate(for event: NSEvent) -> Candidate? {
+    func candidate(for event: NSEvent) -> Candidate? {
         switch event.type {
+        case .keyDown:
+            if ShortcutKeyInfo.modifierFlag(for: event.keyCode) == nil {
+                modifierChordInterrupted = true
+            }
+            return nil
+
         case .flagsChanged:
-            guard
-                let modifier = ShortcutKeyInfo.modifierFlag(for: event.keyCode),
-                !event.modifierFlags.contains(modifier)
-            else {
+            guard let modifier = ShortcutKeyInfo.modifierFlag(for: event.keyCode) else { return nil }
+            let activeChordModifiers = event.modifierFlags.intersection(ShortcutKeyInfo.keyChordModifiers)
+            if event.modifierFlags.contains(modifier) {
+                // 按下修饰键开始一次新的轻点：之前打的字不算打断（否则打完字后的第一下轻点
+                // 会被吞掉）；此刻还按着别的修饰键（例如 ⌃+⌥）就不算单独修饰键轻点。
+                if modifier != .capsLock {
+                    modifierChordInterrupted = activeChordModifiers != modifier
+                }
+                return nil
+            }
+            // 松开修饰键：期间按过普通键（如 Shift+A、⌘C）或其它修饰键仍在按着，一律忽略。
+            let wasInterrupted = modifierChordInterrupted
+            if activeChordModifiers.isEmpty {
+                modifierChordInterrupted = false
+            }
+            guard !wasInterrupted, activeChordModifiers.isEmpty else {
+                resetTapSequence()
                 return nil
             }
             return Candidate(AdvancedShortcut(keyCode: event.keyCode, kind: .modifier))
@@ -427,7 +457,10 @@ final class AdvancedShortcutMonitor {
             guard ShortcutKeyInfo.modifierFlag(for: event.keyCode) == nil else {
                 return nil
             }
-            let modifiers = event.modifierFlags.intersection(ShortcutKeyInfo.supportedModifiers)
+            let modifiers = event.modifierFlags.intersection(ShortcutKeyInfo.keyChordModifiers)
+            if !modifiers.isEmpty {
+                modifierChordInterrupted = true
+            }
             return Candidate(AdvancedShortcut(keyCode: event.keyCode, kind: .key, modifiers: modifiers))
 
         default:

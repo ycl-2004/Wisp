@@ -29,6 +29,12 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
     private var session: Task<Void, Never>?
     private var sourceID: CGDirectDisplayID = 0
     private var generation = UUID()
+    nonisolated private static let activeIDLock = NSLock()
+    private nonisolated(unsafe) static var _activeDisplayID: CGDirectDisplayID?
+
+    nonisolated static var activeVirtualDisplayID: CGDirectDisplayID? {
+        activeIDLock.withLock { _activeDisplayID }
+    }
 
     /// Turning hiding off closes any active presentation display. Turning hiding on only
     /// enables window privacy; the virtual extended display starts only when explicitly requested.
@@ -39,7 +45,7 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
 
     func start() {
         guard !isOpen else { return }
-        guard CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() else {
+        guard Permissions.hasScreenRecording || Permissions.requestScreenRecording() else {
             message = String(localized: "请在系统设置中允许 Wisp 录制屏幕，再启动演示屏。")
             return
         }
@@ -53,6 +59,7 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
             return
         }
         monitor = attached
+        Self.activeIDLock.withLock { Self._activeDisplayID = attached.displayID }
         isOpen = true
         message = nil
         let token = UUID()
@@ -125,6 +132,7 @@ final class PresentationDisplay: NSObject, ObservableObject, SCStreamOutput, SCS
         output = nil
         imageLayer = nil
         monitor = nil
+        Self.activeIDLock.withLock { Self._activeDisplayID = nil }
         isOpen = false
         message = nil
     }
