@@ -22,6 +22,7 @@ enum ScreenCapturer {
         case failed(String)
     }
 
+    private static let permissionLock = NSLock()
     private nonisolated(unsafe) static var hasRequestedOnce = false
 
     static let jpegQuality: CGFloat = 0.8
@@ -46,8 +47,12 @@ enum ScreenCapturer {
                         hiddenBundleIDs: Set<String> = []) async -> Result<Shot, CaptureError> {
         if !Permissions.hasScreenRecording {
             // 第一次没权限时主动弹一次系统授权框；之后只能去系统设置里勾。
-            if !hasRequestedOnce {
+            let shouldRequest = permissionLock.withLock { () -> Bool in
+                guard !hasRequestedOnce else { return false }
                 hasRequestedOnce = true
+                return true
+            }
+            if shouldRequest {
                 _ = Permissions.requestScreenRecording()
             }
             guard Permissions.hasScreenRecording else { return .failure(.noPermission) }
@@ -85,16 +90,22 @@ enum ScreenCapturer {
         let sourceSize: CGSize
         let shotScope: CaptureScope
 
+        let availableDisplays: [SCDisplay] = {
+            guard let virtualID = PresentationDisplay.activeVirtualDisplayID else { return content.displays }
+            let physical = content.displays.filter { $0.displayID != virtualID }
+            return physical.isEmpty ? content.displays : physical
+        }()
+
         if scope == .window, let target {
             filter = SCContentFilter(desktopIndependentWindow: target)
             sourceSize = target.frame.size
             shotScope = .window
         } else if let index = displayIndex(for: target?.frame,
                                            cursor: CGEvent(source: nil)?.location,
-                                           displays: content.displays.map(\.frame)) {
+                                           displays: availableDisplays.map(\.frame)) {
             // 选了整屏，或者找不到窗口只能退回整屏。两种情况都要把不该入镜的挖掉。
             // 这个过滤只作用于 Wisp 自己这次截图，不影响浏览器或其他录屏进程的捕获流。
-            let display = content.displays[index]
+            let display = availableDisplays[index]
             let ownBundleID = Bundle.main.bundleIdentifier
             let excluded = content.windows.filter { window in
                 if excludingWindowIDs.contains(window.windowID) { return true }

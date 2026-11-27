@@ -43,7 +43,17 @@ struct ContextPacket: Identifiable {
 
     var isTruncated: Bool {
         guard let total = pageTextTotalChars, let text = pageText else { return false }
-        return total > text.count
+        return Self.pageTextIsTruncated(text, totalChars: total)
+    }
+
+    /// 省略标记的固定开头（见 `ContextCapture.omissionMarker`）。放在本地化文案之外，
+    /// 换语言、改译文都不影响靠它认出截断。
+    static let omissionMarkerLead = "\n\n[…… "
+
+    /// 正文是否按上限截断过。只比长度不够：原文只比上限多几十字时，插进去的省略标记
+    /// 会让截断后的长度等于甚至超过原文。
+    static func pageTextIsTruncated(_ text: String, totalChars: Int) -> Bool {
+        totalChars != text.count || text.contains(omissionMarkerLead)
     }
 
     var hasPageText: Bool {

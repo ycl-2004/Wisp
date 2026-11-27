@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 
 /// 通过 AppleScript 向前台浏览器索取当前分页的网址、标题和整页正文。
 enum BrowserTextExtractor {
@@ -49,11 +52,11 @@ enum BrowserTextExtractor {
         case .success(let output):
             let parts = output.components(separatedBy: "\n")
             let url = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if !url.isEmpty { result.url = url }
+            if !url.isEmpty, url != "missing value", url != "missing value," { result.url = url }
             if parts.count > 1 {
                 let title = parts.dropFirst().joined(separator: "\n")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
-                if !title.isEmpty { result.pageTitle = title }
+                if !title.isEmpty, title != "missing value" { result.pageTitle = title }
             }
         case .failure(let error):
             result.notes.append(note(for: error, appName: appName, bundleID: bundleID, stage: .basic))
@@ -100,8 +103,12 @@ enum BrowserTextExtractor {
             with timeout of 5 seconds
               tell application id \(app)
                 set theTab to active tab of front window
-                return (URL of theTab) & linefeed & (title of theTab)
+                set theURL to URL of theTab
+                set theTitle to title of theTab
               end tell
+              if theURL is missing value then set theURL to ""
+              if theTitle is missing value then set theTitle to ""
+              return (theURL as text) & linefeed & (theTitle as text)
             end timeout
             """
         case .safari:
@@ -109,8 +116,12 @@ enum BrowserTextExtractor {
             with timeout of 5 seconds
               tell application id \(app)
                 set theTab to current tab of front window
-                return (URL of theTab) & linefeed & (name of theTab)
+                set theURL to URL of theTab
+                set theTitle to name of theTab
               end tell
+              if theURL is missing value then set theURL to ""
+              if theTitle is missing value then set theTitle to ""
+              return (theURL as text) & linefeed & (theTitle as text)
             end timeout
             """
         case .arc:
@@ -121,8 +132,10 @@ enum BrowserTextExtractor {
                   set theURL to URL of active tab
                   set theTitle to title of active tab
                 end tell
-                return theURL & linefeed & theTitle
               end tell
+              if theURL is missing value then set theURL to ""
+              if theTitle is missing value then set theTitle to ""
+              return (theURL as text) & linefeed & (theTitle as text)
             end timeout
             """
         }
@@ -191,6 +204,9 @@ enum BrowserTextExtractor {
         process.arguments = ["-"]
 
         let stdinPipe = Pipe()
+        #if canImport(Darwin)
+        _ = fcntl(stdinPipe.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        #endif
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
         process.standardInput = stdinPipe
@@ -202,9 +218,6 @@ enum BrowserTextExtractor {
         } catch {
             return .failure(ScriptError(message: error.localizedDescription))
         }
-
-        stdinPipe.fileHandleForWriting.write(Data(source.utf8))
-        stdinPipe.fileHandleForWriting.closeFile()
 
         let box = PipeResultBox()
         let group = DispatchGroup()
@@ -218,6 +231,9 @@ enum BrowserTextExtractor {
             box.setErr(stderrPipe.fileHandleForReading.readDataToEndOfFile())
             group.leave()
         }
+
+        try? stdinPipe.fileHandleForWriting.write(contentsOf: Data(source.utf8))
+        try? stdinPipe.fileHandleForWriting.close()
 
         let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning && Date() < deadline {
@@ -281,7 +297,10 @@ enum BrowserTextExtractor {
                 if ChromeProfileInspector.supportsInspection(bundleID: bundleID) {
                     return .blocking(ChromeProfileInspector.javaScriptDisabledHint(bundleID: bundleID, appName: appName))
                 }
-                return .blocking(String(localized: "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。Safari 在「Develop」菜单里打开一次即可。"))
+                if family(for: bundleID) == .safari {
+                    return .blocking(String(localized: "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。Safari 在「Develop」菜单里打开一次即可。"))
+                }
+                return .blocking(String(localized: "\(appName) 没有开启「Allow JavaScript from Apple Events」，本次只读到网址，没有整页文字。在 \(appName) 的「View → Developer」里打开一次即可。"))
             case .basic:
                 return .info(String(localized: "读取 \(appName) 当前分页失败：\(text)"))
             }
