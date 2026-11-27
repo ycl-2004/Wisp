@@ -1,5 +1,62 @@
 # Wisp release notes
 
+## 0.5.1 — 2026-11-27
+
+### Fixed
+
+- Enhanced shortcuts: a modifier used while typing (`Shift+A`, `⌘C`) or held as part of a
+  chord no longer summons the panel on release. Caps Lock no longer breaks key
+  combinations such as `Shift+Space`, and the left and right copies of a modifier match
+  the same shortcut.
+- Hold to Ask keeps the last words spoken before the release. If recognition fails after
+  some words arrived, they are left in the input box. Sleep or locking the screen stops it.
+- Captions no longer crash when they stop with audio still queued. The sleep notice no
+  longer appears while captions are off. Soniox gives up after 15 seconds when the
+  connection does not open, and stopping during the connection returns at once.
+- Agent CLIs: a CLI that exits early can no longer terminate Wisp through a broken pipe,
+  and error output left after it exits no longer blocks for seconds. Claude Code answers
+  split by a tool call keep a paragraph break. AGY 1.5's `print_timeout` is reported as a
+  timeout. Test Connection and the CLI version check could occasionally stay on "Testing…"
+  forever after the command had already exited; they now return. Codex's default model is read from the top-level `model` key only (not from a
+  profile table), and `CODEX_HOME` is honored.
+- Deep mode keeps a chosen `-xhigh` AGY model instead of lowering it to `-high`. The
+  built-in AGY suggestions list the models AGY 1.5.18 offers.
+- API: Test Connection works with OpenAI reasoning models (`max_completion_tokens`).
+  Errors inside a stream (`finish_reason: "error"`, an error on the choice) are shown as
+  errors. A 400 that does not mention images is no longer reported as "model does not
+  accept images". Gemini 4 models get the Quick and Deep reasoning levels.
+- Page text from a page just over the length limit is marked as truncated. An empty tab
+  title or URL no longer reaches the prompt as "missing value". Arc's JavaScript hint no
+  longer points to Safari's menu.
+- Whole-screen capture skips the Presentation Display.
+- Delete All Data & Settings also hides the panel and resets the open Settings pages, the
+  model lists, the island, the update notice and an unfinished shortcut recording. An open
+  Settings page can no longer write a deleted API key back.
+- Conversations: archiving a file from a newer version twice within one second works.
+  Corrupt-file backups are pruned oldest first by number (`-10` is newer than `-2`).
+  Unsaved caption conversations never become the conversation reopened at launch.
+- Panel: it no longer auto-dismisses while a sheet, onboarding or a question being
+  prepared is open. Hiding it cancels a question still being prepared; the text stays in
+  the input box. Resizing stays on screen and no longer adds the caption row's height each
+  time. The notch island resizes when displays change. First-run setup opened again from
+  Settings, and the panel's confirmation alerts, now appear above the Settings window instead
+  of under it.
+- Window layering: the Settings window stays above the panel only while you are using it.
+  Click the panel, another app or System Settings (opened from Wisp to grant a permission)
+  and Settings becomes an ordinary window, so it no longer covers them, and the panel's
+  popovers are no longer hidden under it. While first-run setup waits and you are in another
+  app, the panel steps back too, so System Settings is not covered while you grant a
+  permission.
+- Markdown: a code block opened with ```` ``` ```` is no longer closed by `~~~`, an
+  unfinished block shows while it streams, and Windows line endings render.
+- English: "清除" reads "Clear" (it read "Reset"), and accessibility values follow the
+  interface language. With no summon shortcut set, the island says "Not Set" and the menu
+  item shows no shortcut, instead of `⌃⌥Space`.
+
+### Documentation
+
+- README, README.zh-CN and PRIVACY use the current Settings section and menu names.
+
 ## 0.5.0 — 2026-11-20
 
 ### Added
