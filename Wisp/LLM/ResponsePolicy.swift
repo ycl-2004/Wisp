@@ -74,7 +74,8 @@ enum ResponsePolicy {
                 result["provider"] = routing
             }
             // OpenRouter translates supported reasoning controls. Keep unknown models untouched.
-            if (model.hasPrefix("openai/") && supportsOpenAIReasoning(String(model.dropFirst(7)))) || model.hasPrefix("google/gemini-3") {
+            if (model.hasPrefix("openai/") && supportsOpenAIReasoning(String(model.dropFirst(7))))
+                || model.hasPrefix("google/gemini-4") || model.hasPrefix("google/gemini-3") || model.hasPrefix("google/gemini-2.5") {
                 result["reasoning"] = ["effort": mode == .quick ? "low" : "high"]
             }
         case ("api.openai.com", "/v1/chat/completions"):
@@ -82,7 +83,7 @@ enum ResponsePolicy {
                 result["reasoning_effort"] = mode == .quick ? "low" : "high"
             }
         case ("generativelanguage.googleapis.com", "/v1beta/openai/chat/completions"):
-            if model.hasPrefix("gemini-3") || model.hasPrefix("gemini-2.5") {
+            if model.hasPrefix("gemini-4") || model.hasPrefix("gemini-3") || model.hasPrefix("gemini-2.5") {
                 result["reasoning_effort"] = mode == .quick ? "low" : "high"
             }
         default: break

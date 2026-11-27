@@ -62,23 +62,23 @@ struct AgyCLIProvider: ChatProvider {
         let candidates = candidatePaths.filter { FileManager.default.isExecutableFile(atPath: $0) }
         guard candidates.count > 1 else { return candidates.first }
 
-        let versions = await withTaskGroup(of: (String, [Int]?).self, returning: [(String, [Int]?)].self) { group in
-            for path in candidates {
-                group.addTask { (path, await versionNumbers(at: path)) }
+        let versions = await withTaskGroup(of: (Int, String, [Int]?).self, returning: [(Int, String, [Int]?)].self) { group in
+            for (index, path) in candidates.enumerated() {
+                group.addTask { (index, path, await versionNumbers(at: path)) }
             }
-            var values: [(String, [Int]?)] = []
+            var values: [(Int, String, [Int]?)] = []
             for await value in group { values.append(value) }
-            return values
+            return values.sorted { $0.0 < $1.0 }
         }
 
         var best = versions.first!
         for candidate in versions.dropFirst() {
-            guard let version = candidate.1 else { continue }
-            if best.1 == nil || isNewer(version, than: best.1!) {
+            guard let version = candidate.2 else { continue }
+            if best.2 == nil || isNewer(version, than: best.2!) {
                 best = candidate
             }
         }
-        return best.0
+        return best.1
     }
 
     /// 每次扫描都重新执行 `agy models`，不把模型列表写死在 App 里。
@@ -92,19 +92,29 @@ struct AgyCLIProvider: ChatProvider {
     /// 没有成功扫描时仅用于 UI 首屏，真实请求仍然允许用户手填任意新模型名。
     /// 下一次「刷新 AGY 模型」会以 CLI 的实际输出覆盖它。
     static let fallbackModels: [ModelCatalog.Preset] = [
+        .init(slug: "gemini-4-neon-high", title: "Gemini 4 Neon (High)", note: ""),
+        .init(slug: "gemini-4-neon-xhigh", title: "Gemini 4 Neon (XHigh)", note: ""),
+        .init(slug: "gemini-4-neon-medium", title: "Gemini 4 Neon (Medium)", note: ""),
+        .init(slug: "gemini-4-neon-low", title: "Gemini 4 Neon (Low)", note: ""),
+        .init(slug: "gemini-4-carbon-high", title: "Gemini 4 Carbon (High)", note: ""),
+        .init(slug: "gemini-4-carbon-medium", title: "Gemini 4 Carbon (Medium)", note: ""),
+        .init(slug: "gemini-4-carbon-low", title: "Gemini 4 Carbon (Low)", note: ""),
+        .init(slug: "gemini-4-argon-high", title: "Gemini 4 Argon (High)", note: ""),
+        .init(slug: "gemini-4-argon-medium", title: "Gemini 4 Argon (Medium)", note: ""),
+        .init(slug: "gemini-4-argon-low", title: "Gemini 4 Argon (Low)", note: ""),
+        .init(slug: "gemini-4-hydrogen-high", title: "Gemini 4 Hydrogen (High)", note: ""),
+        .init(slug: "gemini-4-hydrogen-xhigh", title: "Gemini 4 Hydrogen (XHigh)", note: ""),
+        .init(slug: "gemini-4-hydrogen-medium", title: "Gemini 4 Hydrogen (Medium)", note: ""),
+        .init(slug: "gemini-4-hydrogen-low", title: "Gemini 4 Hydrogen (Low)", note: ""),
         .init(slug: "gemini-3.8-flash-high", title: "Gemini 3.8 Flash (High)", note: ""),
         .init(slug: "gemini-3.8-flash-medium", title: "Gemini 3.8 Flash (Medium)", note: ""),
         .init(slug: "gemini-3.8-flash-low", title: "Gemini 3.8 Flash (Low)", note: ""),
-        .init(slug: "gemini-3.7-flash-high", title: "Gemini 3.7 Flash (High)", note: ""),
-        .init(slug: "gemini-3.7-flash-medium", title: "Gemini 3.7 Flash (Medium)", note: ""),
-        .init(slug: "gemini-3.7-flash-low", title: "Gemini 3.7 Flash (Low)", note: ""),
-        .init(slug: "gemini-3.6-flash-high", title: "Gemini 3.6 Flash (High)", note: ""),
-        .init(slug: "gemini-3.6-flash-medium", title: "Gemini 3.6 Flash (Medium)", note: ""),
-        .init(slug: "gemini-3.6-flash-low", title: "Gemini 3.6 Flash (Low)", note: ""),
-        .init(slug: "gemini-3.1-pro-high", title: "Gemini 3.1 Pro (High)", note: ""),
-        .init(slug: "gemini-3.1-pro-low", title: "Gemini 3.1 Pro (Low)", note: ""),
-        .init(slug: "claude-sonnet-4-6", title: "Claude Sonnet 4.6 (Thinking)", note: ""),
-        .init(slug: "claude-opus-4-6-thinking", title: "Claude Opus 4.6 (Thinking)", note: ""),
+        .init(slug: "claude-opus-5-5-high", title: "Claude Opus 5.5 (High)", note: ""),
+        .init(slug: "claude-opus-5-5-medium", title: "Claude Opus 5.5 (Medium)", note: ""),
+        .init(slug: "claude-opus-5-5-low", title: "Claude Opus 5.5 (Low)", note: ""),
+        .init(slug: "claude-sonnet-5-5-high", title: "Claude Sonnet 5.5 (High)", note: ""),
+        .init(slug: "claude-sonnet-5-5-medium", title: "Claude Sonnet 5.5 (Medium)", note: ""),
+        .init(slug: "claude-sonnet-5-5-low", title: "Claude Sonnet 5.5 (Low)", note: ""),
         .init(slug: "gpt-oss-120b-medium", title: "GPT-OSS 120B (Medium)", note: ""),
     ]
 
@@ -236,11 +246,12 @@ struct AgyCLIProvider: ChatProvider {
             // 读干或进程退出都按 EOF 把残行冲出再收尾。
             let chunk = PipePoll.awaitData(handle) { process.isRunning } ? handle.availableData : Data()
             for object in try lines.append(chunk, endOfFile: chunk.isEmpty) {
-                if let text = try state.receive(object) { onText(text) }
+                if let text = try state.receive(object, timeoutSeconds: Int(Self.wallClockTimeout)) { onText(text) }
             }
             if chunk.isEmpty { break }
         }
         process.waitUntilExit()
+        stderrBuffer.appendRemaining(from: stderrHandle)
 
         if let reason = box.reason {
             throw reason == .timedOut
@@ -295,18 +306,18 @@ struct AgyCLIProvider: ChatProvider {
             let slug = String(slugPart)
             guard slug.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil,
                   seen.insert(slug).inserted else { return nil }
-            let title = parts.count > 1 ? String(parts[1]) : slug
-            return ModelCatalog.Preset(slug: slug, title: title, note: "")
+            let title = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespaces) : slug
+            return ModelCatalog.Preset(slug: slug, title: title.isEmpty ? slug : title, note: "")
         }
     }
 
-    /// Verified against AGY 1.1.27: step_update carries incremental text, result repeats the final answer.
+    /// Verified against AGY 1.1.27 & 1.5.18: step_update carries incremental text, result repeats the final answer.
     struct StreamState {
         private(set) var completed = false
         private var streamed = ""
         private var lastStep: Int?
 
-        mutating func receive(_ object: [String: Any]) throws -> String? {
+        mutating func receive(_ object: [String: Any], timeoutSeconds: Int = Int(CLIWallClock.timeout)) throws -> String? {
             guard !completed else { return nil }
             switch object["event"] as? String {
             case "step_update":
@@ -323,6 +334,9 @@ struct AgyCLIProvider: ChatProvider {
                     throw ProviderError.agyFailed("Invalid AGY result", status: -1)
                 }
                 guard result["status"] as? String == "SUCCESS" else {
+                    if result["finished_reason"] as? String == "print_timeout" {
+                        throw ProviderError.agyTimedOut(timeoutSeconds)
+                    }
                     throw ProviderError.agyFailed(Self.failureDetail(result), status: -1)
                 }
                 let response = result["response"] as? String ?? ""

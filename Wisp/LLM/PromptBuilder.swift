@@ -120,7 +120,7 @@ enum PromptBuilder {
             // 「按上限截断」和「本来就没读全」是两种不同的残缺，必须分开讲清楚，
             // 否则模型会把读到哪算到哪，当成整篇来回答。
             var flags: [String] = []
-            if total > text.count {
+            if ContextPacket.pageTextIsTruncated(text, totalChars: total) {
                 flags.append(String(localized: "已按长度上限截断，原文共 \(total) 字，中间省略部分见正文里的省略标记"))
             }
             if context.pageTextIsPartial {

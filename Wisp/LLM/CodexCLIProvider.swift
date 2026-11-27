@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 
 /// 复用本地 Codex 登录，通过 app-server 的 stdio JSON-RPC 接收文字增量。
 /// 每轮使用独立的临时目录和 ephemeral thread，不连接用户正在运行的服务。
@@ -16,8 +19,17 @@ struct CodexCLIProvider: ChatProvider {
         NSHomeDirectory() + "/.codex/packages/standalone/current/bin/codex",
     ]
 
+    private static var candidatePaths: [String] {
+        var paths = searchPaths
+        if let path = ProcessInfo.processInfo.environment["PATH"] {
+            paths += path.split(separator: ":").map { String($0) + "/codex" }
+        }
+        var seen = Set<String>()
+        return paths.filter { seen.insert($0).inserted }
+    }
+
     static var detectedPath: String? {
-        searchPaths.first { FileManager.default.isExecutableFile(atPath: $0) }
+        candidatePaths.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
     static func resolvePath(_ configured: String) -> String? {
@@ -62,6 +74,9 @@ struct CodexCLIProvider: ChatProvider {
                     process.environment = environment
 
                     let stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
+                    #if canImport(Darwin)
+                    _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+                    #endif
                     process.standardInput = stdin
                     process.standardOutput = stdout
                     process.standardError = stderr
@@ -116,6 +131,7 @@ struct CodexCLIProvider: ChatProvider {
                             : ProviderError.cancelled
                     }
                     if !session.completed || !session.hasText {
+                        if !process.isRunning { stderrBuffer.appendRemaining(from: stderrHandle) }
                         throw ProviderError.codexFailed(Self.condense(stderrBuffer.text),
                                                         status: process.isRunning ? -1 : process.terminationStatus)
                     }
@@ -125,7 +141,13 @@ struct CodexCLIProvider: ChatProvider {
                 } catch is CancellationError {
                     continuation.finish(throwing: ProviderError.cancelled)
                 } catch {
-                    continuation.finish(throwing: ProviderError.network(error.localizedDescription))
+                    if let reason = box.reason {
+                        continuation.finish(throwing: reason == .timedOut
+                            ? ProviderError.codexTimedOut(Int(Self.wallClockTimeout))
+                            : ProviderError.cancelled)
+                    } else {
+                        continuation.finish(throwing: ProviderError.network(error.localizedDescription))
+                    }
                 }
                 // 无论走哪条路都要清掉临时目录，里面有这一轮的屏幕截图。
                 if let workDirectory { CLITemporaryDirectory.remove(workDirectory) }
@@ -178,6 +200,7 @@ struct CodexCLIProvider: ChatProvider {
         private var initialized = false
         private var serviceTier = "default"
         private var retriedWithoutFast = false
+        private var activeTurnRequestID = 2
         private var textByItem: [String: String] = [:]
         var hasText: Bool { textByItem.values.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
 
@@ -197,6 +220,10 @@ struct CodexCLIProvider: ChatProvider {
 
         mutating func receive(_ object: [String: Any]) throws -> (requests: [[String: Any]], text: [String]) {
             if let error = object["error"] as? [String: Any] {
+                if let respID = object["id"] as? Int,
+                   respID != 0 && respID != 1 && respID != 3 && respID != activeTurnRequestID {
+                    return ([], [])
+                }
                 let detail = error["message"] as? String ?? "App-server error"
                 if let retry = fallbackRequest(for: detail) { return ([retry], []) }
                 throw ProviderError.codexFailed(detail, status: -1)
@@ -284,7 +311,7 @@ struct CodexCLIProvider: ChatProvider {
                 input += imagePaths.map { ["type": "localImage", "path": $0] }
                 var params: [String: Any] = ["threadId": id, "input": input]
                 if let reasoningEffort { params["effort"] = reasoningEffort }
-                return ([["id": 2, "method": "turn/start", "params": params]], [])
+                return ([["id": activeTurnRequestID, "method": "turn/start", "params": params]], [])
             }
             return ([], [])
         }
@@ -308,6 +335,7 @@ struct CodexCLIProvider: ChatProvider {
             retriedWithoutFast = true
             serviceTier = "default"
             threadID = nil
+            activeTurnRequestID += 10
             return threadStartRequest
         }
     }

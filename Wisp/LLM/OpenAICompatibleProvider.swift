@@ -148,8 +148,10 @@ struct OpenAICompatibleProvider: ChatProvider {
         let message = SSEParser.errorMessage(from: data).lowercased()
         let identifiesTier = message.contains("service_tier") || message.contains("service tier")
             || message.contains("priority tier") || message.contains("priority processing")
+            || message.contains("priority inference")
         let rejectsTier = ["not supported", "unsupported", "not available", "unavailable",
-                           "not allowed", "not enabled", "not eligible", "invalid", "not permitted"]
+                           "not allowed", "not enabled", "not eligible", "invalid", "not permitted",
+                           "only available", "requires", "paid"]
             .contains { message.contains($0) }
         return identifiesTier && rejectsTier
     }
@@ -256,9 +258,9 @@ struct OpenAICompatibleProvider: ChatProvider {
             throw ProviderError.network(String(localized: "无法生成测试图片。"))
         }
         let base64 = jpeg.base64EncodedString()
-        let body: [String: Any] = [
+        let host = Self.endpoint(config.baseURL)?.host?.lowercased()
+        var body: [String: Any] = [
             "model": config.model,
-            "max_tokens": 5,
             "stream": false,
             "messages": [[
                 "role": "user",
@@ -268,10 +270,18 @@ struct OpenAICompatibleProvider: ChatProvider {
                 ],
             ]],
         ]
+        // OpenAI 推理模型拒绝 max_tokens，必须传 max_completion_tokens 且留够基础推理预算。
+        if host == "api.openai.com" {
+            body["max_completion_tokens"] = 64
+        } else {
+            body["max_tokens"] = 32
+        }
+        var probeConfig = config
+        probeConfig.responseMode = .standard
         var allowPriority = true
         while true {
             try Task.checkCancellation()
-            let urlRequest = try request(config: config, body: body, allowPriority: allowPriority)
+            let urlRequest = try request(config: probeConfig, body: body, allowPriority: allowPriority)
             let data: Data
             let response: URLResponse
             do {
@@ -350,7 +360,7 @@ struct OpenAICompatibleProvider: ChatProvider {
             return .rateLimited(detail: message, upstream: upstream, resetHint: hint)
         }
         let lowered = message.lowercased()
-        let imageHints = ["image", "vision", "multimodal", "image_url", "not support", "unsupported"]
+        let imageHints = ["image", "vision", "multimodal", "image_url"]
         if (status == 400 || status == 415 || status == 422),
            imageHints.contains(where: { lowered.contains($0) }) {
             return .imageUnsupported(String(localized: "服务端说明：\(message)"))

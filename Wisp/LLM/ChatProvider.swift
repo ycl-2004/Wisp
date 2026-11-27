@@ -241,14 +241,27 @@ enum PipePoll {
 /// 代替 readDataToEndOfFile：管道被后代进程占着时 EOF 不来，快照至少能
 /// 把已经到的部分交出去，而不是无限等。
 final class PipeSnapshotBox: @unchecked Sendable {
+    static let maxBytes = 4 * 1024 * 1024
+
     private let lock = NSLock()
     private var storedOut = Data()
     private var storedErr = Data()
     private var outReachedEOF = false
     private var errReachedEOF = false
 
-    func appendOut(_ chunk: Data) { lock.lock(); storedOut.append(chunk); lock.unlock() }
-    func appendErr(_ chunk: Data) { lock.lock(); storedErr.append(chunk); lock.unlock() }
+    func appendOut(_ chunk: Data) {
+        lock.lock()
+        let remaining = Self.maxBytes - storedOut.count
+        if remaining > 0 { storedOut.append(chunk.prefix(remaining)) }
+        lock.unlock()
+    }
+
+    func appendErr(_ chunk: Data) {
+        lock.lock()
+        let remaining = Self.maxBytes - storedErr.count
+        if remaining > 0 { storedErr.append(chunk.prefix(remaining)) }
+        lock.unlock()
+    }
     func markOutEOF() { lock.lock(); outReachedEOF = true; lock.unlock() }
     func markErrEOF() { lock.lock(); errReachedEOF = true; lock.unlock() }
 
@@ -319,17 +332,18 @@ enum CLICommand {
 
         var timedOut = false
         let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning && Date() < deadline {
+        while process.isRunning && Date() < deadline && !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
         if process.isRunning {
-            timedOut = true
+            timedOut = !Task.isCancelled
             process.terminate()
             // SIGTERM 不一定收得住，而收不住就是死局：管道一直开着，这个
-            // 调用再也不返回，设置页会一直停在「测试中…」。
+            // 调用再也不返回，设置页会一直停在「测试中…」。取消时 Task.sleep
+            // 会立即抛错返回、退化成 100% CPU 空转，收尾用不受取消影响的短等待。
             let killDeadline = Date().addingTimeInterval(1)
             while process.isRunning && Date() < killDeadline {
-                try? await Task.sleep(nanoseconds: 50_000_000)
+                await uncancellablePause(seconds: 0.05)
             }
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
         }
@@ -339,22 +353,25 @@ enum CLICommand {
         // 自己的输出，等它没有意义。
         let drainDeadline = Date().addingTimeInterval(2)
         while !box.bothReachedEOF && Date() < drainDeadline {
-            try? await Task.sleep(nanoseconds: 50_000_000)
+            await uncancellablePause(seconds: 0.05)
         }
         // 杀到这一步还活着的进程，status 本来就没有参考价值（见 Result 的
-        // timedOut 说明）；不要再 waitUntilExit 赌它退场 — 某些平台上光是
-        // 回收一个不肯死的子进程就能再堵上几十秒。
-        let status: Int32
-        if process.isRunning {
-            status = -1
-        } else {
-            process.waitUntilExit()
-            status = process.terminationStatus
-        }
+        // timedOut 说明）。已经退出的进程，退出码此刻就能读。这里不调 waitUntilExit：
+        // 它在当前线程上转 run loop 等结束通知，而几次 await 之后这里多半不是启动
+        // 进程的那个线程，通知不来就永远不返回（进程早已退出，测试里实测卡住十几分钟）。
+        let status: Int32 = process.isRunning ? -1 : process.terminationStatus
         return Result(status: status,
                       stdout: String(data: box.out, encoding: .utf8) ?? "",
                       stderr: String(data: box.err, encoding: .utf8) ?? "",
                       timedOut: timedOut)
+    }
+
+    private static func uncancellablePause(seconds: TimeInterval) async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds) {
+                continuation.resume()
+            }
+        }
     }
 }
 
@@ -549,6 +566,17 @@ final class DrainBuffer: @unchecked Sendable {
     var text: String {
         lock.lock(); defer { lock.unlock() }
         return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// 进程退出后，把管道里已经到了、readabilityHandler 还没读走的尾巴收进来。
+    /// 只读此刻可读的部分、不等 EOF：后代进程占着写端时 EOF 永远不来（#36）。
+    func appendRemaining(from handle: FileHandle) {
+        handle.readabilityHandler = nil
+        while PipePoll.waitReadable(handle, slice: 0) {
+            let chunk = handle.availableData
+            if chunk.isEmpty { break }
+            append(chunk)
+        }
     }
 }
 

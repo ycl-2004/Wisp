@@ -112,9 +112,21 @@ enum SSEParser {
         if let message = object["error"] as? String, !message.isEmpty { return .failure(message) }
         guard let choices = object["choices"] as? [[String: Any]],
               let first = choices.first else { return .ignored }
+        if let choiceError = first["error"] as? [String: Any] {
+            let message = (choiceError["message"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            return .failure(message ?? String(localized: "服务端没有返回说明。"))
+        }
+        if let choiceError = first["error"] as? String, !choiceError.isEmpty {
+            return .failure(choiceError)
+        }
         let text = content(of: first)
         if let reason = first["finish_reason"] as? String, !reason.isEmpty {
-            return reason == "length" ? .outputLimitReached(text) : .finished(text)
+            let lowered = reason.lowercased()
+            if lowered == "length" || lowered == "max_tokens" { return .outputLimitReached(text) }
+            if ["error", "network_error", "content_filter", "abort"].contains(lowered) {
+                return .failure(reason)
+            }
+            return .finished(text)
         }
         return text.isEmpty ? .ignored : .delta(text)
     }
@@ -138,7 +150,8 @@ enum SSEParser {
 
     /// 从非流式错误响应里挖出可读信息。
     static func errorMessage(from data: Data) -> String {
-        if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        let parsed = try? JSONSerialization.jsonObject(with: data)
+        if let object = (parsed as? [String: Any]) ?? (parsed as? [[String: Any]])?.first {
             if let error = object["error"] as? [String: Any],
                let message = error["message"] as? String { return message }
             if let message = object["message"] as? String { return message }

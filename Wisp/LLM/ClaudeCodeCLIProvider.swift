@@ -124,9 +124,21 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                         box.finish()
                         throw ProviderError.network(error.localizedDescription)
                     }
+                    defer {
+                        if process.isRunning {
+                            process.terminate()
+                            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
+                                if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+                            }
+                            process.waitUntilExit()
+                        }
+                        stderrHandle.readabilityHandler = nil
+                        box.finish()
+                    }
 
                     // NDJSON：一行一个事件，边读边把 text_delta 吐给上层。
                     var streamed = ""
+                    var needsSeparator = false
                     var outcome: Outcome?
                     var buffer = Data()
                     let handle = stdout.fileHandleForReading
@@ -142,8 +154,12 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                                   !line.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
                             switch Self.event(in: line) {
                             case .text(let delta):
-                                streamed += delta
-                                continuation.yield(delta)
+                                let prefix = (needsSeparator && !streamed.isEmpty && !streamed.hasSuffix("\n")) ? "\n\n" : ""
+                                needsSeparator = false
+                                streamed += prefix + delta
+                                continuation.yield(prefix + delta)
+                            case .blockBoundary:
+                                if !streamed.isEmpty { needsSeparator = true }
                             case .finished(let result):
                                 outcome = result
                             case .none:
@@ -162,8 +178,12 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                        !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         switch Self.event(in: line) {
                         case .text(let delta):
-                            streamed += delta
-                            continuation.yield(delta)
+                            let prefix = (needsSeparator && !streamed.isEmpty && !streamed.hasSuffix("\n")) ? "\n\n" : ""
+                            needsSeparator = false
+                            streamed += prefix + delta
+                            continuation.yield(prefix + delta)
+                        case .blockBoundary:
+                            if !streamed.isEmpty { needsSeparator = true }
                         case .finished(let result):
                             outcome = result
                         case .none:
@@ -172,7 +192,7 @@ struct ClaudeCodeCLIProvider: ChatProvider {
                     }
 
                     process.waitUntilExit()
-                    stderrHandle.readabilityHandler = nil
+                    stderrBuffer.appendRemaining(from: stderrHandle)
                     box.finish()
 
                     if let reason = box.reason {
@@ -313,6 +333,7 @@ struct ClaudeCodeCLIProvider: ChatProvider {
 
     enum Event {
         case text(String)
+        case blockBoundary
         case finished(Outcome)
         case none
     }
@@ -327,14 +348,16 @@ struct ClaudeCodeCLIProvider: ChatProvider {
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = object["type"] as? String else { return .none }
 
-        if type == "stream_event",
-           let event = object["event"] as? [String: Any],
-           (event["type"] as? String) == "content_block_delta",
-           let delta = event["delta"] as? [String: Any],
-           (delta["type"] as? String) == "text_delta",
-           let text = delta["text"] as? String,
-           !text.isEmpty {
-            return .text(text)
+        if type == "stream_event", let event = object["event"] as? [String: Any] {
+            let eventType = event["type"] as? String
+            if eventType == "message_start" { return .blockBoundary }
+            if eventType == "content_block_delta",
+               let delta = event["delta"] as? [String: Any],
+               (delta["type"] as? String) == "text_delta",
+               let text = delta["text"] as? String,
+               !text.isEmpty {
+                return .text(text)
+            }
         }
 
         if type == "result" {
