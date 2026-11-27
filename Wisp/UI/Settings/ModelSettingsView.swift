@@ -33,6 +33,13 @@ struct ModelSettingsView: View {
                 ScrollView { inner }
             }
         }
+        .onChange(of: settings.dataWipeCount) { _, _ in
+            // 恢复出厂后立即清空内存里的 Key，防止 onDisappear 或失焦把刚删掉的 Key 写回钥匙串。
+            apiKey = ""
+            keyLoaded = true
+            testResult = nil
+            ollamaStatus = nil
+        }
         .onChange(of: settings.cloudProvider) { previous, provider in
             // Key 是一家一份的。换家就得把输入框换成新那家的那份，
             // 否则「测试连接」会把上一家的 Key 写到新那家名下。
@@ -53,14 +60,10 @@ struct ModelSettingsView: View {
                 keyLoaded = true
             }
             if kind == .ollama { probeOllama() }
-            if kind == .codexCLI {
-                ensureCLIPath()
-                if settings.cliProvider == .agy { modelState.refreshAgyIfStale() }
-            }
+            if kind == .codexCLI, settings.cliProvider == .agy { modelState.refreshAgyIfStale() }
         }
         .onChange(of: settings.cliProvider) { _, provider in
             guard kind == .codexCLI else { return }
-            ensureCLIPath()
             testResult = nil
             if provider == .agy { modelState.refreshAgyIfStale() }
         }
@@ -91,7 +94,6 @@ struct ModelSettingsView: View {
                     settings.providerKind = option.rawValue
                     testResult = nil
                     if option == .ollama { probeOllama() }
-                    if option == .codexCLI { ensureCLIPath() }
                 }
             }
         }
@@ -280,7 +282,7 @@ struct ModelSettingsView: View {
                 Picker("", selection: Binding(
                     get: { settings.cliProvider },
                     set: { provider in
-                        // ensureCLIPath and the Agy scan follow from the onChange above.
+                        // The Agy scan follows from the onChange above.
                         settings.cliProvider = provider
                         testResult = nil
                     }
@@ -300,6 +302,8 @@ struct ModelSettingsView: View {
         }
     }
 
+    /// CLI 路径默认留空，每次请求现找可执行文件（`resolvePath`）；打开设置页不自动回填，
+    /// 否则同一个连接会因为「开没开过设置页」得到两个 responseConnectionKey。
     private var codexCLIFields: some View {
         VStack(alignment: .leading, spacing: 10) {
             Field(label: "可执行文件") {
@@ -355,7 +359,7 @@ struct ModelSettingsView: View {
             ModelPickerRow(
                 label: "默认模型",
                 presets: modelState.agyPresets,
-                placeholder: "gemini-3.8-flash-high",
+                placeholder: "gemini-4-neon-high",
                 emptyOptionTitle: String(localized: "跟随 Agy 默认"),
                 value: Binding(get: { settings.agyModel },
                                set: { settings.agyModel = $0; testResult = nil })
@@ -504,23 +508,6 @@ struct ModelSettingsView: View {
             testing = false
         }
     }
-
-    private func ensureCLIPath() {
-        switch settings.cliProvider {
-        case .codex:
-            if settings.codexPath.isEmpty, let detected = CodexCLIProvider.detectedPath {
-                settings.codexPath = detected
-            }
-        case .agy:
-            // Keep this empty by default so each request can re-scan candidates
-            // and pick the newest installed AGY version. A typed path is explicit.
-            break
-        case .claudeCode:
-            if settings.claudeCodePath.isEmpty, let detected = ClaudeCodeCLIProvider.detectedPath {
-                settings.claudeCodePath = detected
-            }
-        }
-    }
 }
 
 // MARK: - 模型页小零件
@@ -624,7 +611,7 @@ private struct ModelPickerRow: View {
                 Field(label: "") {
                     TextField(placeholder, text: $customText)
                         .onChange(of: customText) { _, newValue in
-                            value = newValue.trimmingCharacters(in: .whitespaces)
+                            value = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
                 }
             } else if let note = presets.first(where: { $0.slug == value })?.note, !note.isEmpty {

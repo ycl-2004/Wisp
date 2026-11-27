@@ -79,8 +79,8 @@ struct CaptionBar: View {
     }
 
     private func isDimmed(at date: Date) -> Bool {
-        guard state == .running else { return false }
-        return date.timeIntervalSince(lastChange ?? .distantPast) > Self.dimAfter
+        guard state == .running, let lastChange else { return false }
+        return date.timeIntervalSince(lastChange) > Self.dimAfter
     }
 
     private var displayText: String {

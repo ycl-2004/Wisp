@@ -55,7 +55,7 @@ struct DataSettingsView: View {
             Section {
                 Button("删除全部数据与设置", role: .destructive) { confirmWipe = true }
             } header: {
-                SettingsSectionHeader("清除", info: String(localized: "删除对话、调试文件、旧版本留下的录音记录和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。"))
+                SettingsSectionHeader("重置", info: String(localized: "删除对话、调试文件、旧版本留下的录音记录和钥匙串中的 API Key，并把全部设置恢复为默认值；不可撤销。"))
             }
         }
         .formStyle(.grouped)
@@ -72,6 +72,8 @@ struct DataSettingsView: View {
         PushToTalk.shared.cancel()
         captions.stop()
         PresentationDisplay.shared.stop()
+        PanelController.shared.hide()
+        let keysRemoved = KeychainStore.deleteAll()
         do {
             try settings.wipeLocalData(in: AppSettings.supportDirectory)
         } catch {
@@ -81,7 +83,12 @@ struct DataSettingsView: View {
 
         PanelController.shared.resetStoredFrame()
         model.store.resetAfterDataWipe()
-        let keysRemoved = KeychainStore.deleteAll()
+        model.resetAfterDataWipe()
+        IslandController.shared.resetAfterDataWipe()
+        ScreenPrivacy.applyToAllWindows()
+        ModelMenuState.shared.reset()
+        UpdateNotice.shared.availableVersion = nil
+        AdvancedShortcutMonitor.shared.cancelRecording()
         captions.reloadPreferences()
         QuickCommandStore.shared.restoreDefaults()
         KeyboardShortcuts.reset(KeyboardShortcuts.Name.appDefined)

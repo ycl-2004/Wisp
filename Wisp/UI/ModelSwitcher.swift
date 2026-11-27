@@ -213,7 +213,7 @@ struct ActiveModels {
     /// 默认模型的名字；没选时说清楚是谁在决定。
     var defaultTitle: String { title(of: baseline.model) }
 
-    /// 「默认：Gemini 3.6 Flash (Low)」：不用翻到上面也知道默认是哪个。深入换了 High 档就明说。
+    /// 「默认：Gemini 4 Neon (Low)」：不用翻到上面也知道默认是哪个。深入换了 High 档就明说。
     func defaultChoiceTitle(for mode: ResponseMode) -> String {
         let name = title(of: defaultModel(for: mode))
         return defaultRaisesThinking(for: mode) ? String(localized: "默认 · 高思考：\(name)")
@@ -244,13 +244,28 @@ struct ActiveModels {
 final class ModelMenuState: ObservableObject {
     static let shared = ModelMenuState()
 
-    @Published private(set) var ollamaModels: [String] = []
-    @Published private(set) var agyModels: [ModelCatalog.Preset] = []
+    @Published private(set) var ollamaModels: [String]
+    @Published private(set) var agyModels: [ModelCatalog.Preset]
     @Published private(set) var isScanningAgy = false
     private var lastProbe: Date?
     private var lastAgyScan: Date?
+    private var lastAgyPath: String?
+    private var generation = 0
 
-    private init() {}
+    init(ollamaModels: [String] = [], agyModels: [ModelCatalog.Preset] = []) {
+        self.ollamaModels = ollamaModels
+        self.agyModels = agyModels
+    }
+
+    func reset() {
+        generation &+= 1
+        ollamaModels = []
+        agyModels = []
+        isScanningAgy = false
+        lastProbe = nil
+        lastAgyScan = nil
+        lastAgyPath = nil
+    }
 
     func refreshOllamaIfStale() {
         if let lastProbe, Date().timeIntervalSince(lastProbe) < 60 { return }
@@ -259,9 +274,12 @@ final class ModelMenuState: ObservableObject {
 
     func refreshOllama() {
         lastProbe = Date()
+        let currentGen = generation
         let base = AppSettings.shared.ollamaBaseURL
         Task {
-            if case .running(let models) = await OllamaSupport.probe(baseURL: base) {
+            let result = await OllamaSupport.probe(baseURL: base)
+            guard self.generation == currentGen else { return }
+            if case .running(let models) = result {
                 ollamaModels = models.filter { !$0.contains("embed") }
             } else {
                 ollamaModels = []
@@ -270,7 +288,8 @@ final class ModelMenuState: ObservableObject {
     }
 
     func refreshAgyIfStale() {
-        if let lastAgyScan, Date().timeIntervalSince(lastAgyScan) < 60 { return }
+        let currentPath = AppSettings.shared.agyPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        if lastAgyPath == currentPath, let lastAgyScan, Date().timeIntervalSince(lastAgyScan) < 60 { return }
         refreshAgy()
     }
 
@@ -279,12 +298,15 @@ final class ModelMenuState: ObservableObject {
 
     func refreshAgy() {
         guard !isScanningAgy else { return }
+        let configuredPath = AppSettings.shared.agyPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentGen = generation
+        lastAgyPath = configuredPath
         lastAgyScan = Date()
         isScanningAgy = true
-        let configuredPath = AppSettings.shared.agyPath
         Task {
             let models = await AgyCLIProvider.scanModels(configuredPath: configuredPath)
-            if !models.isEmpty { agyModels = models }
+            guard self.generation == currentGen else { return }
+            agyModels = models
             isScanningAgy = false
         }
     }

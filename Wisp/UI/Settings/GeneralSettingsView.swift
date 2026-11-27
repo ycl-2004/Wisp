@@ -102,13 +102,15 @@ struct GeneralSettingsView: View {
                 SettingsSectionHeader("更新", info: String(localized: "仅请求 GitHub 的版本号，不发送使用信息，也不会自动下载。"))
             }
 
-            if store.isReadOnly {
+            if store.isReadOnly || archivedName != nil {
                 Section("对话记录被锁为只读") {
-                    Text(store.loadIssue?.message ?? "")
-                        .font(.system(size: 11))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button("备份并重置", role: .destructive) {
-                        archivedName = store.archiveBlockingFileAndReset()
+                    if store.isReadOnly {
+                        Text(store.loadIssue?.message ?? "")
+                            .font(.system(size: 11))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("备份并重置", role: .destructive) {
+                            archivedName = store.archiveBlockingFileAndReset()
+                        }
                     }
                     if let archivedName {
                         Text("已备份为 \(archivedName)，现在可以正常保存了。")
@@ -141,7 +143,16 @@ struct GeneralSettingsView: View {
         .sheet(isPresented: $showsNotices) {
             NoticesSheet().background(ScreenPrivacyWindow())
         }
-        .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
+        .onAppear {
+            launchAtLogin = LaunchAtLogin.isEnabled
+            language = AppLanguage.current
+        }
+        .onChange(of: settings.dataWipeCount) { _, _ in
+            language = AppLanguage.current
+            languageChanged = false
+            updateState = nil
+            archivedName = nil
+        }
     }
 
     @ViewBuilder

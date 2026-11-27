@@ -261,7 +261,8 @@ enum MarkdownBlock {
         var items: [ListItem] = []
         var codeLines: [String] = []
         var codeLanguage: String?
-        var inCode = false
+        var codeFence: String?
+        var inCode: Bool { codeFence != nil }
 
         func flushParagraph() {
             guard !paragraph.isEmpty else { return }
@@ -280,28 +281,33 @@ enum MarkdownBlock {
         }
         func flushAll() { flushParagraph(); flushQuote(); flushList() }
 
-        let lines = raw.components(separatedBy: "\n")
+        let normalized = raw.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        let lines = normalized.components(separatedBy: "\n")
         var i = 0
         while i < lines.count {
             let line = lines[i]
             let trimmed = line.trimmingCharacters(in: .whitespaces)
 
-            if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
-                if inCode {
+            if let fence = codeFence {
+                if trimmed.hasPrefix(fence),
+                   trimmed.dropFirst(fence.count).trimmingCharacters(in: .whitespaces).isEmpty {
                     blocks.append(.code(language: codeLanguage, text: codeLines.joined(separator: "\n")))
                     codeLines.removeAll()
                     codeLanguage = nil
-                    inCode = false
+                    codeFence = nil
                 } else {
-                    flushAll()
-                    codeLanguage = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-                    inCode = true
+                    codeLines.append(line)
                 }
                 i += 1
                 continue
             }
-            if inCode {
-                codeLines.append(line)
+            if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
+                flushAll()
+                let fenceChar = trimmed.first!
+                let fencePrefix = String(trimmed.prefix { $0 == fenceChar })
+                codeFence = fencePrefix
+                codeLanguage = String(trimmed.dropFirst(fencePrefix.count)).trimmingCharacters(in: .whitespaces)
                 i += 1
                 continue
             }
@@ -365,7 +371,7 @@ enum MarkdownBlock {
             i += 1
         }
 
-        if inCode, !codeLines.isEmpty {
+        if inCode {
             blocks.append(.code(language: codeLanguage, text: codeLines.joined(separator: "\n")))
         }
         flushAll()
@@ -405,7 +411,7 @@ enum MarkdownBlock {
     }
 
     private static func listItem(from line: String) -> ListItem? {
-        let indent = line.prefix { $0 == " " || $0 == "\t" }.count
+        let indent = line.prefix { $0 == " " || $0 == "\t" }.reduce(0) { $0 + ($1 == "\t" ? 2 : 1) }
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         let depth = min(indent / 2, 3)
 

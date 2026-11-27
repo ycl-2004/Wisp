@@ -107,8 +107,12 @@ struct AudioSettingsView: View {
                     Text("Soniox API Key 已保存")
                     Spacer()
                     Button("清除") {
-                        KeychainStore.deleteSpeechKey()
-                        hasSpeechKey = false
+                        if KeychainStore.deleteSpeechKey() {
+                            hasSpeechKey = false
+                            speechKeyError = false
+                        } else {
+                            speechKeyError = true
+                        }
                     }
                 } else {
                     SecureField("Soniox API Key", text: $speechKey)

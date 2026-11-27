@@ -1,28 +1,45 @@
 import AppKit
 import SwiftUI
 
-/// Keeps the Settings window above regular apps and the floating assistant panel,
-/// and reliably brings it to the active Space in this `.accessory` (LSUIElement) app.
+/// Keeps the Settings window above the floating assistant panel while it is in use, and reliably
+/// brings it to the active Space in this `.accessory` (LSUIElement) app.
 @MainActor
 enum SettingsWindowPresenter {
-    /// Above normal windows (0) and the assistant panel (.floating = 3),
-    /// while remaining below pop-up menus (.popUpMenu = 101) and the status island.
-    static let windowLevel = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
+    /// While Settings is in use: above normal windows (0) and the assistant panel
+    /// (`PanelController.level`, .floating = 3), below pop-up menus (.popUpMenu = 101) and the
+    /// status island. The panel rises above it only while it shows a sheet or alert
+    /// (`PanelController.askingLevel`).
+    static let windowLevel = NSWindow.Level(rawValue: PanelController.level.rawValue + 1)
+    /// Once another window or app is in use, Settings is an ordinary window again: System Settings,
+    /// opened from Wisp to grant a permission, and the panel's popovers are not hidden under it.
+    static let inactiveLevel: NSWindow.Level = .normal
     static let collectionBehavior: NSWindow.CollectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
 
     private static weak var settingsWindow: NSWindow?
 
+    static func level(inUse: Bool) -> NSWindow.Level { inUse ? windowLevel : inactiveLevel }
+
     static func configure(_ window: NSWindow, bringToFront: Bool = false) {
-        settingsWindow = window
+        if settingsWindow !== window {
+            // A Settings window seen for the first time is the one being opened right now.
+            settingsWindow = window
+            window.level = windowLevel
+        }
         ScreenPrivacy.apply(to: window)
-        if window.level != windowLevel { window.level = windowLevel }
         let desired = window.collectionBehavior.union(collectionBehavior)
         if window.collectionBehavior != desired { window.collectionBehavior = desired }
         if bringToFront {
+            window.level = windowLevel
             NSApp?.activate(ignoringOtherApps: true)
             window.orderFrontRegardless()
             window.makeKeyAndOrderFront(nil)
         }
+    }
+
+    /// Called by `WindowLevelCoordinator` whenever the window in use changes.
+    static func updateLevel() {
+        guard let window = settingsWindow, window.isVisible else { return }
+        WindowLevelCoordinator.apply(level(inUse: window.ownsKeyWindow), to: window)
     }
 
     static func open(using openSettings: OpenSettingsAction) {

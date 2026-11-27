@@ -12,22 +12,22 @@ struct ResponseModeToggle: View {
     var body: some View {
         HStack(spacing: 2) {
             let mode = settings.responseMode
-                Button {
-                    settings.responseMode = mode == .quick ? .deep : .quick
-                } label: {
-                    Image(systemName: mode.symbol)
-                        .font(.system(size: 11, weight: .medium))
-                        .frame(width: 21, height: 19)
-                        .foregroundStyle(settings.responseMode == mode ? Color.accentColor : Color.secondary)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(settings.responseMode == mode ? Color.accentColor.opacity(0.14) : .clear)
-                        )
-                }
-                .buttonStyle(.plain)
-                .help(mode.title + " · " + mode.explanation)
-                .accessibilityLabel(Text(mode.title))
-                .accessibilityAddTraits(settings.responseMode == mode ? .isSelected : [])
+            Button {
+                settings.responseMode = mode == .quick ? .deep : .quick
+            } label: {
+                Image(systemName: mode.symbol)
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(width: 21, height: 19)
+                    .foregroundStyle(Color.accentColor)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.14))
+                    )
+            }
+            .buttonStyle(.plain)
+            .help(mode.title + " · " + mode.explanation)
+            .accessibilityLabel(Text(mode.title))
+            .accessibilityAddTraits(.isSelected)
 
             if let timing = model.lastResponseTiming {
                 Button { showsTiming.toggle() } label: {

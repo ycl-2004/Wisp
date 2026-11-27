@@ -53,10 +53,6 @@ enum IslandLayout {
         return CGRect(x: x.rounded(), y: bottomInset, width: size.width, height: size.height)
     }
 
-    static func capsuleRect(_ state: State) -> CGRect {
-        capsuleRect(state, dotCenterX: anchorInWindow.x)
-    }
-
     // MARK: - 刘海形态
 
     static let notchBarHeight: CGFloat = 32

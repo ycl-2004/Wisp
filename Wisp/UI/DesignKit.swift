@@ -8,11 +8,7 @@ enum DS {
     static let chipCorner: CGFloat = 6
 
     static let gutter: CGFloat = 12
-    static let rowGap: CGFloat = 8
-    static let tightGap: CGFloat = 4
-
     static let headerHeight: CGFloat = 32
-    static let metaHeight: CGFloat = 20
 
     static let body = Font.system(size: 13, weight: .regular)
     static let title = Font.system(size: 12.5, weight: .semibold)

@@ -107,7 +107,8 @@ final class AssistantModel: ObservableObject {
 
     /// 第一阶段：截图 + 网址标题。**必须**在浮窗出现之前跑完，否则浮窗会进画面。
     /// 只做这些，所以很快——读正文留给 `captureText()`，面板显示之后再说。
-    func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil) async {
+    func captureShot(screenshotOnly: Bool? = nil, attachScreenshot: Bool? = nil,
+                     deliverQueuedSend: Bool = true) async {
         guard !isCapturing else { return }
         let screenshotOnly = screenshotOnly ?? (settings.responseMode == .quick)
         // Opening/refocusing Quick with the camera off must not capture either.
@@ -136,7 +137,7 @@ final class AssistantModel: ObservableObject {
         // 不要用 contextIsStale 兼职表示这件事——否则发送时会白截一次图。
         contextIsStale = false
         if pending == nil { dumpIfNeeded() }
-        sendIfQueuedDuringCapture()
+        if deliverQueuedSend { sendIfQueuedDuringCapture() }
     }
 
     /// 第二阶段：读整页正文。
@@ -171,8 +172,12 @@ final class AssistantModel: ObservableObject {
 
     /// 两个阶段一次跑完。手动刷新走这条。
     func captureContext() async {
-        await captureShot(screenshotOnly: false)
-        await captureText()
+        await captureShot(screenshotOnly: false, deliverQueuedSend: false)
+        if pendingText != nil {
+            await captureText()
+        } else {
+            sendIfQueuedDuringCapture()
+        }
     }
 
     private func dumpIfNeeded() {
@@ -331,12 +336,14 @@ final class AssistantModel: ObservableObject {
     }
 
     func panelDidHide() {
+        abandonPreparation()
         // 还在飞的采集就此作废（#41）：它回来时不许再写 packet。
         captureGeneration += 1
         isCapturing = false
         sendsAfterCapture = false
         // 下次打开回到当前对话，而不是停在一个收起的历史列表上。
         showsConversationList = false
+        showsNotes = false
         pendingText = nil
         contextIsStale = true
         stopFollowingFrontWindow()
@@ -443,7 +450,13 @@ final class AssistantModel: ObservableObject {
         // 删的正是在回答的那个：先停下，别让请求继续烧 token、药丸继续显示「生成中」。
         // 准备阶段还没开始流，那时在答的就是当前对话（准备期间切换对话会作废这次提问）。
         let answering = isStreaming ? answeringConversationID : (isPreparingResponse ? store.active?.id : nil)
-        if let answering, answering == id { stopStreaming() }
+        if let answering, answering == id {
+            stopStreaming()
+            responseGeneration = UUID()
+            isStreaming = false
+            answeringConversationID = nil
+            streamTask = nil
+        }
         store.delete(id)
     }
 
@@ -553,14 +566,18 @@ final class AssistantModel: ObservableObject {
             if source == .captionCommand { errorText = String(localized: "请等待回答结束后重试。") }
             return
         }
+        let mode = command.mode ?? .quick
+        let connection: QuestionConnection = LiveCaptions.shared.asksThroughAPI ? .api : .current
+        guard requestConfig(for: mode, connection: connection) != nil else { return }
         // 问满了一个就换一个新的，反正都不保存。
-        if let active = store.active, store.isEphemeral(active.id), store.isAtTurnLimit(active) {
+        if let existing = store.conversations.first(where: { store.isEphemeral($0.id) }),
+           store.isAtTurnLimit(existing) {
             store.discardEphemeral()
         }
         store.activateEphemeral(title: String(localized: "会议提问（不保存）"))
-        send(question: command.question(withCaptions: words, draft: draft), mode: command.mode ?? .quick,
+        send(question: command.question(withCaptions: words, draft: draft), mode: mode,
              screenshot: command.includesScreenshot,
-             connection: LiveCaptions.shared.asksThroughAPI ? .api : .current, source: source)
+             connection: connection, source: source)
     }
 
     /// 最后一条回答能不能用深入重答：快速模式答的、已经答完、此刻没有别的请求在跑。
@@ -809,16 +826,20 @@ final class AssistantModel: ObservableObject {
         stopStreaming()
     }
 
+    /// 还在准备（截图、读正文）、没开始流的提问就此作废；输入框里的问题原样留着。
+    private func abandonPreparation() {
+        guard isPreparingResponse, !isStreaming else { return }
+        preparationTask?.cancel()
+        preparationTask = nil
+        preparingSource = nil
+        responseGeneration = UUID()
+        isPreparingResponse = false
+        lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
+        lastResponseTiming?.outcome = "cancelled"
+    }
+
     func stopStreaming() {
-        if isPreparingResponse, !isStreaming {
-            preparationTask?.cancel()
-            preparationTask = nil
-            preparingSource = nil
-            responseGeneration = UUID()
-            isPreparingResponse = false
-            lastResponseTiming?.finishedAt = ProcessInfo.processInfo.systemUptime
-            lastResponseTiming?.outcome = "cancelled"
-        }
+        abandonPreparation()
         // 准备阶段里可能还有一次采集在飞（ContextCapture 的 continuation
         // 没有取消通道，叫不回来）：让它过期，回来时整份丢弃，别让它填回
         // packet、清掉过期标记，害下一次发送跳过采集（#41）。
@@ -840,11 +861,48 @@ final class AssistantModel: ObservableObject {
 
     func excludeCurrentApp() {
         guard let bundleID = packet?.bundleID, !bundleID.isEmpty else { return }
+        let appName = packet?.appName ?? bundleID
         var list = settings.excludedBundleIDs
         guard !list.contains(bundleID) else { return }
         list.append(bundleID)
         settings.excludedBundleIDs = list
+        captureGeneration += 1
+        isCapturing = false
+        pendingText = nil
+        sendsAfterCapture = false
+        packet = .excluded(appName: appName, bundleID: bundleID)
         refreshContext()
+    }
+
+    func resetAfterDataWipe() {
+        preparationTask?.cancel()
+        preparationTask = nil
+        preparingSource = nil
+        streamTask?.cancel()
+        streamTask = nil
+        responseGeneration = UUID()
+        captureGeneration += 1
+        isPreparingResponse = false
+        isStreaming = false
+        isCapturing = false
+        answeringConversationID = nil
+        sendsAfterCapture = false
+        packet = nil
+        pendingText = nil
+        capturedScreenshotOnly = false
+        contextIsStale = false
+        targetApp = nil
+        input = ""
+        errorText = nil
+        lastResponseTiming = nil
+        lastResponseSkippedPage = false
+        showsConversationList = false
+        showsNotes = false
+        confirmsEviction = false
+        showsOnboarding = false
+        onboardingOfferedThisLaunch = false
+        onboardingDismissedThisLaunch = false
+        Task { await refreshOnboardingReadiness() }
     }
 
     func copyToPasteboard(_ text: String) {

@@ -27,6 +27,32 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { panel?.isVisible == true }
 
+    /// The panel's level: above regular app windows, below the Settings window while it is in use.
+    static let level: NSWindow.Level = .floating
+    /// While the panel asks something (first-run setup, a confirmation alert) it has to be answered
+    /// first, so it rises above the Settings window.
+    static let askingLevel = NSWindow.Level(rawValue: SettingsWindowPresenter.windowLevel.rawValue + 1)
+
+    /// First-run setup waiting while the user is in another app (granting a permission in System
+    /// Settings, usually) steps back to an ordinary window so it does not cover that app.
+    /// Confirmation alerts stay on top: they are answered on the spot.
+    static func level(sheetAttached: Bool, onboarding: Bool, inUse: Bool) -> NSWindow.Level {
+        guard sheetAttached else { return level }
+        return onboarding && !inUse ? .normal : askingLevel
+    }
+
+    /// Called by `WindowLevelCoordinator` whenever the window in use changes.
+    func updateLevel() {
+        guard let panel else { return }
+        Self.updateLevel(of: panel, sheetAttached: panel.attachedSheet != nil)
+    }
+
+    private static func updateLevel(of window: NSWindow, sheetAttached: Bool) {
+        let target = level(sheetAttached: sheetAttached, onboarding: AssistantModel.shared.showsOnboarding,
+                           inUse: window.ownsKeyWindow)
+        WindowLevelCoordinator.apply(target, to: window)
+    }
+
     // MARK: - 显隐
 
     func toggle() {
@@ -152,8 +178,13 @@ final class PanelController: NSObject, NSWindowDelegate {
     private func isIdle(_ panel: NSPanel) -> Bool {
         AppSettings.shared.idleDismissSeconds > 0
             && !panel.isKeyWindow
+            && panel.attachedSheet == nil
+            && !(panel.childWindows?.contains(where: \.isKeyWindow) == true)
             && !isPointerInside
             && !AssistantModel.shared.isStreaming
+            && !AssistantModel.shared.isPreparingResponse
+            && !AssistantModel.shared.showsOnboarding
+            && !AssistantModel.shared.confirmsEviction
             && !PushToTalk.shared.isActive
             && !LiveCaptions.shared.showsStrip
             && !AssistantModel.shared.isCapturing
@@ -274,7 +305,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        panel.level = .floating
+        panel.level = Self.level
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
@@ -395,9 +426,21 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let panel else { return }
-        AssistantModel.shared.setCollapsedSilently(panel.frame.height < Self.minimumExpandedHeight)
+        AssistantModel.shared.setCollapsedSilently((panel.frame.height - Self.extraRowsHeight) < Self.minimumExpandedHeight)
         saveFrame(panel)
         flushFrameSave()
+    }
+
+    // SwiftUI 的 .sheet 和 .alert 在 macOS 上都挂成这个窗口的 sheet。挂上之前就把层级定好，
+    // sheet 一出现就在该在的那一层。
+    func windowWillBeginSheet(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        Self.updateLevel(of: window, sheetAttached: true)
+    }
+
+    func windowDidEndSheet(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        Self.updateLevel(of: window, sheetAttached: window.attachedSheet != nil)
     }
 
     func windowDidResignKey(_ notification: Notification) {
@@ -433,4 +476,48 @@ extension Notification.Name {
     static let wispPanelDidShow = Notification.Name("wispPanelDidShow")
     /// 面板拿到／失去焦点，或者鼠标进出面板。userInfo["active"] 是 Bool。
     static let wispPanelActivityChanged = Notification.Name("wispPanelActivityChanged")
+}
+
+/// Wisp's panel and Settings window pick their level from which window is in use, so it is
+/// re-checked after every key-window or app activation change. The check runs on the next turn
+/// of the main queue: AppKit settles the new key window after posting these notifications.
+@MainActor
+enum WindowLevelCoordinator {
+    private static var observers: [NSObjectProtocol] = []
+
+    static func start() {
+        guard observers.isEmpty else { return }
+        let center = NotificationCenter.default
+        let names: [Notification.Name] = [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
+                                          NSApplication.didBecomeActiveNotification,
+                                          NSApplication.didResignActiveNotification]
+        observers = names.map { name in
+            center.addObserver(forName: name, object: nil, queue: .main) { _ in
+                DispatchQueue.main.async { MainActor.assumeIsolated { refresh() } }
+            }
+        }
+    }
+
+    static func refresh() {
+        PanelController.shared.updateLevel()
+        SettingsWindowPresenter.updateLevel()
+    }
+
+    /// A sheet is moved along with its window, so it never ends up under the window it belongs to.
+    static func apply(_ level: NSWindow.Level, to window: NSWindow) {
+        if window.level != level { window.level = level }
+        if let sheet = window.attachedSheet, sheet.level != level { sheet.level = level }
+    }
+}
+
+extension NSWindow {
+    /// This window, or a sheet or popover hanging off it, is the key window.
+    var ownsKeyWindow: Bool {
+        var candidate = NSApp.keyWindow
+        while let window = candidate {
+            if window === self { return true }
+            candidate = window.sheetParent ?? window.parent
+        }
+        return false
+    }
 }

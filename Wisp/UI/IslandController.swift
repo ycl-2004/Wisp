@@ -13,6 +13,8 @@ final class IslandController: NSObject {
     private var hostingView: PassthroughHostingView<AnyView>?
     private var cancellables = Set<AnyCancellable>()
     private var screenObserver: NSObjectProtocol?
+    private var renderedNotchHasNotch: Bool?
+    private var renderedNotchWidth: CGFloat?
 
     /// 拖动期间的锚点，落盘前先放这儿。
     /// 每帧直接取 NSEvent.mouseLocation，不累加位移：既没有漂移，也不受起手距离影响。
@@ -21,7 +23,7 @@ final class IslandController: NSObject {
     var isDraggable: Bool { position == .bottom }
 
     var windowID: CGWindowID? {
-        guard let panel else { return nil }
+        guard let panel, panel.windowNumber > 0 else { return nil }
         return CGWindowID(panel.windowNumber)
     }
 
@@ -36,7 +38,9 @@ final class IslandController: NSObject {
         guard AppSettings.shared.showIsland else { return }
         let panel = ensurePanel()
         relayout()
-        panel.orderFrontRegardless()
+        if !IslandModel.shared.isDimmed {
+            panel.orderFrontRegardless()
+        }
 
         if screenObserver == nil {
             screenObserver = NotificationCenter.default.addObserver(
@@ -115,8 +119,11 @@ final class IslandController: NSObject {
     private func rebuildContent(on panel: NSPanel) {
         guard let screen = ScreenGeometry.activeScreen ?? NSScreen.main ?? NSScreen.screens.first else { return }
         let info = ScreenGeometry.notch(on: screen)
+        let effectiveWidth = info.hasNotch ? info.width : 0
+        renderedNotchHasNotch = info.hasNotch
+        renderedNotchWidth = effectiveWidth
         let root = AnyView(
-            IslandView(notchWidth: info.hasNotch ? info.width : 0,
+            IslandView(notchWidth: effectiveWidth,
                        hasNotch: info.hasNotch,
                        position: position)
                 .environmentObject(IslandModel.shared)
@@ -136,6 +143,12 @@ final class IslandController: NSObject {
         guard let panel,
               let screen = ScreenGeometry.activeScreen ?? NSScreen.main ?? NSScreen.screens.first else { return }
         let info = ScreenGeometry.notch(on: screen)
+        if position == .notch {
+            let effectiveWidth = info.hasNotch ? info.width : 0
+            if renderedNotchHasNotch != info.hasNotch || renderedNotchWidth != effectiveWidth {
+                rebuildContent(on: panel)
+            }
+        }
         let model = IslandModel.shared
         let state = IslandLayout.state(hovered: model.isHovered,
                                        generating: model.isGenerating,
@@ -240,5 +253,13 @@ final class IslandController: NSObject {
     func resetPosition() {
         AppSettings.shared.islandAnchor = nil
         relayout()
+    }
+
+    func resetAfterDataWipe() {
+        draggingAnchor = nil
+        IslandModel.shared.isDragging = false
+        IslandModel.shared.isGenerating = false
+        applyPositionChange()
+        setEnabled(AppSettings.shared.showIsland)
     }
 }

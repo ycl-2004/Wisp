@@ -81,7 +81,7 @@ struct ContextHeaderView: View {
             .buttonStyle(.plain)
             .help(screenshotChipText)
             .accessibilityLabel("附带截图")
-            .accessibilityValue(settings.sendScreenshot ? "On" : "Off")
+            .accessibilityValue(settings.sendScreenshot ? String(localized: "开") : String(localized: "关"))
             .fixedSize()
 
             // Turning voice on in Settings shows this; captions themselves start here, from the
@@ -95,7 +95,7 @@ struct ContextHeaderView: View {
                 .buttonStyle(.plain)
                 .help(captions.isActive ? "关闭字幕" : "打开字幕")
                 .accessibilityLabel("实时字幕")
-                .accessibilityValue(captions.isActive ? "On" : "Off")
+                .accessibilityValue(captions.isActive ? String(localized: "开") : String(localized: "关"))
                 .fixedSize()
             }
 

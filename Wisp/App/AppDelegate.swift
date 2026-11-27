@@ -136,6 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             PanelController.shared.restoreStoredFrame()
             IslandController.shared.start()
+            WindowLevelCoordinator.start()
             // 菜单栏图标关着的时候，启动完成后什么都不显示等于「打开了但找不到」。
             // 这时候先把面板亮出来，设置也能从它的齿轮进。
             if !AppSettings.shared.showsMenuBarIcon { PanelController.shared.show() }
@@ -220,8 +221,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleAssistant) {
                 item.setShortcut(shortcut)
             } else {
-                item.keyEquivalent = " "
-                item.keyEquivalentModifierMask = [.control, .option]
+                item.keyEquivalent = ""
+                item.keyEquivalentModifierMask = []
             }
             return
         }
@@ -254,6 +255,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
             PresentationDisplay.shared.stop()
+            PushToTalk.shared.cancel()
             LiveCaptions.shared.terminate()
             ConversationStore.shared.flush()
         }

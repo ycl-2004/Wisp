@@ -97,8 +97,20 @@ final class PanelResizeOverlay: NSView {
         // 用屏幕坐标算位移：窗口自己正在移动，窗口内坐标会跟着漂。
         let mouse = NSEvent.mouseLocation
         let translation = NSSize(width: mouse.x - startMouse.x, height: mouse.y - startMouse.y)
-        let frame = PanelResize.frame(from: startFrame, edges: activeEdges, translation: translation,
+        var frame = PanelResize.frame(from: startFrame, edges: activeEdges, translation: translation,
                                       minSize: window.minSize, maxSize: window.maxSize)
+        if let visible = (window.screen ?? ScreenGeometry.activeScreen)?.visibleFrame {
+            if activeEdges.contains(.right), frame.maxX > visible.maxX {
+                frame.size.width = max(window.minSize.width, visible.maxX - frame.minX)
+            } else if activeEdges.contains(.left), frame.minX < visible.minX {
+                frame.size.width = max(window.minSize.width, startFrame.maxX - visible.minX)
+                frame.origin.x = startFrame.maxX - frame.size.width
+            }
+            if activeEdges.contains(.bottom), frame.minY < visible.minY {
+                frame.size.height = max(window.minSize.height, startFrame.maxY - visible.minY)
+                frame.origin.y = startFrame.maxY - frame.size.height
+            }
+        }
         guard frame != window.frame else { return }
         window.setFrame(frame, display: true)
     }

@@ -30,13 +30,13 @@ struct IslandView: View {
             if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleAssistant) {
                 return "\(shortcut)"
             }
-            return "⌃⌥Space"
+            return String(localized: "未设置")
         case .enhancedSingle:
-            return settings.advancedShortcut?.symbolicName(tapCount: 1) ?? "⌃⌥Space"
+            return settings.advancedShortcut?.symbolicName(tapCount: 1) ?? String(localized: "未设置")
         case .doubleTap:
-            return settings.advancedShortcut?.symbolicName(tapCount: 2) ?? "⌃⌃"
+            return settings.advancedShortcut?.symbolicName(tapCount: 2) ?? String(localized: "未设置")
         case .tripleTap:
-            return settings.advancedShortcut?.symbolicName(tapCount: 3) ?? "⌃⌃⌃"
+            return settings.advancedShortcut?.symbolicName(tapCount: 3) ?? String(localized: "未设置")
         }
     }
 
