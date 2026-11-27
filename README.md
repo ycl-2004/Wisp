@@ -197,8 +197,8 @@ The 1080p extended display shows regular application windows from your main disp
   Apple treats this as a legacy mechanism and explicitly says not to rely on it
   to prevent capture. Results depend on macOS and the recorder's capture path;
   the switch being on is not proof that the receiving side cannot see Wisp.
-- Toggle **Try to hide during screen sharing** in the menu bar, or use
-  Settings → Privacy → Screen sharing. Turn it off to record Wisp demos.
+- Toggle **Hide from Capture** in the menu bar, or use
+  Settings → Privacy. Turn it off to record Wisp demos.
 - Local tests on macOS 26.6.1 hid synthetic windows using Wisp's production
   hiding code from ScreenCaptureKit display screenshots and video frames.
   Those same windows remained in ScreenCaptureKit's window list. This is not
@@ -215,7 +215,7 @@ The 1080p extended display shows regular application windows from your main disp
 **Shortcuts**
 
 - The default `⌃⌥Space` shortcut remains available and can be changed in
-  Settings → Permissions. Enhanced mode can record `Shift`, `Globe/Fn`,
+  Settings → Panel. Enhanced mode can record `Shift`, `Globe/Fn`,
   modifier-only shortcuts, and double- or triple-tap sequences. Enhanced mode
   needs Accessibility permission to observe keys while another app is active.
 - Available in English and Simplified Chinese. It follows the system language,
@@ -296,20 +296,21 @@ The 1080p extended display shows regular application windows from your main disp
 
 | Action | Default behavior |
 | --- | --- |
-| `⌃⌥Space` | Show or collapse the panel; configurable in Settings |
-| `⌘↩` | Send |
+| `⌃⌥Space` | Show or collapse the panel; configurable in Settings → Panel |
+| `Return` or `⌘↩` | Send (`⇧↩` inserts a newline) |
 | `⌘.` | Stop generation |
 | `Esc` | Collapse the panel |
 | Header `∧` / `∨` | Switch between compact card and expanded panel |
-| Header `↻` | Refresh the current context |
-| **Screenshot** chip | Include or exclude the screenshot from this request |
-| **Info** chip | Explain what was captured for this request |
+| Island right-click → **Refresh Context** | Refresh the current screen and page context |
+| Camera button | Include or exclude the screenshot from this request |
+| `!` button (when shown) | Show blocking capture details, such as a missing permission or browser JS setting |
 | Speech-bubble button | Open the conversation list |
 
-Wisp refreshes context at three points: when the panel is shown, when the
-frontmost app changes while the panel is open, and before sending if the
-previous capture is older than 20 seconds or you have left the panel. It does
-not automatically recapture while a response is generating.
+Wisp captures context when the panel is shown without a current shot or after
+the frontmost app changed, when you choose **Refresh Context** from the island's
+shortcut menu, and before sending if Deep mode still needs full-page text or you
+switched apps after leaving the panel. It does not automatically recapture while
+a response is generating.
 
 ### Choose a provider
 
@@ -423,7 +424,8 @@ The full policy is in [PRIVACY.md](PRIVACY.md).
 
 **Permissions**
 
-- **Screen Recording:** current-window or entire-screen screenshots.
+- **Screen Recording:** current-window or entire-screen screenshots, plus system-audio capture while live captions are on.
+- **Microphone:** only while the **Hold to Ask** shortcut is held.
 - **Automation / Apple Events:** browser URL and title access, plus page
   JavaScript execution for supported browsers.
 - **Accessibility:** only for the enhanced shortcut mode, to observe Shift,
@@ -458,8 +460,8 @@ collapses to its small circle and rides under the cursor, so you can push it
 flush against a screen edge; when it expands again it grows toward whichever
 side has room rather than always from the middle. It stays where you drop it,
 remembers that position across launches, and is pulled back on screen if your
-display arrangement changes. Settings → **Screen & Permissions** → Reset
-position puts it back at the bottom center, and the same section can switch it
+display arrangement changes. Settings → **Panel** → **Reset Position**
+puts it back at the bottom center, and the same section can switch it
 to the notch form, which stays anchored to the notch. Dragging the island never
 moves the assistant panel — that still opens from the bottom center and keeps
 its own position.
@@ -534,14 +536,14 @@ screenshots are not written to Wisp's conversation file.
 <summary>How do I uninstall Wisp?</summary>
 
 Quit Wisp from the menu-bar icon, then move `Wisp.app` to the Trash. To also
-remove local conversations, preferences, and debug files, delete:
+remove local conversations, preferences, and debug files, run:
 
-```text
-~/Library/Application Support/Wisp/
+```bash
+rm -rf "$HOME/Library/Application Support/Wisp"
+defaults delete com.yichenlin.Wisp
 ```
 
-The API key must also be removed from the **Data** settings page or deleted
-from the macOS Keychain.
+Saved API keys can be cleared before uninstalling via **Settings → Data → Delete All Data & Settings**, or deleted afterwards in **Keychain Access** under `com.yichenlin.Wisp`.
 
 </details>
 
@@ -711,7 +713,7 @@ resolution, and public documentation are tracked.
   permission, browser JavaScript settings, and page security boundaries.
 - Codex streaming requires a CLI with the app-server v2 protocol (verified with
   0.153.4). Each request still carries Codex's own fixed context cost.
-- Antigravity streams agent response deltas (verified with 1.1.27); older versions
+- Antigravity streams agent response deltas (verified with 1.1.27 and 1.5.18); older versions
   that emit only a final result display that result at completion. Each request
   carries Antigravity's own fixed context cost — previously measured at about 30,400 tokens before
   any of Wisp's content. Screenshots are passed as files because Antigravity's headless

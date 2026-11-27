@@ -22,7 +22,7 @@ Wisp does not auto-approve server requests.
 
 The app-server is long-lived by design, so Wisp terminates its own process at
 the end of each request, with a forced-stop fallback. It never connects to or
-stops an existing Codex daemon. The 240-second timeout remains in effect.
+stops an existing Codex daemon. The 300-second timeout remains in effect.
 There is no fallback to `exec`: unsupported app-server versions return an error.
 
 Protocol source: [OpenAI App Server documentation](https://developers.openai.com/codex/app-server).
@@ -35,7 +35,7 @@ This integration runs `agy`, not Google's `gemini` CLI. It retains the existing
 prompt budget, `--sandbox`, screenshot paths and 300-second timeout, changing
 the output mode to `--output-format stream-json`.
 
-AGY 1.1.27 emits `event: step_update` with a nested `step_update`; only
+AGY (verified on 1.1.27 and 1.5.18) emits `event: step_update` with a nested `step_update`; only
 `step_type: agent_response` and its `text_delta` enter the answer. A `DONE`
 step can still carry the last delta. A successful `event: result` plus a zero
 process exit code is required. The final response is used as a fallback when

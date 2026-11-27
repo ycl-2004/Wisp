@@ -43,7 +43,7 @@ while an answer is being prepared or streamed. Every automatic answer is a model
 Automatic answers leave the input draft untouched and send only the caption command's material.
 
 **Ask through the API connection**, on by default: caption questions use the API configured
-in Settings → Models whatever connection the panel currently uses. An agent CLI starts a
+in Settings → Model whatever connection the panel currently uses. An agent CLI starts a
 process for each question, so the API usually produces the first words sooner.
 
 ## Recognition

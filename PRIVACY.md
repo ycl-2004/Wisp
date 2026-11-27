@@ -2,7 +2,7 @@
 
 
 
-Last updated: 2026-09-10. Applies to Wisp for macOS.
+Last updated: 2026-11-26. Applies to Wisp for macOS.
 
 ## The short version
 
@@ -46,8 +46,8 @@ directory to `0700`, including existing installations when accessed. This
 restricts other local accounts, not processes running as you, administrators,
 backup software, or copies made earlier. Page text captured from a
 logged-in page is stored there in full, up to the page-text limit, and is not
-evicted by age — it stays until you delete it. Settings → Data → Reset removes
-the conversation file, the debug files, and the Keychain entry.
+evicted by age — it stays until you delete it. Settings → Data → Delete All Data & Settings removes
+the conversation file, the debug files, and the Keychain entries, and resets settings to defaults.
 
 Conversation and turn counts are limited in Settings → Data (defaults: ten
 conversations, thirty user turns each). These are not strict byte limits: message
@@ -93,7 +93,7 @@ is held; with Apple on-device it stays on this Mac.
 
 Earlier versions of Wisp kept listening sessions under
 `~/Library/Application Support/Wisp/Listening/`. This version neither reads nor writes
-that folder; delete it in Finder if it exists, or use Settings → Data → Delete all data.
+that folder; delete it in Finder if it exists, or use Settings → Data → Delete All Data & Settings.
 See [usage and measurements](docs/live-listening.md).
 
 Captions do not identify speakers or applications: whatever this Mac plays is captioned,
@@ -140,7 +140,7 @@ are hidden from shared screens.
   screenshots are the only files placed in that workspace, which Wisp deletes
   when the command ends. Claude Code's account, network use, and server-side
   logging are outside Wisp's control.
-- **Update check.** If Settings → General → "Check for a new version at launch"
+- **Update check.** If Settings → General → "Check for Updates at Launch"
   is on, Wisp asks `api.github.com` once per launch for the latest release tag.
   The request carries no identifier beyond what any HTTP request carries — your
   IP address and a `Wisp/<version>` user agent. Nothing is downloaded or
@@ -250,8 +250,8 @@ for the tested configurations and remaining gaps.
 
 The menu bar icon is drawn by the system, not by a Wisp window, so the hiding
 preference cannot apply to it and it appears in any recording or shared screen.
-Settings → Screen sharing can hide the icon; the assistant panel then shows a gear
-button, and the global shortcut still works. Wisp's Settings window is also visible
+Settings → Privacy can hide the icon; the assistant panel always includes a gear
+button to open Settings, and the global shortcut still works. Wisp's Settings window is also visible
 in Mission Control even while hiding is on, unlike the assistant panel and island.
 
 Wisp is not sandboxed. It needs Apple Events and unrestricted screen access to
