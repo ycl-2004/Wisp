@@ -35,9 +35,14 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
         self.onFailure = onFailure
     }
 
+    /// How long opening the stream may take before captions give up.
+    static let handshakeTimeout: TimeInterval = 15
+
     /// Opens the stream and sends the configuration. A rejected key or quota arrives as the
     /// server's first response, through `onFailure`.
     static func start(apiKey: String?, locale: String,
+                      endpoint: URL = SonioxSpeech.endpoint,
+                      handshakeTimeout: TimeInterval = SonioxSpeech.handshakeTimeout,
                       onUpdate: @escaping @Sendable (CaptionUpdate) -> Void,
                       onFailure: @escaping @Sendable (String) -> Void) async throws -> SonioxSpeech {
         guard let apiKey, !apiKey.isEmpty else {
@@ -49,11 +54,30 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
         let task = session.webSocketTask(with: request)
         let speech = SonioxSpeech(session: session, task: task, onUpdate: onUpdate, onFailure: onFailure)
         task.resume()
+        // The session's and the request's timeouts do not bound a WebSocket handshake: against a
+        // server that accepts the connection and never answers the upgrade, `send` waits forever
+        // (measured on macOS 27.2). The deadline is kept here instead.
+        let watchdog = Task { () -> Bool in
+            do { try await Task.sleep(for: .seconds(handshakeTimeout)) } catch { return false }
+            task.cancel(with: .goingAway, reason: nil)
+            return true
+        }
+        var sendError: Error?
         do {
-            try await task.send(.string(configuration(locale: locale)))
+            try await withTaskCancellationHandler {
+                try await task.send(.string(configuration(locale: locale)))
+            } onCancel: {
+                task.cancel(with: .goingAway, reason: nil)
+            }
         } catch {
+            sendError = error
+        }
+        watchdog.cancel()
+        let timedOut = await watchdog.value
+        if timedOut || sendError != nil {
             session.invalidateAndCancel()
-            throw error
+            if timedOut { throw ListeningFailure(message: String(localized: "连接 Soniox 超时，请检查网络后重试。")) }
+            if let sendError { throw sendError }
         }
         speech.receive()
         return speech
@@ -86,7 +110,7 @@ final class SonioxSpeech: SpeechFeed, @unchecked Sendable {
     /// current guess. `<end>` and `<fin>` mark endpoints, not speech.
     static func parse(_ text: String) -> Message? {
         guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else { return nil }
-        if let code = object["error_code"] {
+        if let code = object["error_code"], !(code is NSNull) {
             let message = object["error_message"] as? String ?? ""
             return .failure(String(localized: "Soniox 拒绝了请求（\(String(describing: code))）：\(message)"))
         }

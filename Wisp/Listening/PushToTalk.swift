@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 
 /// Hold a shortcut, ask out loud, release: the words go out with the current screen context in the
@@ -29,8 +30,18 @@ final class PushToTalk: ObservableObject {
     private var startTask: Task<Void, Never>?
     private var limitTimer: Timer?
     private var generation = UUID()
+    private var observers: [NSObjectProtocol] = []
 
-    private init() {}
+    private init() {
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.sessionDidResignActiveNotification] {
+            observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, self.isActive else { return }
+                    self.cancel()
+                }
+            })
+        }
+    }
 
     var isActive: Bool { state != .idle }
 
@@ -104,7 +115,11 @@ final class PushToTalk: ObservableObject {
 
     private func fail(_ message: String, generation: UUID) {
         guard self.generation == generation else { return }
+        let partial = state == .finishing ? words.text : ""
         cancel()
+        if !partial.isEmpty {
+            _ = AssistantModel.shared.stageSpeechDraft(partial)
+        }
         error = message
     }
 
@@ -115,6 +130,8 @@ final class PushToTalk: ObservableObject {
         state = .finishing
         Task {
             let issue = await capture.stop()
+            // Let any MainActor `receive` Task queued right before `isDrained` flipped run first.
+            await Task.yield()
             guard self.generation == generation else { return }
             let text = words.text
             reset()
@@ -135,6 +152,7 @@ final class PushToTalk: ObservableObject {
     }
 
     private func reset() {
+        generation = UUID()
         limitTimer?.invalidate()
         limitTimer = nil
         startTask = nil

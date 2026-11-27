@@ -59,7 +59,7 @@ final class LiveCaptions: ObservableObject {
     var isActive: Bool { state != .idle }
     var isRunning: Bool { state == .running }
     /// The panel shows the caption strip: running, or explaining why it stopped.
-    var showsStrip: Bool { isActive || message != nil }
+    var showsStrip: Bool { isEnabled && (isActive || message != nil) }
 
     /// How long a question waits for the words still being recognized: the question is usually the
     /// last thing said. Recognition settles about 0.5–1 s after speech ends.
@@ -74,7 +74,10 @@ final class LiveCaptions: ObservableObject {
     private init() {
         for name in [NSWorkspace.willSleepNotification, NSWorkspace.sessionDidResignActiveNotification] {
             observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.stop(reason: String(localized: "电脑进入睡眠或锁定，字幕已停止。")) }
+                Task { @MainActor in
+                    guard let self, self.isActive else { return }
+                    self.stop(reason: String(localized: "电脑进入睡眠或锁定，字幕已停止。"))
+                }
             })
         }
     }

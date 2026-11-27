@@ -4,13 +4,19 @@ import ScreenCaptureKit
 
 /// Hands audio to a recognizer on one serial queue, never on the realtime audio thread.
 final class ListeningAudioSink: @unchecked Sendable {
+    static let maxBufferedChunks = 32
+
     let queue: DispatchQueue
     private let feed: SpeechFeed
-    private let capacity = DispatchSemaphore(value: 32)
-    private let overflowLock = NSLock()
+    private let stateLock = NSLock()
+    private var inFlight = 0
     private var overflowReported = false
-    nonisolated private let onFailure: @Sendable (String) -> Void
+    /// 还收不收新的音频块。
     private var acceptsAudio = true
+    /// 已经排进队列的块还送不送给识别器：`finish()` 要先把它们送完再结束，
+    /// 那几块往往就是最后一句话；`cancel()` 和溢出才直接丢。
+    private var deliversAudio = true
+    nonisolated private let onFailure: @Sendable (String) -> Void
 
     init(feed: SpeechFeed, queue: DispatchQueue, onFailure: @escaping @Sendable (String) -> Void) {
         self.feed = feed
@@ -23,37 +29,54 @@ final class ListeningAudioSink: @unchecked Sendable {
     }
 
     func enqueue(_ buffer: AVAudioPCMBuffer) {
-        guard capacity.wait(timeout: .now()) == .success else {
-            overflowLock.lock()
-            let shouldReport = !overflowReported
-            overflowReported = true
-            overflowLock.unlock()
-            guard shouldReport else { return }
-            queue.async { [weak self] in
-                guard let self, self.acceptsAudio else { return }
-                self.acceptsAudio = false
-                self.onFailure(String(localized: "音频处理跟不上输入，字幕已停止。请关闭其他高负载应用后重试。"))
+        enum Decision { case accept, ignore, overflow }
+        let decision: Decision = stateLock.withLock {
+            guard acceptsAudio else { return .ignore }
+            guard inFlight < Self.maxBufferedChunks else {
+                guard !overflowReported else { return .ignore }
+                overflowReported = true
+                acceptsAudio = false
+                deliversAudio = false
+                return .overflow
             }
-            return
+            inFlight += 1
+            return .accept
         }
-        queue.async { [weak self] in
-            guard let self else { return }
-            defer { self.capacity.signal() }
-            guard self.acceptsAudio else { return }
-            self.feed.append(buffer)
+        switch decision {
+        case .ignore:
+            return
+        case .overflow:
+            queue.async { [weak self] in
+                self?.onFailure(String(localized: "音频处理跟不上输入，字幕已停止。请关闭其他高负载应用后重试。"))
+            }
+        case .accept:
+            queue.async { [weak self] in
+                guard let self else { return }
+                defer {
+                    self.stateLock.withLock { self.inFlight = max(0, self.inFlight - 1) }
+                }
+                guard self.stateLock.withLock({ self.deliversAudio }) else { return }
+                self.feed.append(buffer)
+            }
         }
     }
 
+    /// 不再收新块；队列里排在前面的块照常送完，然后结束音频。
     func finish() {
+        stateLock.withLock { acceptsAudio = false }
         queue.sync {
-            acceptsAudio = false
+            // 判定通过、却排在这一步之后才入队的块，会落到 endAudio 之后，必须丢掉。
+            stateLock.withLock { deliversAudio = false }
             feed.endAudio()
         }
     }
 
     func cancel() {
-        queue.sync {
+        stateLock.withLock {
             acceptsAudio = false
+            deliversAudio = false
+        }
+        queue.sync {
             feed.cancel()
         }
     }
@@ -207,9 +230,10 @@ final class ListeningCapture: NSObject, SCStreamOutput, SCStreamDelegate {
 
     func terminate() {
         stopMicrophone()
-        sink.cancel()
-        if let stream { Task { try? await stream.stopCapture() } }
+        let activeStream = stream
         stream = nil
+        sink.cancel()
+        if let activeStream { Task { try? await activeStream.stopCapture() } }
     }
 }
 
