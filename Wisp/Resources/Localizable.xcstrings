@@ -274,7 +274,7 @@
         }
       }
     },
-    "Off": {
+    "关": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -285,12 +285,12 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Off"
+            "value": "关"
           }
         }
       }
     },
-    "On": {
+    "开": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -301,7 +301,23 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "On"
+            "value": "开"
+          }
+        }
+      }
+    },
+    "重置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置"
           }
         }
       }
@@ -3794,70 +3810,6 @@
         }
       }
     },
-    "Command、Option、Control 等常规组合": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Command, Option, Control, and other standard combinations"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Command、Option、Control 等常规组合"
-          }
-        }
-      }
-    },
-    "支持 Shift、Globe/Fn 和单独的修饰键": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supports Shift, Globe/Fn, and modifier-only keys"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "支持 Shift、Globe/Fn 和单独的修饰键"
-          }
-        }
-      }
-    },
-    "连续按两次同一个键，例如 Control": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press the same key twice in a row, such as Control"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连续按两次同一个键，例如 Control"
-          }
-        }
-      }
-    },
-    "连续按三次同一个键": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press the same key three times in a row"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连续按三次同一个键"
-          }
-        }
-      }
-    },
     "开始录制": {
       "localizations": {
         "en": {
@@ -5015,7 +4967,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reset"
+            "value": "Clear"
           }
         },
         "zh-Hans": {
@@ -6114,18 +6066,18 @@
         }
       }
     },
-    "\n\n[…… 此处省略正文中间 %lld 字。上一段结束于「%@」，下一段开始于「%@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n": {
+    "此处省略正文中间 %lld 字。上一段结束于「%@」，下一段开始于「%@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "\n\n[…… %1$lld characters omitted from the middle here. The text above ends with “%2$@” and resumes at “%3$@”. If your answer needs this passage, say so and tell the user where to scroll ……]\n\n"
+            "value": "%1$lld characters omitted from the middle here. The text above ends with “%2$@” and resumes at “%3$@”. If your answer needs this passage, say so and tell the user where to scroll ……]\n\n"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\n\n[…… 此处省略正文中间 %1$lld 字。上一段结束于「%2$@」，下一段开始于「%3$@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n"
+            "value": "此处省略正文中间 %1$lld 字。上一段结束于「%2$@」，下一段开始于「%3$@」。回答时若需要这部分内容，请说明并让用户滚动到对应位置 ……]\n\n"
           }
         }
       }
@@ -7558,22 +7510,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已授权"
-          }
-        }
-      }
-    },
-    "无法列出应用。请在系统设置 → 隐私与安全性中允许 Wisp 录制屏幕与系统音频。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unable to list apps. Allow Wisp to record screen and system audio in System Settings → Privacy & Security."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法列出应用。请在系统设置 → 隐私与安全性中允许 Wisp 录制屏幕与系统音频。"
           }
         }
       }
@@ -9830,6 +9766,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "发送"
+          }
+        }
+      }
+    },
+    "连接 Soniox 超时，请检查网络后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting to Soniox timed out. Check your network and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接 Soniox 超时，请检查网络后重试。"
           }
         }
       }
